@@ -13,9 +13,9 @@ signal download_progress(received_bytes: int, total_bytes: int, percent: float)
 signal download_completed(local_file_path: String)
 signal download_failed(reason: String)
 
-@export var enabled: bool = false ## Активировать проверку при старте (пока false)
-@export var repo_owner: String = "good_boy_irl"
-@export var repo_name: String = "DroneFlames"
+@export var enabled: bool = true ## Активировать проверку при старте
+@export var repo_owner: String = "makkaX2"
+@export var repo_name: String = "DroneFlames-PC-Port"
 @export var current_version: String = "0.32.0"
 
 var _http_check: HTTPRequest

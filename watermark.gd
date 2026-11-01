@@ -17,6 +17,20 @@ func _ready() -> void:
 	get_tree().node_added.connect(_on_node_added)
 	get_tree().root.size_changed.connect(_on_resized)
 	_on_resized()
+	_setup_updater()
+
+func _setup_updater() -> void:
+	if has_node("/root/Updater"):
+		var up = get_node("/root/Updater")
+		up.update_available.connect(_on_update_available)
+
+func _on_update_available(new_version: String, _changelog: String, dl_url: String, asset_name: String) -> void:
+	if top_panel and top_panel.get_child_count() > 0:
+		var lbl = top_panel.get_child(0) as Label
+		if lbl:
+			lbl.text = "🚀 Доступно обновление: v" + new_version + "!"
+			lbl.add_theme_color_override("font_color", Color(0.2, 1.0, 0.4, 1.0))
+			_on_resized()
 
 func _process(_delta: float) -> void:
 	var win := get_window()
