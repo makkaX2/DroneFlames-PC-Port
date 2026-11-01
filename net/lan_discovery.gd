@@ -68,7 +68,7 @@ static func sweep_targets() -> PackedStringArray:
 	for a: String in IP.get_local_addresses():
 		if a.count(".") != 3:
 			continue
-		if not (a.begins_with("192.168.") or a.begins_with("10.") or _is_172_private(a)):
+		if not (a.begins_with("192.168.") or a.begins_with("10.") or a.begins_with("26.") or a.begins_with("25.") or _is_172_private(a)):
 			continue
 		nets[a.substr(0, a.rfind("."))] = true
 	for n: String in nets:

@@ -6,13 +6,19 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.1 (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.2 (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
-	"ПК-УПРАВЛЕНИЕ: настраиваемое меню кейбиндов в Настройках, поддержка мыши (СКМ/ПКМ) и клавиатуры",
-	"ШИРОКИЙ ЭКРАН 16:9: горизонтальный 1-строчный HUD, стрелочки < и > для быстрой навигации, нумерация 1–7",
-	"ОКНА ПО ЦЕНТРУ: Дипломатия, Экономический хаб, Склад и Торговля открываются по центру экрана, нижний бар активен",
-	"ОРИГИНАЛЬНОСТЬ: полностью сохранено аутентичное интро и логотип DroneFlames",
+	"ПК-ПОРТ: управление клавиатурой и мышью (WASD, зум колесом, F11 полный экран)",
+	"КАСТОМНЫЕ КЕЙБИНДЫ: меню настройки управления в Настройках для клавиатуры и мыши (СКМ/ПКМ)",
+	"ШИРОКИЙ ЭКРАН 16:9: горизонтальный 1-строчный HUD, стрелочки < и > для навигации, нумерация 1–7",
+	"МУЛЬТИПЛЕЕР RADMIN/IP: прямое подключение по IP-адресу без ограничений",
+	"РАЗБЛОКИРОВАНА ВСЯ КОСМЕТИКА: все 99 предметов кастомизации, рамки, фоны и титулы",
+	"НОВОЕ В v0.33.2: фронты против соседа без войны больше не исчезают; аэродромы, порты и склады восстанавливаются",
+	"НОВОЕ В v0.33.2: настройка «Размер интерфейса» (80–100%) в разделе «Графика»; очередь верфи прокручивается",
+	"ОПТИМИЗАЦИЯ v0.33.2: 60 FPS по умолчанию, 30 FPS в меню и на паузе, ускорение сохранения и меньше фризов",
+	"АРМИЯ v0.33.2: приказы больше не теряются, ровнее маршруты, адекватное авто-командование штаба",
+	"ИСПРАВЛЕНО В v0.33.2: сохранение после конца партии, окно ультиматума, туман войны, осколки погибших стран",
 ]
 
 var gw: GameWorld
@@ -20,6 +26,7 @@ var net: NetSession
 const KeybindManager = preload("res://core/keybind_manager.gd")
 const SavesUI = preload("res://ui/saves_ui.gd")
 var _mp_code: String = ""
+var _mp_lan_ip: String = ""
 var _mp_browse_ms: int = 0
 var _nick_edit: LineEdit = null
 var root: Control
@@ -1743,6 +1750,8 @@ func show_mp(msg: String = "", sev: String = "") -> void :
 		vb.add_child(_mp_list)
 	if _mp_tab == 1 and open_ok:
 		_mp_code_row(vb)
+	elif _mp_tab == 0:
+		_mp_lan_ip_row(vb)
 	else:
 		_mp_join_b = null
 	_mp_fill_list()
@@ -2033,6 +2042,61 @@ func _mp_join_code(code: String) -> void :
 		show_mp(w)
 	else:
 		show_lobby()
+
+
+func _mp_lan_ip_row(vb: VBoxContainer) -> void :
+	MpKit.section(vb, "ПРЯМОЕ ПОДКЛЮЧЕНИЕ (RADMIN / IP)")
+	var cr: = HBoxContainer.new()
+	cr.add_theme_constant_override("separation", 6)
+	vb.add_child(cr)
+	var ce: = LineEdit.new()
+	ce.placeholder_text = "26.x.x.x или 192.168.x.x"
+	ce.max_length = 32
+	ce.text = _mp_lan_ip
+	ce.custom_minimum_size = Vector2(0, 44)
+	ce.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ce.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ce.add_theme_font_size_override("font_size", 16)
+	ce.add_theme_color_override("font_placeholder_color", UiKit.MUTED)
+	cr.add_child(ce)
+	var paste: Button = UiKit.slot("net_paste", false, 44.0)
+	paste.tooltip_text = "Вставить IP из буфера"
+	cr.add_child(paste)
+	var jb: Button = UiKit.big("ВОЙТИ", "blue", "", 44.0, 13)
+	jb.custom_minimum_size.x = 82
+	cr.add_child(jb)
+	var valid_ip: Callable = func() -> bool:
+		var s: String = _mp_lan_ip.strip_edges()
+		return s.length() >= 7 and s.contains(".")
+	jb.disabled = not valid_ip.call()
+	ce.text_changed.connect( func(t: String) -> void :
+		_mp_lan_ip = t.strip_edges()
+		jb.disabled = not valid_ip.call())
+	ce.text_submitted.connect( func(_t: String) -> void :
+		if valid_ip.call():
+			_connect_lan_ip(_mp_lan_ip))
+	paste.pressed.connect( func() -> void :
+		var clip: String = DisplayServer.clipboard_get().strip_edges()
+		if clip.length() >= 7 and clip.contains("."):
+			_mp_lan_ip = clip
+			ce.text = clip
+			jb.disabled = false
+			UiKit.pop_in(jb, 0.94, 0.2)
+		else:
+			show_mp("В буфере нет IP-адреса"))
+	jb.pressed.connect( func() -> void :
+		_connect_lan_ip(_mp_lan_ip))
+
+
+func _connect_lan_ip(target: String) -> void :
+	var s: String = target.strip_edges()
+	var port: int = NetConfig.LAN_PORT
+	if s.contains(":"):
+		var parts: PackedStringArray = s.split(":")
+		s = parts[0]
+		if parts.size() > 1 and parts[1].is_valid_int():
+			port = int(parts[1])
+	_mp_join_lan(s, port)
 
 
 
@@ -2601,6 +2665,15 @@ func show_settings_sub(kind: String) -> void :
 	current = "settings_" + kind
 	_sheet = kind != "gfx"
 	if kind == "gfx":
+		var uis: Array = []
+		for k347: Variant in GameConfig.UI_SCALES:
+			uis.append("%d%%" % roundi(float(k347) * 100.0))
+		_selector(vb, "РАЗМЕР ИНТЕРФЕЙСА", uis, func() -> int: return GameConfig.ui_scale_i, func(i: int) -> void :
+			if i == GameConfig.ui_scale_i:
+				return
+			GameConfig.ui_scale_i = i
+			Save.apply_ui_scale()
+			Save.save_prefs(), VW_SHORT)
 		_selector(vb, "ДЕНЬ/НОЧЬ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.night else 1, func(i: int) -> void : GameConfig.night = i == 0, VW_SHORT)
 		_selector(vb, "ЦВЕТ СУТОК", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.day_grade else 1, func(i: int) -> void : GameConfig.day_grade = i == 0, VW_SHORT)
 		_selector(vb, "ОБЛАКА", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.clouds else 1, func(i: int) -> void : GameConfig.clouds = i == 0, VW_SHORT)
@@ -2608,8 +2681,10 @@ func show_settings_sub(kind: String) -> void :
 		_selector(vb, "ДЕТАЛИ ЗЕМЛИ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.ground_detail else 1, func(i: int) -> void : GameConfig.ground_detail = i == 0, VW_SHORT)
 		_selector(vb, "ЦИФРЫ ДОХОДА", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.econ_fx else 1, func(i: int) -> void : GameConfig.econ_fx = i == 0, VW_SHORT)
 
-
-		_selector(vb, "ЭНЕРГОСБЕРЕЖЕНИЕ · 45 FPS", ["ВЫКЛ", "ВКЛ"], func() -> int: return 1 if GameConfig.power_save else 0, func(i: int) -> void :
+		_selector(vb, "ЧАСТОТА КАДРОВ", ["30", "60", "МАКС"], func() -> int: return GameConfig.fps_i, func(i: int) -> void :
+			GameConfig.fps_i = i
+			Save.apply_power_save(), VW_SHORT)
+		_selector(vb, "ЭНЕРГОСБЕРЕЖЕНИЕ · 30 FPS" if GameConfig.android else "ЭНЕРГОСБЕРЕЖЕНИЕ · 45 FPS", ["ВЫКЛ", "ВКЛ"], func() -> int: return 1 if GameConfig.power_save else 0, func(i: int) -> void :
 			GameConfig.power_save = i == 1
 			Save.apply_power_save(), VW_SHORT)
 		if GameConfig.dev_mode:

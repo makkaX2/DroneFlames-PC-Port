@@ -6,6 +6,27 @@ signal zoom_changed(z: float)
 
 const ZOOMS: Array = [0.25, 0.5, 1.0, 2.0, 3.0, 4.0]
 
+
+
+static var ui_k: float = 1.0
+static var zs: Array = ZOOMS.duplicate()
+
+
+
+static func zk(z: float) -> float:
+	return z / ui_k
+
+
+static func set_ui_k(k: float, cam: Camera2D = null) -> void :
+	var old: float = ui_k
+	ui_k = clampf(k, 0.5, 2.0)
+	zs = []
+	for z: Variant in ZOOMS:
+		zs.append(float(z) / ui_k)
+	if cam is MapCamera and is_instance_valid(cam) and absf(old - ui_k) > 0.001:
+		var mc: MapCamera = cam
+		mc.set_zoom_at(mc.zoom.x * old / ui_k, mc.view_size() * 0.5)
+
 var world_px: Vector2 = Vector2(4096, 4096)
 
 
@@ -24,6 +45,7 @@ var smooth_zoom_enabled: bool = true
 var smooth_zoom_speed: float = 15.0
 var zoom_step_factor: float = 1.25
 var _target_z: float = 0.0
+
 
 var _settle_z: float = 0.0
 var _settle_f: Vector2 = Vector2.ZERO
@@ -54,7 +76,7 @@ var _held_m: bool = false
 
 func min_zoom() -> float:
 	if floor_z > 0.0:
-		return floor_z if floor_z < float(ZOOMS[0]) else float(ZOOMS[0])
+		return floor_z if floor_z < float(zs[0]) else float(zs[0])
 	return strat_floor()
 
 
@@ -73,7 +95,7 @@ func strat_k() -> float:
 
 
 static func strat_k_of(z: float) -> float:
-	var t: float = (log(float(ZOOMS[0])) - log(maxf(z, 0.001))) / (log(float(ZOOMS[0])) - log(STRAT_FULL))
+	var t: float = (log(float(zs[0])) - log(maxf(z, 0.001))) / (log(float(zs[0])) - log(STRAT_FULL))
 	return smoothstep(0.0, 1.0, t)
 
 
@@ -179,7 +201,7 @@ func set_zoom_at(z: float, focus: Vector2) -> void :
 
 func _zoom_at(z: float, focus: Vector2) -> void :
 	var before: Vector2 = screen_to_world(focus)
-	z = clampf(z, min_zoom(), float(ZOOMS[ZOOMS.size() - 1]))
+	z = clampf(z, min_zoom(), float(zs[zs.size() - 1]))
 	var z0: float = zoom.x
 	zoom = Vector2(z, z)
 	var after: Vector2 = screen_to_world(focus)
@@ -201,7 +223,7 @@ func smooth_step_zoom(dir: int, focus: Vector2) -> void :
 	var cur_tgt: float = _target_z if _target_z > 0.0 else zoom.x
 	var factor: float = pow(zoom_step_factor, float(dir))
 	var new_z: float = cur_tgt * factor
-	var max_z: float = float(ZOOMS[ZOOMS.size() - 1]) * 1.5
+	var max_z: float = float(zs[zs.size() - 1]) * 1.5
 	new_z = clampf(new_z, min_zoom(), max_z)
 	_target_z = new_z
 	_settle_z = new_z
@@ -220,52 +242,52 @@ func step_zoom(dir: int, focus: Vector2) -> void :
 	if smooth_zoom_enabled:
 		smooth_step_zoom(dir, focus)
 		return
-	if floor_z <= 0.0 and (zoom.x < float(ZOOMS[0]) - 0.001 or dir < 0):
+	if floor_z <= 0.0 and (zoom.x < float(zs[0]) - 0.001 or dir < 0):
 		var z0: float = zoom.x
-		if dir < 0 and z0 <= float(ZOOMS[0]) + 0.001:
+		if dir < 0 and z0 <= float(zs[0]) + 0.001:
 			set_zoom_at(maxf(min_zoom(), STRAT_FULL if z0 > STRAT_FULL + 0.001 else z0 * STRAT_WHEEL), focus)
 			return
-		if dir > 0 and z0 < float(ZOOMS[0]) - 0.001:
-			set_zoom_at(float(ZOOMS[0]) if z0 >= STRAT_FULL - 0.001 else minf(STRAT_FULL, z0 / STRAT_WHEEL), focus)
+		if dir > 0 and z0 < float(zs[0]) - 0.001:
+			set_zoom_at(float(zs[0]) if z0 >= STRAT_FULL - 0.001 else minf(STRAT_FULL, z0 / STRAT_WHEEL), focus)
 			return
-	if min_zoom() < float(ZOOMS[0]):
-		if dir < 0 and zoom.x <= float(ZOOMS[0]) + 0.001:
+	if min_zoom() < float(zs[0]):
+		if dir < 0 and zoom.x <= float(zs[0]) + 0.001:
 			set_zoom_at(min_zoom(), focus)
 			return
-		if dir > 0 and zoom.x < float(ZOOMS[0]) - 0.001:
-			set_zoom_at(float(ZOOMS[0]), focus)
+		if dir > 0 and zoom.x < float(zs[0]) - 0.001:
+			set_zoom_at(float(zs[0]), focus)
 			return
 	var idx: int = nearest_index(zoom.x)
-	idx = clampi(idx + dir, 0, ZOOMS.size() - 1)
-	set_zoom_at(float(ZOOMS[idx]), focus)
+	idx = clampi(idx + dir, 0, zs.size() - 1)
+	set_zoom_at(float(zs[idx]), focus)
 
 
 func snap_zoom(focus: Vector2) -> void :
-	set_zoom_at(float(ZOOMS[nearest_index(zoom.x)]), focus)
+	set_zoom_at(float(zs[nearest_index(zoom.x)]), focus)
 
 
 
 
 func settle_zoom(focus: Vector2, dir: int) -> void :
-	var z: float = clampf(zoom.x, min_zoom(), float(ZOOMS[ZOOMS.size() - 1]))
-	if floor_z <= 0.0 and z < float(ZOOMS[0]) - 0.0001:
+	var z: float = clampf(zoom.x, min_zoom(), float(zs[zs.size() - 1]))
+	if floor_z <= 0.0 and z < float(zs[0]) - 0.0001:
 
 
 		if z <= STRAT_FULL + 0.0001:
 			set_zoom_at(z, focus)
 			return
-		var tb: float = (log(float(ZOOMS[0])) - log(z)) / (log(float(ZOOMS[0])) - log(STRAT_FULL))
+		var tb: float = (log(float(zs[0])) - log(z)) / (log(float(zs[0])) - log(STRAT_FULL))
 		var thb: float = 0.5 + 0.3 * float(signi(dir))
-		_settle_z = maxf(min_zoom(), STRAT_FULL) if tb >= thb else float(ZOOMS[0])
+		_settle_z = maxf(min_zoom(), STRAT_FULL) if tb >= thb else float(zs[0])
 		_settle_f = focus
 		return
-	if z < float(ZOOMS[0]) - 0.0001:
-		set_zoom_at(min_zoom() if z < sqrt(min_zoom() * float(ZOOMS[0])) else float(ZOOMS[0]), focus)
+	if z < float(zs[0]) - 0.0001:
+		set_zoom_at(min_zoom() if z < sqrt(min_zoom() * float(zs[0])) else float(zs[0]), focus)
 		return
-	var tgt: float = float(ZOOMS[nearest_index(z)])
-	for i in ZOOMS.size() - 1:
-		var lo: float = float(ZOOMS[i])
-		var hi: float = float(ZOOMS[i + 1])
+	var tgt: float = float(zs[nearest_index(z)])
+	for i in zs.size() - 1:
+		var lo: float = float(zs[i])
+		var hi: float = float(zs[i + 1])
 		if z >= lo and z <= hi:
 			var t: float = (log(z) - log(lo)) / (log(hi) - log(lo))
 			var th: float = 0.5 - 0.3 * float(signi(dir))
@@ -285,8 +307,8 @@ func is_settling() -> bool:
 func nearest_index(z: float) -> int:
 	var best: int = 0
 	var bd: float = 1000000000.0
-	for i in ZOOMS.size():
-		var d: float = absf(log(z) - log(float(ZOOMS[i])))
+	for i in zs.size():
+		var d: float = absf(log(z) - log(float(zs[i])))
 		if d < bd:
 			bd = d
 			best = i
@@ -397,7 +419,8 @@ func _process(delta: float) -> void :
 	if _settle_z > 0.0:
 		var lz: float = log(maxf(zoom.x, 0.01))
 		var lt: float = log(_settle_z)
-		var nl: float = lerpf(lz, lt, 1.0 - exp( - minf(delta, 0.05) * smooth_zoom_speed))
+		var spd: float = smooth_zoom_speed if smooth_zoom_enabled else 16.0
+		var nl: float = lerpf(lz, lt, 1.0 - exp( - minf(delta, 0.05) * spd))
 		if absf(nl - lt) < 0.003:
 			nl = lt
 		_zoom_at(_settle_z if nl == lt else exp(nl), _settle_f)

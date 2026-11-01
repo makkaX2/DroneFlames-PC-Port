@@ -41,7 +41,33 @@ func setup(m: Node, world: GameWorld) -> void :
 	root.add_child(port_mark)
 	busy = Control.new()
 	gw.changed.connect(refresh)
+	if not Loc.bus.changed.is_connected(_lang_refresh):
+		Loc.bus.changed.connect(_lang_refresh)
 	gw.message.connect(_on_world_message)
+
+func _lang_refresh() -> void :
+	if gw != null and is_instance_valid(gw) and top_name != null and is_instance_valid(top_name):
+		refresh()
+		_race_t = 0.0
+	for nm: String in key_labels:
+		var l: Variant = key_labels[nm]
+		var src: String = String((KEY_INFO.get(nm, [""]) as Array)[0])
+		if not is_instance_valid(l):
+			continue
+		var kl: Label = l
+		if src in KEY_CTX:
+			kl.text = _key_text(src)
+		BuildPanel.fit(kl, BuildPanel.CELL_W, BuildPanel.KEY_FONT)
+
+const KEY_CTX: Array = ["ЗАВОД", "ДОКИ"]
+
+static func _l345_pot() -> Array:
+	return [Loc.t("ЗАВОД", "key"), Loc.t("ДОКИ", "key"), Loc.t("ПРЕДЛОЖЕНИЯ", "offer"), Loc.t("ДИВИЗИЯ", "group"), Loc.t("РЕЗЕРВ", "group"), 
+		Loc.t("БРИГАДА", "group"), Loc.t("ПОЛК", "group"), Loc.t("КОРПУС", "group"), Loc.t("БАТАЛЬОН", "group"), 
+		Loc.t("ГВАРДИЯ", "group"), Loc.t("ШТУРМ", "group"), Loc.t("ТАНКИ", "group"), Loc.t("ТЫЛ", "group")]
+
+func _key_text(src: String) -> String:
+	return Loc.tc(src, "key") if src in KEY_CTX else src
 
 
 
@@ -220,7 +246,7 @@ func _cell(nm: String, icon: String, toggle: bool) -> VBoxContainer:
 	cell.add_child(b)
 	keys[nm] = b
 	var info: Array = KEY_INFO.get(nm, [nm.to_upper(), "", ""])
-	var l: Label = UiKit.lbl(String(info[0]), BuildPanel.KEY_FONT, UiKit.TEXT, 2, 3)
+	var l: Label = UiKit.lbl(_key_text(String(info[0])), BuildPanel.KEY_FONT, UiKit.TEXT, 2, 3)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.custom_minimum_size = Vector2(BuildPanel.CELL_W, 0)
@@ -495,7 +521,7 @@ func _process(delta: float) -> void :
 			var tgt: int = int(ri.get("target", 0))
 			race_lbl.remove_meta("opts")
 			if tgt > 0:
-				var lk: String = ("%.1f" % (float(ri.get("leader_score", 0)) / 1000.0)).replace(".", ",")
+				var lk: String = Loc.dec("%.1f" % (float(ri.get("leader_score", 0)) / 1000.0))
 				var who: String = Loc.t("вы лидер") if bool(ri.get("leader_is_player", false)) else Loc.t("лидер")
 				rt = Loc.t("%s %s/%d тыс.") % [who, lk, roundi(tgt / 1000.0)]
 				race_lbl.set_meta("opts", [rt, "%s %s/%d" % [who, lk, roundi(tgt / 1000.0)], who])

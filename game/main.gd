@@ -118,7 +118,7 @@ func _main_menu() -> void :
 	world.spawn_ai_countries(4)
 	world._flush_territory()
 	world.time_scale = 2.0
-	cam.set_zoom_at(1.0, cam.view_size() * 0.5)
+	cam.set_zoom_at(MapCamera.zk(1.0), cam.view_size() * 0.5)
 	_on_zoom(1.0)
 	var caps: Array = []
 	for c: City in world.cities:
@@ -272,7 +272,7 @@ func start_world(s: WorldSettings) -> void :
 	loading.set_progress(0.9, "Готовим карту...")
 	await get_tree().process_frame
 	_apply_speed()
-	cam.set_zoom_at(1.0, cam.view_size() * 0.5)
+	cam.set_zoom_at(MapCamera.zk(1.0), cam.view_size() * 0.5)
 	_on_zoom(1.0)
 	loading.finish()
 	_snd("music", ["game"])
@@ -411,7 +411,13 @@ func _on_city_captured(city: City, _old: int) -> void :
 		hud.war_flash(Loc.msg(Loc.mk("ПОТЕРЯН ГОРОД: %s — взял %s", [Loc.name(city.name).to_upper(), Loc.name(by_c.name).to_upper() if by_c != null else "?"])), "lost")
 
 
+const _TutorialFeed = preload("res://ui/ui24/tutorial_feed.gd")
+
 func _process(delta: float) -> void :
+	var idle: bool = ((in_menu and menus.current == "main") or (not in_menu and (_paused or menus.is_open()))) and not _TutorialFeed.is_open()
+	if idle != Save.fps_idle:
+		Save.fps_idle = idle
+		Save.apply_power_save()
 	if not _focus.is_empty():
 		_focus_tick()
 	if in_menu:

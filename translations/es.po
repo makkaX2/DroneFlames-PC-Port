@@ -22205,3 +22205,13 @@ msgstr ""
 #: net/net_session.gd:1399
 msgid "Комната заполнена"
 msgstr ""
+
+#. kind: t (PERF344: settings row - the frame cap 30 / 60 / MAX)
+#: ui/menus.gd
+msgid "ЧАСТОТА КАДРОВ"
+msgstr ""
+
+#. kind: t (PERF344: the power-save row on Android)
+#: ui/menus.gd
+msgid "ЭНЕРГОСБЕРЕЖЕНИЕ · 30 FPS"
+msgstr ""

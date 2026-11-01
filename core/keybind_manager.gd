@@ -177,9 +177,9 @@ static func is_action_pressed(action: String) -> bool:
 	var code: int = int(b.get("code", 0))
 	var alt: int = int(b.get("alt", 0))
 	if type == "key":
-		if code > 0 and Input.is_key_pressed(code):
+		if code > 0 and (Input.is_key_pressed(code) or Input.is_physical_key_pressed(code)):
 			return true
-		if alt > 0 and Input.is_key_pressed(alt):
+		if alt > 0 and (Input.is_key_pressed(alt) or Input.is_physical_key_pressed(alt)):
 			return true
 	elif type == "mouse":
 		if code > 0 and Input.is_mouse_button_pressed(code):
