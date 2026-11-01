@@ -18,6 +18,15 @@ signal download_failed(reason: String)
 @export var repo_name: String = "DroneFlames-PC-Port"
 @export var current_version: String = "0.33.0"
 
+var latest_tag: String = ""
+var latest_changelog: String = ""
+var latest_url: String = ""
+var latest_asset_name: String = ""
+var is_update_ready: bool = false
+
+func has_update() -> bool:
+	return is_update_ready
+
 var _http_check: HTTPRequest
 var _http_download: HTTPRequest
 var _is_downloading: bool = false
@@ -117,6 +126,12 @@ func _on_check_request_completed(result: int, response_code: int, _headers: Pack
 				target_name = aname
 				if aname.to_lower().contains("setup"):
 					break # Нашли именно установщик
+
+		latest_tag = tag
+		latest_changelog = changelog
+		latest_url = target_url
+		latest_asset_name = target_name
+		is_update_ready = true
 
 		update_available.emit(tag, changelog, target_url, target_name)
 	else:

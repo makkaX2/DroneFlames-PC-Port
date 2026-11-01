@@ -1,8 +1,9 @@
 # 🎮 DroneFlames — PC Port by @good_boy_irl
 
-[![Build & Release](https://github.com/good_boy_irl/DroneFlames-PC-Port/actions/workflows/build.yml/badge.svg)](https://github.com/good_boy_irl/DroneFlames-PC-Port/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-0.32.0-blue.svg)](https://github.com/good_boy_irl/DroneFlames-PC-Port/releases)
-[![Platform](https://img.shields.io/badge/platform-Windows%20x64%20%7C%20Direct3D%2012-0078d7.svg)](https://github.com/good_boy_irl/DroneFlames-PC-Port/releases)
+[![Build & Release](https://github.com/makkaX2/DroneFlames-PC-Port/actions/workflows/build.yml/badge.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/actions/workflows/build.yml)
+[![Version](https://img.shields.io/badge/version-0.33.0-blue.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20x64%20%7C%20Direct3D%2012-0078d7.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/releases)
+[![Telegram Community](https://img.shields.io/badge/Telegram-Порты%20и%20моды-2CA5E0?logo=telegram)](https://t.me/droneflamesmod)
 [![Engine](https://img.shields.io/badge/engine-Godot%204.3%2B-478cbf.svg)](https://godotengine.org)
 [![Author](https://img.shields.io/badge/port%20by-%40good__boy__irl-brightgreen.svg)](https://github.com/good_boy_irl)
 
@@ -46,16 +47,33 @@
    - Интегрированы нативные библиотеки `libwebrtc_native.windows.template_release.x86_64.dll`.
    - Полноценная поддержка мультиплеера по LAN / Direct IP.
 
-5. 🔓 **Разблокировка косметики и Dev Mode:**
+5. 🔄 **Встроенная система обновлений через GitHub Releases:**
+   - Автоматическая проверка обновлений при старте игры через GitHub REST API.
+   - **Окно «Обновление доступно»** в нативном военном стиле игры с возможностью обновиться в один клик или открыть страницу релиза.
+   - Индикатор обновления в главном меню для повторного открытия.
+
+6. 💬 **Telegram-сообщество портов и модов:**
+   - Ссылка на неофициальное фанатское сообщество модов и портов в «Настройках» и «Что нового»: [t.me/droneflamesmod](https://t.me/droneflamesmod).
+   - *Обратите внимание:* канал посвящён пользовательским модификациям и портам, не является официальным каналом разработчиков игры.
+
+7. 🔓 **Разблокировка косметики и Dev Mode:**
    - Открыты все **99 предметов кастомизации** (титулы разработчика, RGB-рамки, аватары 2026).
    - Включён **Developer Mode (`dev_mode`)** и оверлей **PERF PROBE** для мониторинга производительности и FPS.
 
-6. ⚡ **Графический движок Direct3D 12 (D3D12):**
+8. ⚡ **Графический движок Direct3D 12 (D3D12):**
    - Нативная поддержка современных видеокарт Windows без просадок FPS.
 
-7. 🎬 **Сохранение аутентичности и оригинального интро DroneFlames:**
+9. 🎬 **Сохранение аутентичности и оригинального интро DroneFlames:**
    - Полностью сохранены оригинальное интро-видео, экран заставки и брендинг игры без чужих подмен.
    - Отметка автора ПК-порта `@good_boy_irl` в углу экрана и информации о версии.
+
+---
+
+## 💬 Сообщество и Telegram-канал
+
+> ⚠️ **Важно:** Данный Telegram-канал посвящён неофициальным ПК-портам и фанатским модификациям (модам) игры. Это не официальный канал разработчиков оригинальной игры DroneFlames.
+
+* 📢 **Telegram-канал портов и модов:** [t.me/droneflamesmod](https://t.me/droneflamesmod)
 
 ---
 
@@ -63,7 +81,7 @@
 
 * **Играть без установки:** запустите `Play_DroneFlames.bat`.
 * **Запуск с отладочной консолью:** запустите `Play_DroneFlames_Debug.bat`.
-* **Установка инсталлером:** скачайте готовый `DroneFlames_PC_Setup_v0.32.0_good_boy_irl.exe` из [Releases](https://github.com/good_boy_irl/DroneFlames-PC-Port/releases).
+* **Установка инсталлером:** скачайте готовый `DroneFlames_PC_Setup_v0.33.0_good_boy_irl.exe` из [Releases](https://github.com/makkaX2/DroneFlames-PC-Port/releases).
 
 ---
 

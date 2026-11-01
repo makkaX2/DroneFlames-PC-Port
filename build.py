@@ -153,6 +153,7 @@ def main():
             print("Compiling Inno Setup installer...")
             cmd = [
                 iscc,
+                f"/DMyAppVersion={VERSION}",
                 f"/DSourceDir={STAGE_DIR}",
                 f"/DOutDir={DIST_DIR}",
                 str(iss_path)

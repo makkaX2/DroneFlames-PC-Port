@@ -2,14 +2,16 @@
 ; DroneFlames PC Port Installer & Updater by @good_boy_irl
 
 #define MyAppName "DroneFlames"
-#define MyAppVersion "0.32.0"
+#ifndef MyAppVersion
+  #define MyAppVersion "0.33.0"
+#endif
 #define MyAppPublisher "@good_boy_irl"
-#define MyAppURL "https://github.com/good_boy_irl"
+#define MyAppURL "https://github.com/makkaX2/DroneFlames-PC-Port"
 #define MyAppExeName "DroneFlames.exe"
 #define MyAppId "{{9F5C24D1-A12E-4D78-831C-6BE3E71AA190}}"
 
 #ifndef SourceDir
-  #define SourceDir "build\DroneFlames_PC_v0.32.0_good_boy_irl"
+  #define SourceDir "build\DroneFlames_PC_v0.33.0_good_boy_irl"
 #endif
 
 #ifndef OutDir
@@ -29,7 +31,7 @@ DefaultDirName={autopf}\DroneFlames
 DefaultGroupName={#MyAppName} (PC Port by {#MyAppPublisher})
 AllowNoIcons=yes
 OutputDir={#OutDir}
-OutputBaseFilename=DroneFlames_PC_Setup_v0.32.0_good_boy_irl
+OutputBaseFilename=DroneFlames_PC_Setup_v{#MyAppVersion}_good_boy_irl
 SetupIconFile=app_icon.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -58,7 +60,7 @@ UninstallDisplayIcon={app}\app_icon.ico
 UninstallDisplayName={#MyAppName} v{#MyAppVersion} (PC Port by {#MyAppPublisher})
 
 ; File metadata
-VersionInfoVersion=0.32.0.0
+VersionInfoVersion={#MyAppVersion}.0
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription=DroneFlames PC Port Installer & Updater by {#MyAppPublisher}
 VersionInfoProductName={#MyAppName} PC Port

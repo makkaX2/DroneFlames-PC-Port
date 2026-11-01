@@ -70,6 +70,9 @@ var _rh: Label = null
 static var _more_open: bool = false
 
 
+static var _update_dialog_shown: bool = false
+var _up_dialog: Control = null
+
 func setup(world: GameWorld) -> void :
 	gw = world
 	layer = 20
@@ -80,6 +83,18 @@ func setup(world: GameWorld) -> void :
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.theme = UiKit.make_theme()
 	add_child(root)
+	_setup_updater()
+
+func _setup_updater() -> void:
+	if has_node("/root/Updater"):
+		var up: Node = get_node("/root/Updater")
+		if not up.update_available.is_connected(_on_updater_available):
+			up.update_available.connect(_on_updater_available)
+
+func _on_updater_available(tag: String, changelog: String, target_url: String, target_name: String) -> void:
+	if not _update_dialog_shown:
+		_update_dialog_shown = true
+		show_update_dialog.call_deferred(tag, changelog, target_url, target_name)
 
 
 func is_open() -> bool:
@@ -90,6 +105,9 @@ func close() -> void :
 	if _wn != null and is_instance_valid(_wn):
 		_wn.queue_free()
 	_wn = null
+	if _up_dialog != null and is_instance_valid(_up_dialog):
+		_up_dialog.queue_free()
+	_up_dialog = null
 	if _prefs_dirty:
 		_prefs_dirty = false
 		Save.save_prefs()
@@ -995,6 +1013,21 @@ func show_main() -> void :
 	ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bg.add_child(ver)
 
+	if has_node("/root/Updater"):
+		var up: Node = get_node("/root/Updater")
+		if up != null and up.has_method("has_update") and bool(up.call("has_update")):
+			var up_pill: Button = UiKit.big("⚡ ОБНОВЛЕНИЕ v%s ДОСТУПНО!" % String(up.get("latest_tag")), "gold", "", 32.0, 10)
+			up_pill.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+			up_pill.grow_horizontal = Control.GROW_DIRECTION_BOTH
+			up_pill.grow_vertical = Control.GROW_DIRECTION_BEGIN
+			up_pill.offset_bottom = -50 - smb
+			up_pill.custom_minimum_size = Vector2(250, 32)
+			up_pill.pressed.connect(func() -> void:
+				UiKit.snd("ui_open")
+				show_update_dialog()
+			)
+			bg.add_child(up_pill)
+
 	var ib: = HBoxContainer.new()
 	ib.add_theme_constant_override("separation", 4)
 	ib.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1235,6 +1268,31 @@ func _show_whats_new() -> void :
 				sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				tc.add_child(sl)
 			rows.append(rp)
+
+	# Telegram Community Box (unofficial ports and mods)
+	var tg_box: = PanelContainer.new()
+	tg_box.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 8, 4))
+	list.add_child(tg_box)
+	var tg_row: = HBoxContainer.new()
+	tg_row.add_theme_constant_override("separation", 8)
+	tg_box.add_child(tg_row)
+	if UiKit.has("icon_info"):
+		tg_row.add_child(UiKit.icon_rect("icon_info", 20.0))
+	var tg_col: = VBoxContainer.new()
+	tg_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tg_row.add_child(tg_col)
+	var tg_h: Label = UiKit.lbl("ТЕЛЕГРАМ-КАНАЛ ПОРТОВ И МОДОВ", 10, UiKit.GOLD, 2)
+	tg_col.add_child(tg_h)
+	var tg_t: Label = UiKit.lbl("Неофициальное сообщество игроков: ПК-порты и модификации игры (не официальный канал разработчиков игры).", 9, UiKit.MUTED, 1)
+	tg_t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tg_col.add_child(tg_t)
+	var tg_go: Button = UiKit.big("ОТКРЫТЬ @DRONEFLAMESMOD", "blue", "", 34.0, 10)
+	tg_go.pressed.connect(func() -> void:
+		UiKit.snd("ui_click")
+		OS.shell_open("https://t.me/droneflamesmod")
+	)
+	tg_col.add_child(tg_go)
+	rows.append(tg_box)
 	var b: Button = UiKit.big("ПОНЯТНО", "green", "", 46.0, 15)
 	b.pressed.connect( func() -> void :
 		UiKit.snd("ui_close")
@@ -2302,6 +2360,18 @@ func show_settings(from_pause: bool) -> void :
 		get_tree().call_group("notif_lane", "refilter"), VW_SHORT)
 	_selector(vb, "НОВОСТИ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if Hud.news_on else 1, func(i: int) -> void : Hud.news_on = i == 0, VW_SHORT)
 	_nav_row(vb, "ЗАСТАВКА", Loc.t("ПРИ ЗАПУСКЕ: ВКЛ") if GameConfig.opening else Loc.t("ПРИ ЗАПУСКЕ: ВЫКЛ"), show_settings_sub.bind("opening"))
+	_sep(vb, 6)
+	var tg_btn: Button = UiKit.big("💬 ТЕЛЕГРАМ: ПОРТЫ И МОДЫ", "blue", "", 38.0, 11)
+	tg_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tg_btn.pressed.connect(func() -> void:
+		UiKit.snd("ui_click")
+		OS.shell_open("https://t.me/droneflamesmod")
+	)
+	tg_btn.tooltip_text = "Неофициальное сообщество ПК-портов и модов игры (не разработчики игры)"
+	vb.add_child(tg_btn)
+	var tg_lbl: Label = UiKit.lbl("t.me/droneflamesmod · Сообщество портов и модов (не канал игры)", 9, UiKit.MUTED, 1)
+	tg_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(tg_lbl)
 	var back: Button = _button(_bottom_row(), "НАЗАД", "stone", "pause" if from_pause else "main")
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
@@ -2359,6 +2429,166 @@ func show_controls(from_pause: bool) -> void :
 		_bind_waiting_action = ""
 		show_settings(from_pause)
 	)
+
+
+func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String = "", asset_name: String = "") -> void:
+	if _up_dialog != null and is_instance_valid(_up_dialog):
+		return
+	
+	var up: Node = get_node_or_null("/root/Updater")
+	if tag == "" and up != null:
+		tag = String(up.get("latest_tag"))
+		changelog = String(up.get("latest_changelog"))
+		dl_url = String(up.get("latest_url"))
+		asset_name = String(up.get("latest_asset_name"))
+	if tag == "":
+		tag = "0.33.0"
+	if dl_url == "":
+		dl_url = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/latest"
+
+	var bg: = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.02, 0.04, 0.1, 0.72)
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(bg)
+	_up_dialog = bg
+
+	var cc: = CenterContainer.new()
+	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.add_child(cc)
+
+	var panel: = PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", UiKit.sb("wb_window", 16, 14))
+	var win_w: float = minf(490.0, root.size.x - 30.0)
+	panel.custom_minimum_size = Vector2(win_w, 0)
+	cc.add_child(panel)
+
+	var vb: = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	panel.add_child(vb)
+
+	var hr: = HBoxContainer.new()
+	hr.add_theme_constant_override("separation", 8)
+	vb.add_child(hr)
+
+	var title_lbl: Label = UiKit.title(Loc.t("ОБНОВЛЕНИЕ ДОСТУПНО"), 18, UiKit.GOLD)
+	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hr.add_child(title_lbl)
+
+	var close_btn: Button = UiKit.close_btn(32.0)
+	close_btn.pressed.connect(func() -> void:
+		UiKit.snd("ui_close")
+		if _up_dialog != null and is_instance_valid(_up_dialog):
+			_up_dialog.queue_free()
+			_up_dialog = null
+	)
+	hr.add_child(close_btn)
+
+	var vr: = HBoxContainer.new()
+	vr.add_theme_constant_override("separation", 8)
+	vb.add_child(vr)
+
+	var badge: = PanelContainer.new()
+	badge.add_theme_stylebox_override("panel", UiKit.sb("wb_btn_gold", 8, 3, -1))
+	var bl: Label = UiKit.lbl("v" + tag + " ПК-ПОРТ", 11, UiKit.TEXT, 3, 2)
+	badge.add_child(bl)
+	vr.add_child(badge)
+
+	var cur_l: Label = UiKit.lbl("Текущая: " + VERSION.split(" ")[0], 10, UiKit.MUTED, 1)
+	cur_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	vr.add_child(cur_l)
+
+	var msg: Label = UiKit.lbl(Loc.t("Вышла новая версия ПК-порта DroneFlames!\nХотите загрузить и установить обновление прямо сейчас?"), 11, UiKit.TEXT, 2)
+	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vb.add_child(msg)
+
+	var cp: = PanelContainer.new()
+	cp.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 10, 6))
+	vb.add_child(cp)
+
+	var cl_vb: = VBoxContainer.new()
+	cl_vb.add_theme_constant_override("separation", 4)
+	cp.add_child(cl_vb)
+
+	var cl_title: Label = UiKit.lbl("В ЭТОМ ОБНОВЛЕНИИ:", 10, UiKit.GOLD, 2)
+	cl_vb.add_child(cl_title)
+
+	var notes: Array = [
+		"• Меню настройки управления: бинды клавиш и кнопок мыши",
+		"• Широкоформатный горизонтальный HUD 16:9 со стрелочками < и >",
+		"• Плавающие модальные окна по центру (Дипломатия, Экономика)",
+		"• Оригинальное интро, заставка и атмосфера DroneFlames"
+	]
+	for note: String in notes:
+		var nl: Label = UiKit.lbl(Loc.t(note), 9, UiKit.TEXT, 1)
+		nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		cl_vb.add_child(nl)
+
+	var status_lbl: Label = UiKit.lbl("", 10, UiKit.GOLD, 2)
+	status_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_lbl.visible = false
+	vb.add_child(status_lbl)
+
+	var pbar: = ProgressBar.new()
+	pbar.custom_minimum_size = Vector2(0, 16)
+	pbar.min_value = 0.0
+	pbar.max_value = 100.0
+	pbar.value = 0.0
+	pbar.visible = false
+	vb.add_child(pbar)
+
+	var dl_btn: Button = UiKit.big("СКАЧАТЬ И ОБНОВИТЬ", "green", "", 44.0, 13)
+	dl_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dl_btn.pressed.connect(func() -> void:
+		UiKit.snd("ui_click")
+		if dl_url.begins_with("http") and (dl_url.ends_with(".exe") or dl_url.ends_with(".zip")) and up != null:
+			dl_btn.disabled = true
+			status_lbl.visible = true
+			status_lbl.text = Loc.t("Загрузка обновления: 0%...")
+			pbar.visible = true
+			pbar.value = 0.0
+			
+			var on_prog: Callable = func(_rec: int, _tot: int, pct: float) -> void:
+				pbar.value = pct
+				status_lbl.text = Loc.t("Загрузка обновления: %d%%...") % int(pct)
+			
+			var on_done: Callable = func(path: String) -> void:
+				status_lbl.text = Loc.t("Загрузка завершена! Запуск установщика...")
+				await get_tree().create_timer(0.5).timeout
+				if up.has_method("apply_and_restart"):
+					up.call("apply_and_restart", path, false)
+			
+			var on_fail: Callable = func(_reason: String) -> void:
+				status_lbl.text = Loc.t("Открываем страницу загрузки в браузере...")
+				OS.shell_open(dl_url)
+			
+			up.download_progress.connect(on_prog, CONNECT_ONE_SHOT)
+			up.download_completed.connect(on_done, CONNECT_ONE_SHOT)
+			up.download_failed.connect(on_fail, CONNECT_ONE_SHOT)
+			up.call("download_update", dl_url, asset_name)
+		else:
+			OS.shell_open(dl_url)
+	)
+	vb.add_child(dl_btn)
+
+	var br_btn: Button = UiKit.big("ОТКРЫТЬ СТРАНИЦУ НА GITHUB", "blue", "", 38.0, 11)
+	br_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	br_btn.pressed.connect(func() -> void:
+		UiKit.snd("ui_click")
+		OS.shell_open(dl_url)
+	)
+	vb.add_child(br_btn)
+
+	var later_btn: Button = UiKit.big("НАПОМНИТЬ ПОЗЖЕ", "stone", "", 38.0, 11)
+	later_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	later_btn.pressed.connect(func() -> void:
+		UiKit.snd("ui_close")
+		if _up_dialog != null and is_instance_valid(_up_dialog):
+			_up_dialog.queue_free()
+			_up_dialog = null
+	)
+	vb.add_child(later_btn)
 
 
 const PerfProbe: = preload("res://ui/perf_probe.gd")

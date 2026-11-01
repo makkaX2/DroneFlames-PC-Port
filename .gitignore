@@ -17,3 +17,7 @@ __pycache__/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Dev verification artifacts
+verify_*.png
+

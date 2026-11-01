@@ -32,6 +32,47 @@ func run(main: Node) -> void:
 		up.call("check_for_updates")
 		await tree.create_timer(1.5).timeout
 
+	# Test Update Dialog
+	if main.menus:
+		print("[VERIFY] Opening update dialog...")
+		main.menus.show_update_dialog("0.33.0", "Новое обновление ПК-порта", "https://github.com/makkaX2/DroneFlames-PC-Port/releases/tag/v0.33.0", "DroneFlames_PC_Setup_v0.33.0_good_boy_irl.exe")
+		await tree.create_timer(0.6).timeout
+		await RenderingServer.frame_post_draw
+		_snap(main, "res://verify_6_update_dialog.png")
+		print("[VERIFY] Saved verify_6_update_dialog.png")
+		if main.menus._up_dialog != null and is_instance_valid(main.menus._up_dialog):
+			main.menus._up_dialog.queue_free()
+			main.menus._up_dialog = null
+
+	# Test Settings Screen (with Telegram button scrolled into view)
+	if main.menus:
+		print("[VERIFY] Opening settings menu with Telegram button...")
+		main.menus.show_settings(false)
+		await tree.create_timer(0.3).timeout
+		if main.menus._scroll != null:
+			main.menus._scroll.scroll_vertical = 9999
+		await tree.create_timer(0.3).timeout
+		await RenderingServer.frame_post_draw
+		_snap(main, "res://verify_7_settings_tg.png")
+		print("[VERIFY] Saved verify_7_settings_tg.png")
+
+	# Test What's New Screen (with Telegram community card)
+	if main.menus:
+		print("[VERIFY] Opening What's New screen with Telegram box...")
+		main.menus.close()
+		main.menus.show_main()
+		main.menus._show_whats_new()
+		await tree.create_timer(0.3).timeout
+		if main.menus._wn_scroll != null:
+			main.menus._wn_scroll.scroll_vertical = 9999
+		await tree.create_timer(0.3).timeout
+		await RenderingServer.frame_post_draw
+		_snap(main, "res://verify_8_whats_new.png")
+		print("[VERIFY] Saved verify_8_whats_new.png")
+		if main.menus._wn != null and is_instance_valid(main.menus._wn):
+			main.menus._wn.queue_free()
+			main.menus._wn = null
+
 	# Test Controls Screen in Settings
 	if main.menus:
 		print("[VERIFY] Opening controls settings...")
