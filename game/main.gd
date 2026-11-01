@@ -1345,6 +1345,11 @@ func _handle_pc_shortcut(k: int, ev: InputEventKey) -> bool :
 	var fo: Control = get_viewport().gui_get_focus_owner()
 	if fo is LineEdit or fo is TextEdit:
 		return false
+	if KeybindManager.is_event_match(ev, "cam_up") \
+		or KeybindManager.is_event_match(ev, "cam_down") \
+		or KeybindManager.is_event_match(ev, "cam_left") \
+		or KeybindManager.is_event_match(ev, "cam_right"):
+		return true
 	if KeybindManager.is_event_match(ev, "pause"):
 		_on_action("pause")
 		return true
@@ -1366,6 +1371,14 @@ func _handle_pc_shortcut(k: int, ev: InputEventKey) -> bool :
 			if hud != null:
 				hud.show_toast("Камера: Столица")
 			return true
+	if KeybindManager.is_event_match(ev, "open_diplo"):
+		if hud != null and hud.has_method("open_diplomacy"):
+			hud.open_diplomacy()
+		return true
+	if KeybindManager.is_event_match(ev, "open_economy"):
+		if hud != null and hud.has_method("open_economy"):
+			hud.open_economy()
+		return true
 	if KeybindManager.is_event_match(ev, "top_world"):
 		if hud != null:
 			_on_action("scores")
@@ -1403,14 +1416,6 @@ func _handle_pc_shortcut(k: int, ev: InputEventKey) -> bool :
 			if hud != null and hud.has_method("select_page"):
 				hud.select_page(1)
 				return true
-		KEY_E:
-			if hud != null and hud.has_method("open_economy"):
-				hud.open_economy()
-				return true
-		KEY_C, KEY_D:
-			if hud != null and hud.has_method("open_diplomacy"):
-				hud.open_diplomacy()
-				return true
 		KEY_R:
 			if world != null and world.player != null and world.player.capital != null:
 				cam.center_on(world.player.capital.pos)
@@ -1435,30 +1440,6 @@ func _debug_key(k: int) -> void :
 		return
 	var c: Vector2 = cam.view_size() * 0.5
 	match k:
-		KEY_MINUS:
-			cam.step_zoom(-1, c)
-		KEY_EQUAL:
-			cam.step_zoom(1, c)
-		KEY_LEFT:
-			cam.pan_screen(Vector2(120, 0))
-		KEY_RIGHT:
-			cam.pan_screen(Vector2(-120, 0))
-		KEY_UP:
-			cam.pan_screen(Vector2(0, 120))
-		KEY_DOWN:
-			cam.pan_screen(Vector2(0, -120))
-		KEY_SPACE:
-			_tap(c)
-		KEY_1:
-			_set_mode(Mode.CAPITAL)
-		KEY_2:
-			_set_mode(Mode.TOWN)
-		KEY_3:
-			_set_mode(Mode.STRIKE)
-		KEY_P:
-			_on_action("pause")
-		KEY_S:
-			_on_action("speed_next")
 		KEY_K:
 			var keys: Array = world.checkpoints.keys()
 			if not keys.is_empty():

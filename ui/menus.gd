@@ -6,7 +6,7 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.0 (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.1 (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
 	"ПК-УПРАВЛЕНИЕ: настраиваемое меню кейбиндов в Настройках, поддержка мыши (СКМ/ПКМ) и клавиатуры",

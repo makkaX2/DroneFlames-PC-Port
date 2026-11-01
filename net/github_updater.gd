@@ -16,7 +16,7 @@ signal download_failed(reason: String)
 @export var enabled: bool = true ## Активировать проверку при старте
 @export var repo_owner: String = "makkaX2"
 @export var repo_name: String = "DroneFlames-PC-Port"
-@export var current_version: String = "0.33.0"
+@export var current_version: String = "0.33.1"
 
 var latest_tag: String = ""
 var latest_changelog: String = ""

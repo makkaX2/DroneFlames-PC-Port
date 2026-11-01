@@ -105,7 +105,7 @@ jobs:
       - name: Export Android APK
         run: |
           mkdir -p dist
-          VERSION=$(python3 -c "import re; print(re.search(r'VERSION\s*=\s*[\"\\\']([^\"\\\']+)[\"\\\']', open('build.py').read()).group(1))")
+          VERSION=$(python3 -c "import build; print(build.VERSION)")
           ./godot_bin/Godot_v4.7.2-stable_linux.x86_64 --headless --export-debug "Android" "dist/DroneFlames_v${VERSION}_good_boy_irl.apk"
 
       - name: Upload Android APK Artifact
@@ -131,7 +131,7 @@ jobs:
       - name: Extract Port Version
         id: version_info
         run: |
-          RAW_VER=$(python3 -c "import re; print(re.search(r'VERSION\s*=\s*[\"\\\']([^\"\\\']+)[\"\\\']', open('build.py').read()).group(1))")
+          RAW_VER=$(python3 -c "import build; print(build.VERSION)")
           echo "RAW_VER=${RAW_VER}" >> $GITHUB_OUTPUT
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_OUTPUT
