@@ -1,5 +1,7 @@
 extends "res://game/main/main_input.gd"
 
+const KeybindManager = preload("res://core/keybind_manager.gd")
+
 var _rmb_down: bool = false
 var _rmb_dragged: bool = false
 var _rmb_start_pos: Vector2 = Vector2.ZERO
@@ -71,7 +73,9 @@ func _ready() -> void :
 	settings = WorldSettings.new()
 	await get_tree().process_frame
 	_main_menu()
-	for a: String in OS.get_cmdline_user_args():
+	var all_args: Array = OS.get_cmdline_user_args()
+	all_args.append_array(OS.get_cmdline_args())
+	for a: String in all_args:
 		if a.begins_with("--net-test="):
 			var nt: RefCounted = (load("res://dev/net_autotest.gd") as GDScript).new()
 			set_meta("net_test", nt)
@@ -1171,6 +1175,9 @@ func _unhandled_input(event: InputEvent) -> void :
 	if event is InputEventKey and event.pressed and not event.echo:
 		var kc: int = (event as InputEventKey).keycode
 		if kc == KEY_ESCAPE or kc == KEY_BACK:
+			if hud != null and hud.has_method("ui24_open_now") and hud.ui24_open_now():
+				hud.close_panel()
+				return
 			if not menus.is_open() and _army_back():
 				return
 			if menus.is_open():
@@ -1259,7 +1266,7 @@ func _unhandled_input(event: InputEvent) -> void :
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
 			cam.step_zoom(-1, mb.position)
 			return
-		elif mb.button_index == MOUSE_BUTTON_RIGHT or mb.button_index == MOUSE_BUTTON_MIDDLE:
+		elif mb.button_index == MOUSE_BUTTON_RIGHT or mb.button_index == MOUSE_BUTTON_MIDDLE or KeybindManager.is_event_match(mb, "pan_mouse"):
 			if mb.pressed:
 				_rmb_down = true
 				_rmb_dragged = false
@@ -1319,13 +1326,13 @@ func _pc_camera_process(delta: float) -> void :
 	if fo is LineEdit or fo is TextEdit:
 		return
 	var pan_v: Vector2 = Vector2.ZERO
-	if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
+	if KeybindManager.is_action_pressed("cam_up"):
 		pan_v.y += 1.0
-	if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
+	if KeybindManager.is_action_pressed("cam_down"):
 		pan_v.y -= 1.0
-	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
+	if KeybindManager.is_action_pressed("cam_left"):
 		pan_v.x += 1.0
-	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+	if KeybindManager.is_action_pressed("cam_right"):
 		pan_v.x -= 1.0
 	if pan_v != Vector2.ZERO:
 		var speed: float = 750.0
@@ -1334,45 +1341,64 @@ func _pc_camera_process(delta: float) -> void :
 		cam.pan_screen(pan_v.normalized() * (speed * delta))
 		cam_lock = false
 
-func _handle_pc_shortcut(k: int, _ev: InputEventKey) -> bool :
+func _handle_pc_shortcut(k: int, ev: InputEventKey) -> bool :
 	var fo: Control = get_viewport().gui_get_focus_owner()
 	if fo is LineEdit or fo is TextEdit:
 		return false
+	if KeybindManager.is_event_match(ev, "pause"):
+		_on_action("pause")
+		return true
+	if KeybindManager.is_event_match(ev, "speed_next"):
+		_on_action("speed_next")
+		return true
+	if KeybindManager.is_event_match(ev, "zoom_in"):
+		if cam != null:
+			cam.step_zoom(1, cam.view_size() * 0.5)
+		return true
+	if KeybindManager.is_event_match(ev, "zoom_out"):
+		if cam != null:
+			cam.step_zoom(-1, cam.view_size() * 0.5)
+		return true
+	if KeybindManager.is_event_match(ev, "center_capital"):
+		if world != null and world.player != null and world.player.capital != null:
+			cam.center_on(world.player.capital.pos)
+			cam.snap_zoom(cam.view_size() * 0.5)
+			if hud != null:
+				hud.show_toast("Камера: Столица")
+			return true
+	if KeybindManager.is_event_match(ev, "top_world"):
+		if hud != null:
+			_on_action("scores")
+		return true
+	if KeybindManager.is_event_match(ev, "tab_1"):
+		if hud != null and hud.has_method("select_page"):
+			hud.select_page(0)
+		return true
+	if KeybindManager.is_event_match(ev, "tab_2"):
+		if hud != null and hud.has_method("select_page"):
+			hud.select_page(1)
+		return true
+	if KeybindManager.is_event_match(ev, "tab_3"):
+		if hud != null and hud.has_method("select_page"):
+			hud.select_page(2)
+		return true
+	if KeybindManager.is_event_match(ev, "tab_4"):
+		if hud != null and hud.has_method("select_page"):
+			hud.select_page(3)
+		return true
+	if KeybindManager.is_event_match(ev, "tab_5"):
+		if hud != null and hud.has_method("select_page"):
+			hud.select_page(4)
+		return true
+	if KeybindManager.is_event_match(ev, "tab_6"):
+		if hud != null and hud.has_method("select_page"):
+			hud.select_page(5)
+		return true
+	if KeybindManager.is_event_match(ev, "tab_7"):
+		if hud != null and hud.has_method("select_page"):
+			hud.select_page(6)
+		return true
 	match k:
-		KEY_SPACE:
-			_on_action("pause")
-			return true
-		KEY_TAB:
-			_on_action("speed_next")
-			return true
-		KEY_1:
-			if hud != null and hud.has_method("select_page"):
-				hud.select_page(0)
-				return true
-		KEY_2:
-			if hud != null and hud.has_method("select_page"):
-				hud.select_page(1)
-				return true
-		KEY_3:
-			if hud != null and hud.has_method("select_page"):
-				hud.select_page(2)
-				return true
-		KEY_4:
-			if hud != null and hud.has_method("select_page"):
-				hud.select_page(3)
-				return true
-		KEY_5:
-			if hud != null and hud.has_method("select_page"):
-				hud.select_page(4)
-				return true
-		KEY_6:
-			if hud != null and hud.has_method("select_page"):
-				hud.select_page(5)
-				return true
-		KEY_7:
-			if hud != null and hud.has_method("select_page"):
-				hud.select_page(6)
-				return true
 		KEY_B:
 			if hud != null and hud.has_method("select_page"):
 				hud.select_page(1)
@@ -1400,7 +1426,7 @@ func _handle_pc_shortcut(k: int, _ev: InputEventKey) -> bool :
 			return true
 		KEY_H:
 			if hud != null:
-				hud.show_toast("ПК: WASD - Камера | Колесо - Зум | F11 - Экран | Пробел - Пауза | Tab - Скорость | 1-7 - Вкладки | ПКМ - Отмена")
+				hud.show_toast("ПК: WASD/Стрелки - Камера | Колесо/+/- - Зум | F11 - Экран | Пробел/P - Пауза | Tab/F - Скорость | 1-7 - Вкладки")
 			return true
 	return false
 

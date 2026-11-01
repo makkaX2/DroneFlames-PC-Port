@@ -81,13 +81,26 @@ func _on_check_request_completed(result: int, response_code: int, _headers: Pack
 	var changelog: String = String(data.get("body", ""))
 	var assets: Array = data.get("assets", [])
 
-	if tag == "":
+	# Если тег "latest", извлекаем версию из имени ассета (например DroneFlames_PC_Setup_v0.33.0_good_boy_irl.exe)
+	if tag == "" or tag.to_lower() == "latest":
+		for asset_dict in assets:
+			if asset_dict is Dictionary:
+				var aname: String = String(asset_dict.get("name", ""))
+				var v_start: int = aname.find("_v")
+				if v_start != -1:
+					var sub: String = aname.substr(v_start + 2)
+					var v_end: int = sub.find("_")
+					if v_end != -1:
+						tag = sub.substr(0, v_end).strip_edges()
+						break
+
+	if tag == "" or tag.to_lower() == "latest":
 		check_failed.emit("Некорректный релиз на GitHub (отсутствует tag_name)")
 		return
 
 	if compare_versions(tag, current_version) > 0:
 		# Найдена более свежая версия
-		var target_url: String = ""
+		var target_url: String = String(data.get("html_url", ""))
 		var target_name: String = ""
 
 		for asset_dict in assets:

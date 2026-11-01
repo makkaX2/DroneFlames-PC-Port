@@ -268,7 +268,8 @@ func open_hub(pg: int) -> void :
 	if econ_hub != null and is_instance_valid(econ_hub):
 		if econ_hub.has_method("reopen") and absf(econ_hub.custom_minimum_size.y - sheet_h) < 0.5 and bool(econ_hub.call("reopen")):
 			ui24_open(econ_hub)
-			bottom_panel.visible = false
+			if root.size.x < 700:
+				bottom_panel.visible = false
 			econ_hub.call("show_page", pg, false)
 			econ_hub.modulate.a = 0.0
 			var tw0: Tween = econ_hub.create_tween()
@@ -279,12 +280,21 @@ func open_hub(pg: int) -> void :
 		econ_hub = null
 	var hub: Control = EconHubScript.new()
 	hub.name = "EconHub"
-	hub.call("setup", self, sheet_h, _safe_margins().y)
+	var is_pc: bool = root.size.x >= 700
+	var final_h: float = minf(410.0, root.size.y - 140.0) if is_pc else sheet_h
+	hub.call("setup", self, final_h, _safe_margins().y if not is_pc else 0.0)
 	hub.connect("action", _on_hub_action)
 	econ_hub = hub
 	ui24_open(hub)
-	holder.add_child(hub)
-	bottom_panel.visible = false
+	if is_pc:
+		var hub_w: float = minf(620.0, root.size.x - 40.0)
+		hub.custom_minimum_size = Vector2(hub_w, final_h)
+		hub.size = Vector2(hub_w, final_h)
+		hub.position = Vector2(roundf((root.size.x - hub_w) * 0.5), roundf((root.size.y - final_h - 70.0) * 0.5 + 20.0))
+		root.add_child(hub)
+	else:
+		holder.add_child(hub)
+		bottom_panel.visible = false
 	hub.call("show_page", pg, false)
 	hub.modulate.a = 0.0
 	var tw: Tween = hub.create_tween()

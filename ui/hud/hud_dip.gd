@@ -25,17 +25,26 @@ func open_diplomacy() -> void :
 	for it: Dictionary in gw.diplo.pending_for_player():
 		if String(it.get("kind", "")) == "demand":
 			expand = true
+	var is_pc: bool = root.size.x >= 700
 	var sh: PanelContainer = scr.new() as PanelContainer
 	sh.call("setup", main_node)
-	holder.add_child(sh)
-	holder.move_child(sh, tab_row.get_index() + 1)
+	if is_pc:
+		var sh_w: float = minf(620.0, root.size.x - 40.0)
+		var sh_h: float = minf(460.0, root.size.y - 120.0)
+		sh.custom_minimum_size = Vector2(sh_w, sh_h)
+		sh.size = Vector2(sh_w, sh_h)
+		sh.position = Vector2(roundf((root.size.x - sh_w) * 0.5), roundf((root.size.y - sh_h - 70.0) * 0.5 + 20.0))
+		root.add_child(sh)
+	else:
+		holder.add_child(sh)
+		holder.move_child(sh, tab_row.get_index() + 1)
+		bottom_panel.visible = false
 	panel = sh
 	panel_kind = "diplomacy"
 	_dip_dirty = false
 	_dip_rebuild_t = 1.5
-	sh.call("fit", root.get_viewport_rect().size, tab_row.size.y + 6.0)
+	sh.call("fit", Vector2(minf(620.0, root.size.x - 40.0) if is_pc else root.get_viewport_rect().size.x, root.get_viewport_rect().size.y), tab_row.size.y + 6.0)
 	ui24_open(sh)
-	bottom_panel.visible = false
 	if dip_chip != null:
 		dip_chip.visible = false
 	_tip_until = 0.0
@@ -55,15 +64,24 @@ func open_my_state() -> void :
 	if scr == null:
 		return
 	close_panel()
+	var is_pc: bool = root.size.x >= 700
 	var sh: PanelContainer = scr.new() as PanelContainer
-	holder.add_child(sh)
-	holder.move_child(sh, tab_row.get_index() + 1)
+	if is_pc:
+		var sh_w: float = minf(620.0, root.size.x - 40.0)
+		var sh_h: float = minf(460.0, root.size.y - 120.0)
+		sh.custom_minimum_size = Vector2(sh_w, sh_h)
+		sh.size = Vector2(sh_w, sh_h)
+		sh.position = Vector2(roundf((root.size.x - sh_w) * 0.5), roundf((root.size.y - sh_h - 70.0) * 0.5 + 20.0))
+		root.add_child(sh)
+	else:
+		holder.add_child(sh)
+		holder.move_child(sh, tab_row.get_index() + 1)
+		bottom_panel.visible = false
 	sh.call("setup", main_node)
 	panel = sh
 	panel_kind = "mystate"
-	sh.call("fit", root.get_viewport_rect().size, tab_row.size.y + 6.0)
+	sh.call("fit", Vector2(minf(620.0, root.size.x - 40.0) if is_pc else root.get_viewport_rect().size.x, root.get_viewport_rect().size.y), tab_row.size.y + 6.0)
 	ui24_open(sh)
-	bottom_panel.visible = false
 	sh.call("open_anim")
 	if top_name != null:
 		top_name.add_theme_color_override("font_color", UiKit.TITLE)
@@ -378,14 +396,23 @@ func _trade24() -> bool:
 		trade_sheet.queue_free()
 	var vp: Vector2 = root.get_viewport_rect().size
 	var sheet_h: float = floorf(vp.y * 0.74) - BuildPanel.TAB_H
+	var is_pc: bool = root.size.x >= 700
+	var final_h: float = minf(460.0, root.size.y - 120.0) if is_pc else sheet_h
 	var sh: Control = (load("res://ui/ui24/trade_sheet.gd") as GDScript).new()
 	sh.name = "TradeSheet"
-	sh.call("setup", self, sheet_h, _safe_margins().y)
+	sh.call("setup", self, final_h, _safe_margins().y if not is_pc else 0.0)
 	sh.connect("action", _on_trade_action)
 	trade_sheet = sh
 	ui24_open(sh)
-	holder.add_child(sh)
-	bottom_panel.visible = false
+	if is_pc:
+		var sh_w: float = minf(620.0, root.size.x - 40.0)
+		sh.custom_minimum_size = Vector2(sh_w, final_h)
+		sh.size = Vector2(sh_w, final_h)
+		sh.position = Vector2(roundf((root.size.x - sh_w) * 0.5), roundf((root.size.y - final_h - 70.0) * 0.5 + 20.0))
+		root.add_child(sh)
+	else:
+		holder.add_child(sh)
+		bottom_panel.visible = false
 	sh.modulate.a = 0.0
 	var tw: Tween = sh.create_tween()
 	tw.tween_property(sh, "modulate:a", 1.0, 0.12)
@@ -401,13 +428,22 @@ func open_ad_rules(focus: int = -1) -> void :
 		ad_rules_sheet.queue_free()
 	var vp: Vector2 = root.get_viewport_rect().size
 	var sheet_h: float = floorf(vp.y * 0.74) - BuildPanel.TAB_H
+	var is_pc: bool = root.size.x >= 700
+	var final_h: float = minf(460.0, root.size.y - 120.0) if is_pc else sheet_h
 	var sh: Control = (load("res://ui/ui24/ad_rules_sheet.gd") as GDScript).new()
 	sh.name = "AdRulesSheet"
-	sh.call("setup", self, sheet_h, _safe_margins().y, focus)
+	sh.call("setup", self, final_h, _safe_margins().y if not is_pc else 0.0, focus)
 	ad_rules_sheet = sh
 	ui24_open(sh)
-	holder.add_child(sh)
-	bottom_panel.visible = false
+	if is_pc:
+		var sh_w: float = minf(620.0, root.size.x - 40.0)
+		sh.custom_minimum_size = Vector2(sh_w, final_h)
+		sh.size = Vector2(sh_w, final_h)
+		sh.position = Vector2(roundf((root.size.x - sh_w) * 0.5), roundf((root.size.y - final_h - 70.0) * 0.5 + 20.0))
+		root.add_child(sh)
+	else:
+		holder.add_child(sh)
+		bottom_panel.visible = false
 	sh.modulate.a = 0.0
 	var tw: Tween = sh.create_tween()
 	tw.tween_property(sh, "modulate:a", 1.0, 0.12)

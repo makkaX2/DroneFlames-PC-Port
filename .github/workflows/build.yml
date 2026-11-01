@@ -105,7 +105,7 @@ jobs:
       - name: Export Android APK
         run: |
           mkdir -p dist
-          ./godot_bin/Godot_v4.7.2-stable_linux.x86_64 --headless --export-debug "Android" dist/DroneFlames_v0.32.0_good_boy_irl.apk
+          ./godot_bin/Godot_v4.7.2-stable_linux.x86_64 --headless --export-debug "Android" dist/DroneFlames_v0.33.0_good_boy_irl.apk
 
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
@@ -151,25 +151,17 @@ jobs:
             Automated Release Build for commit `${{ github.sha }}`.
 
             ### 📦 Download Links:
-            - **Windows Setup Installer:** `DroneFlames_PC_Setup_v0.32.0_good_boy_irl.exe`
-            - **Windows Portable (.ZIP):** `DroneFlames_PC_v0.32.0_good_boy_irl.zip`
+            - **Windows Setup Installer:** `DroneFlames_PC_Setup_v0.33.0_good_boy_irl.exe`
+            - **Windows Portable (.ZIP):** `DroneFlames_PC_v0.33.0_good_boy_irl.zip`
 
             ---
 
-            ### 🚀 PC Port Features & Updates:
+            ### 🚀 PC Port Features & Updates (v0.33.0):
+            - **Customizable Keybinds System:** In-game rebinding menu in Settings for all keys and mouse buttons with automatic saving.
+            - **Horizontal 1-Row HUD & Navigation Arrows:** Arrow buttons `<` and `>` to scroll buildings/actions, side-by-side pause and speed buttons, hotkey badges `1`–`7`.
+            - **Centered Floating Windows:** Diplomacy, Storage/Economy Hub, Trade, and Stats open as centered dialogs over the map while bottom panel remains accessible.
             - **Smooth WASD Movement:** Native smooth camera panning (`W`, `A`, `S`, `D` / Arrow keys + `Shift` for boost).
             - **Smooth Zoom & Scroll:** Fine-tuned mouse wheel zoom with exponential lerp interpolation.
-            - **Keyboard Hotkeys:**
-              - `Space`: Pause / Resume match
-              - `Tab`: Cycle game speed
-              - `1` - `7`: Switch HUD panels
-              - `B`: Quick build tab
-              - `E`: Economy view
-              - `C` / `D`: Diplomacy
-              - `R`: Center camera on player capital
-              - `M`: Mute / Unmute audio
-              - `H`: Show PC controls help
-              - `F11` / `Alt+Enter`: Toggle fullscreen
             - **Native Windows WebRTC Multiplayer:** Native 64-bit WebRTC DLLs enabled.
             - **Unlocked Developer Mode & Cosmetics:** All 99 cosmetic items unlocked, Developer Mode & Perf Probe enabled.
-            - **Watermark & Attribution:** Persistent in-game and UI watermark attribution by `@good_boy_irl`.
+            - **Preserved Original DroneFlames Branding:** Original intro, title, and assets kept authentic.

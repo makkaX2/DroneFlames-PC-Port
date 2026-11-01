@@ -264,7 +264,7 @@ func _build_bottom() -> void :
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bottom_panel.add_child(row)
 	_left_grid = GridContainer.new()
-	_left_grid.columns = 1
+	_left_grid.columns = 2
 	_left_grid.add_theme_constant_override("v_separation", 2)
 	_left_grid.add_theme_constant_override("h_separation", 2)
 	row.add_child(_left_grid)
@@ -287,25 +287,71 @@ func _build_bottom() -> void :
 		row.add_child(cr)
 	else:
 		row.add_child(div)
+
+	var arrow_l: = Button.new()
+	arrow_l.text = "<"
+	arrow_l.custom_minimum_size = Vector2(24, 46)
+	arrow_l.focus_mode = Control.FOCUS_NONE
+	arrow_l.add_theme_stylebox_override("normal", UiKit.sb("wb_slot", 2, 2))
+	arrow_l.add_theme_stylebox_override("hover", UiKit.sb("wb_slot", 2, 2))
+	arrow_l.add_theme_stylebox_override("pressed", UiKit.sb("wb_slot_pressed", 2, 2))
+	arrow_l.add_theme_font_size_override("font_size", 13)
+	row.add_child(arrow_l)
+
+	var sc: = ScrollContainer.new()
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sc.custom_minimum_size = Vector2(0, 56)
+	sc.mouse_filter = Control.MOUSE_FILTER_PASS
+	row.add_child(sc)
+
 	var stack: = Control.new()
 	_keys_stack = stack
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.custom_minimum_size = Vector2(0, 2.0 * 60.0)
+	stack.custom_minimum_size = Vector2(0, 56)
 	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(stack)
+	sc.add_child(stack)
+
+	var arrow_r: = Button.new()
+	arrow_r.text = ">"
+	arrow_r.custom_minimum_size = Vector2(24, 46)
+	arrow_r.focus_mode = Control.FOCUS_NONE
+	arrow_r.add_theme_stylebox_override("normal", UiKit.sb("wb_slot", 2, 2))
+	arrow_r.add_theme_stylebox_override("hover", UiKit.sb("wb_slot", 2, 2))
+	arrow_r.add_theme_stylebox_override("pressed", UiKit.sb("wb_slot_pressed", 2, 2))
+	arrow_r.add_theme_font_size_override("font_size", 13)
+	row.add_child(arrow_r)
+
+	arrow_l.pressed.connect(func() -> void:
+		sc.scroll_horizontal = maxi(0, sc.scroll_horizontal - 120)
+		UiKit.snd("ui_click")
+	)
+	arrow_r.pressed.connect(func() -> void:
+		sc.scroll_horizontal = sc.scroll_horizontal + 120
+		UiKit.snd("ui_click")
+	)
+
 	for p in PAGE_DEFS.size():
 		var def: Array = PAGE_DEFS[p]
 
 		var tb: Button = BuildPanel.make_tab(String(def[0]), String(TAB_SHORT[p]))
 		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		tb.pressed.connect( func() -> void : _on_tab_tap(p))
+		var num_badge: = Label.new()
+		num_badge.text = str(p + 1)
+		num_badge.add_theme_font_size_override("font_size", 9)
+		num_badge.add_theme_color_override("font_color", UiKit.GOLD)
+		num_badge.position = Vector2(4, 2)
+		num_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tb.add_child(num_badge)
 		tab_row.add_child(tb)
 		tabs.append(tb)
 		var grid: = GridContainer.new()
-		grid.columns = COLS
+		grid.columns = 30
 		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		grid.set_anchors_preset(Control.PRESET_FULL_RECT)
-		grid.add_theme_constant_override("h_separation", 2)
+		grid.add_theme_constant_override("h_separation", 4)
 		grid.add_theme_constant_override("v_separation", 2)
 		grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		for it: Array in def[1]:

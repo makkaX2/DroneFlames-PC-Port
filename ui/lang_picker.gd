@@ -83,7 +83,7 @@ static func needed(main: Node) -> bool:
 		return OS.get_environment("DF_LANGPICK") != "0"
 	if DisplayServer.get_name() == "headless" or OS.has_environment("DF_NO_OPENING") or OS.has_environment("DF_LANG"):
 		return false
-	if not OS.get_cmdline_user_args().is_empty():
+	if not OS.get_cmdline_user_args().is_empty() or OS.get_cmdline_args().has("--verify"):
 		return false
 	var tree: SceneTree = main.get_tree()
 	return tree != null and tree.current_scene == main

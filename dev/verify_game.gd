@@ -16,6 +16,15 @@ func run(main: Node) -> void:
 	_snap(main, "res://verify_1_main_menu.png")
 	print("[VERIFY] Saved verify_1_main_menu.png")
 
+	# Test Controls Screen in Settings
+	if main.menus:
+		print("[VERIFY] Opening controls settings...")
+		main.menus.show_controls(false)
+		await tree.create_timer(0.5).timeout
+		await RenderingServer.frame_post_draw
+		_snap(main, "res://verify_4_controls.png")
+		print("[VERIFY] Saved verify_4_controls.png")
+
 	# 2. Launch New Game
 	print("[VERIFY] Launching _new_game()...")
 	main._new_game()
@@ -42,6 +51,26 @@ func run(main: Node) -> void:
 	await RenderingServer.frame_post_draw
 	_snap(main, "res://verify_3_zoom.png")
 	print("[VERIFY] Saved verify_3_zoom.png")
+
+	# 4. Found capital and Test Diplomacy Sheet (centered PC modal window)
+	print("[VERIFY] Founding player capital and opening diplomacy sheet...")
+	if main.world:
+		var target_c: Vector2i = main.world._find_capital_spot(-1)
+		print("[VERIFY] Found capital spot: ", target_c)
+		if target_c.x >= 0:
+			var cap = main.world.place_player_capital(target_c)
+			print("[VERIFY] Capital placed: ", cap != null)
+		main._set_mode(0) # Mode.NONE
+		if main.hud:
+			main.hud.refresh()
+	
+	await tree.create_timer(0.5).timeout
+	if main.hud:
+		main.hud.open_diplomacy()
+		await tree.create_timer(0.6).timeout
+		await RenderingServer.frame_post_draw
+		_snap(main, "res://verify_5_diplomacy.png")
+		print("[VERIFY] Saved verify_5_diplomacy.png")
 
 	print("[VERIFY] ALL VERIFICATIONS PASSED SUCCESSFULLY!")
 	tree.quit(0)

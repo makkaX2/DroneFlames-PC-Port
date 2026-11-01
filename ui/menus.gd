@@ -6,18 +6,18 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.31.7 (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.0 (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
-	"Быстрее: расчёт границ и анклавов на 29% быстрее — меньше нагрузка на больших картах", 
-	"ОНЛАЙН: выигранный матч засчитывается; кнопки после победы — двойным тапом; «НЕТ СВЯЗИ С ХОСТОМ» в чате", 
-	"Внутри: большой порядок в коде (армия, экономика, мир, главный экран разделены на части, лишний код удалён) — игра не изменилась", 
-	"Для тестеров: скрытый замер производительности (режим разработчика в настройках)", 
-	"Всё из 0.31.6: онлайн-исправления, защита от вылетов при касаниях, обучение (22 ролика), новый баланс армии и ПВО", 
+	"ПК-УПРАВЛЕНИЕ: настраиваемое меню кейбиндов в Настройках, поддержка мыши (СКМ/ПКМ) и клавиатуры",
+	"ШИРОКИЙ ЭКРАН 16:9: горизонтальный 1-строчный HUD, стрелочки < и > для быстрой навигации, нумерация 1–7",
+	"ОКНА ПО ЦЕНТРУ: Дипломатия, Экономический хаб, Склад и Торговля открываются по центру экрана, нижний бар активен",
+	"ОРИГИНАЛЬНОСТЬ: полностью сохранено аутентичное интро и логотип DroneFlames",
 ]
 
 var gw: GameWorld
 var net: NetSession
+const KeybindManager = preload("res://core/keybind_manager.gd")
 const SavesUI = preload("res://ui/saves_ui.gd")
 var _mp_code: String = ""
 var _mp_browse_ms: int = 0
@@ -36,6 +36,7 @@ var _inner: Control
 const VW_SHORT: float = 64.0
 var _from_pause: bool = false
 var _prefs_dirty: bool = false
+var _bind_waiting_action: String = ""
 
 var _sd_on: bool = false
 var _sd_start: Vector2 = Vector2.ZERO
@@ -181,7 +182,7 @@ func _screen(title: String, dim: float = 0.55, animate: bool = true) -> VBoxCont
 	var panel: = PanelContainer.new()
 	_panel = panel
 	panel.add_theme_stylebox_override("panel", UiKit.sb("wb_window", 16, 14))
-	panel.custom_minimum_size = Vector2(minf(330.0, root.size.x - 16.0), 0)
+	panel.custom_minimum_size = Vector2(minf(500.0 if root.size.x >= 700 else 330.0, root.size.x - 16.0), 0)
 	cc.add_child(panel)
 	var outer: = VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 8)
@@ -682,6 +683,28 @@ func _nav_row(parent: Control, title: String, hint: String, open: Callable) -> B
 
 
 func _input(event: InputEvent) -> void :
+	if _bind_waiting_action != "":
+		if event is InputEventKey and event.pressed and not event.echo:
+			var ek: InputEventKey = event as InputEventKey
+			var act: String = _bind_waiting_action
+			_bind_waiting_action = ""
+			if ek.keycode == KEY_ESCAPE:
+				UiKit.snd("ui_close")
+			else:
+				UiKit.snd("ui_click")
+				KeybindManager.set_binding(act, "key", ek.keycode)
+			show_controls(_from_pause)
+			get_viewport().set_input_as_handled()
+			return
+		elif event is InputEventMouseButton and event.pressed:
+			var mb: InputEventMouseButton = event as InputEventMouseButton
+			var act: String = _bind_waiting_action
+			_bind_waiting_action = ""
+			UiKit.snd("ui_click")
+			KeybindManager.set_binding(act, "mouse", mb.button_index)
+			show_controls(_from_pause)
+			get_viewport().set_input_as_handled()
+			return
 
 	if event is InputEventMouseButton and (event as InputEventMouseButton).device != InputEvent.DEVICE_ID_EMULATION\
 	and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
@@ -2263,6 +2286,7 @@ func show_settings(from_pause: bool) -> void :
 
 
 	_nav_row(vb, LangPicker.row_title(), LangPicker.row_hint(), func() -> void : LangPicker.open_from(self))
+	_nav_row(vb, "УПРАВЛЕНИЕ", "КЛАВИАТУРА И МЫШЬ", show_controls.bind(from_pause))
 	_nav_row(vb, "ЗВУК", _sound_hint(), show_settings_sub.bind("audio"))
 	_nav_row(vb, "ГРАФИКА", Loc.t("ЭФФЕКТЫ: %s") % Loc.t(String(["НИЗКО", "НОРМА", "ВЫСОКО"][clampi(GameConfig.fx_level, 0, 2)])), show_settings_sub.bind("gfx"))
 	_selector(vb, "ПОДСКАЗКИ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.hints else 1, func(i: int) -> void : GameConfig.hints = i == 0, VW_SHORT)
@@ -2280,6 +2304,61 @@ func show_settings(from_pause: bool) -> void :
 	_nav_row(vb, "ЗАСТАВКА", Loc.t("ПРИ ЗАПУСКЕ: ВКЛ") if GameConfig.opening else Loc.t("ПРИ ЗАПУСКЕ: ВЫКЛ"), show_settings_sub.bind("opening"))
 	var back: Button = _button(_bottom_row(), "НАЗАД", "stone", "pause" if from_pause else "main")
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+
+func show_controls(from_pause: bool) -> void :
+	_from_pause = from_pause
+	_bind_waiting_action = ""
+	var vb: VBoxContainer = _screen("Управление", 0.55)
+	current = "controls"
+	_label(vb, Loc.t("Нажмите кнопку назначения, затем нужную клавишу или кнопку мыши.\nEsc — отмена назначения."), 10, UiKit.MUTED)
+	_sep(vb, 4)
+
+	for act: String in KeybindManager.ACTIONS:
+		var row: = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		vb.add_child(row)
+
+		var title: String = String(KeybindManager.ACTION_TITLES.get(act, act))
+		var lb: Label = UiKit.lbl(Loc.t(title), 11, UiKit.TEXT, 2)
+		lb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(lb)
+
+		var btn: Button = Button.new()
+		btn.custom_minimum_size = Vector2(170, 32)
+		btn.add_theme_stylebox_override("normal", UiKit.sb("wb_btn_stone", 4, 2))
+		btn.add_theme_stylebox_override("hover", UiKit.sb("wb_btn_stone", 4, 2))
+		btn.add_theme_stylebox_override("pressed", UiKit.sb("wb_btn_blue_p" if UiKit.has("wb_btn_blue_p") else "wb_btn_stone", 4, 2))
+		btn.text = KeybindManager.get_display_name(act)
+		btn.add_theme_font_size_override("font_size", 10)
+		btn.pressed.connect(func() -> void:
+			_bind_waiting_action = act
+			btn.text = Loc.t("[ Нажмите клавишу... ]")
+			btn.add_theme_color_override("font_color", UiKit.GOLD)
+			UiKit.snd("ui_click")
+		)
+		row.add_child(btn)
+
+	_sep(vb, 6)
+	_label(vb, Loc.t("Изменения сохраняются автоматически."), 9, UiKit.MUTED)
+	_sep(vb, 4)
+
+	var reset_btn: Button = UiKit.big("ВОССТАНОВИТЬ ПО УМОЛЧАНИЮ", "blue", "", 42.0, 12)
+	reset_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	reset_btn.pressed.connect(func() -> void:
+		KeybindManager.reset_to_defaults()
+		UiKit.snd("ui_click")
+		show_controls(from_pause)
+	)
+	vb.add_child(reset_btn)
+
+	var back_btn: Button = _button(_bottom_row(), "НАЗАД", "stone", "settings_pause" if from_pause else "settings_main")
+	back_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back_btn.pressed.connect(func() -> void:
+		_bind_waiting_action = ""
+		show_settings(from_pause)
+	)
 
 
 const PerfProbe: = preload("res://ui/perf_probe.gd")

@@ -21,10 +21,8 @@ func _select_page(p: int, show_tip: bool) -> void :
 
 
 	var n: int = (PAGE_DEFS[p][1] as Array).size()
-	var one_row: bool = n <= 4
 	if _left_grid != null:
-		_left_grid.columns = 2 if one_row else 1
-	var cols: int = n if one_row else COLS
+		_left_grid.columns = 2
 	if _keys_stack != null:
 		_keys_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_fit_keys_stack.call_deferred()
@@ -613,7 +611,8 @@ func ui24_open(sheet: Control) -> void :
 		main_node.drop_cards_for_sheet()
 	_qa_tab_follow(sheet)
 	if bottom_panel != null and sheet != null:
-		bottom_panel.visible = false
+		if root.size.x < 700:
+			bottom_panel.visible = false
 	if help_tips != null and sheet != null:
 		help_tips.call_deferred("attach_help", sheet)
 
@@ -644,6 +643,8 @@ func _qa_tab_follow(sheet: Control) -> void :
 func ui24_closed(sheet: Control) -> void :
 	if ui24_sheet == sheet:
 		ui24_sheet = null
+	if bottom_panel != null:
+		bottom_panel.visible = true
 
 func blocked_rects() -> Array:
 	_blk.clear()
@@ -788,8 +789,9 @@ func set_keys_folded(on: bool) -> void :
 func _fit_keys_stack() -> void :
 	if _keys_stack != null and _page >= 0 and _page < pages.size():
 		var h: float = (pages[_page] as Control).get_combined_minimum_size().y
-		if absf(_keys_stack.custom_minimum_size.y - h) > 0.5:
-			_keys_stack.custom_minimum_size.y = h
+		var tgt: float = maxf(54.0, h if root.size.x < 700 else 54.0)
+		if absf(_keys_stack.custom_minimum_size.y - tgt) > 0.5:
+			_keys_stack.custom_minimum_size.y = tgt
 
 
 

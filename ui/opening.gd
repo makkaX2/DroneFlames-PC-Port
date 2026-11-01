@@ -44,7 +44,7 @@ static func should_autoplay(main: Node) -> bool:
 		return false
 	if DisplayServer.get_name() == "headless" or OS.has_environment("DF_NO_OPENING"):
 		return false
-	if not OS.get_cmdline_user_args().is_empty():
+	if not OS.get_cmdline_user_args().is_empty() or OS.get_cmdline_args().has("--verify"):
 		return false
 	var tree: SceneTree = main.get_tree()
 	return tree != null and tree.current_scene == main
