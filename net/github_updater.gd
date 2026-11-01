@@ -16,7 +16,7 @@ signal download_failed(reason: String)
 @export var enabled: bool = true ## Активировать проверку при старте
 @export var repo_owner: String = "makkaX2"
 @export var repo_name: String = "DroneFlames-PC-Port"
-@export var current_version: String = "0.32.0"
+@export var current_version: String = "0.33.0"
 
 var _http_check: HTTPRequest
 var _http_download: HTTPRequest
@@ -51,6 +51,7 @@ func check_for_updates() -> void:
 		_http_check.cancel_request()
 
 	var url: String = "https://api.github.com/repos/%s/%s/releases/latest" % [repo_owner, repo_name]
+	print("[Updater] Checking for updates at: ", url, " (current: v", current_version, ")")
 	var headers: PackedStringArray = PackedStringArray([
 		"User-Agent: DroneFlames-PC-Port-good_boy_irl",
 		"Accept: application/vnd.github.v3+json"
@@ -58,14 +59,17 @@ func check_for_updates() -> void:
 	
 	var err: Error = _http_check.request(url, headers)
 	if err != OK:
+		print("[Updater] Request failed: ", err)
 		check_failed.emit("Не удалось отправить запрос к GitHub API: %d" % err)
 
 func _on_check_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	print("[Updater] GitHub response: code=", response_code, " result=", result)
 	if result != HTTPRequest.RESULT_SUCCESS:
 		check_failed.emit("Сетевая ошибка при проверке обновлений: %d" % result)
 		return
 
 	if response_code != 200:
+		print("[Updater] GitHub API non-200 status: ", response_code)
 		check_failed.emit("GitHub API вернул статус %d" % response_code)
 		return
 

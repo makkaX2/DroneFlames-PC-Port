@@ -16,6 +16,22 @@ func run(main: Node) -> void:
 	_snap(main, "res://verify_1_main_menu.png")
 	print("[VERIFY] Saved verify_1_main_menu.png")
 
+	# Test GitHub Updater
+	if main.has_node("/root/Updater"):
+		var up: Node = main.get_node("/root/Updater")
+		print("[VERIFY] Testing Updater check...")
+		up.update_available.connect(func(ver: String, _c: String, _u: String, _a: String) -> void:
+			print("[VERIFY] >>> UPDATE AVAILABLE SIGNAL RECEIVED: v", ver, " <<<")
+		)
+		up.check_failed.connect(func(reason: String) -> void:
+			print("[VERIFY] >>> Updater check failed: ", reason, " <<<")
+		)
+		up.no_update_found.connect(func() -> void:
+			print("[VERIFY] >>> No update found <<<")
+		)
+		up.call("check_for_updates")
+		await tree.create_timer(1.5).timeout
+
 	# Test Controls Screen in Settings
 	if main.menus:
 		print("[VERIFY] Opening controls settings...")
