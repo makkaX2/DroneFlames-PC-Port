@@ -96,9 +96,24 @@ def main():
                 src,
                 dst,
                 ignore=shutil.ignore_patterns(
-                    ".godot", "*.gdc", "*.remap", "*.tmp", "*.log", "__pycache__"
+                    "*.gdc", "*.remap", "*.tmp", "*.log", "__pycache__"
                 )
             )
+
+    # 2b. Copy .godot essential runtime cache and imported assets (fixes grey screen on startup)
+    godot_src = ROOT_DIR / ".godot"
+    godot_dst = STAGE_DIR / ".godot"
+    if godot_src.exists():
+        print("Copying .godot runtime caches and imported assets...")
+        shutil.copytree(
+            godot_src,
+            godot_dst,
+            ignore=shutil.ignore_patterns(
+                "editor", "app_userdata", "*.tmp", "*.log"
+            )
+        )
+    else:
+        print("  [Warning] .godot directory not found in root! Game may fail with blank/grey screen.")
 
     # 3. Copy Root Files
     print("Copying root game files...")

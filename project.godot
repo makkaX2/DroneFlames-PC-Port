@@ -42,7 +42,7 @@ text_editor/behavior/indent/size=4
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/godot_ai/plugin.cfg", "res://addons/df_build/plugin.cfg", "res://addons/df_device_android/plugin.cfg")
+enabled=PackedStringArray()
 
 [physics]
 

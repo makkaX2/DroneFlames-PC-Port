@@ -71,18 +71,18 @@ jobs:
         run: |
           yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      - name: Setup Godot 4.3 Headless & Export Templates
+      - name: Setup Godot 4.7.2 Headless & Export Templates
         run: |
           mkdir -p godot_bin
-          curl -fL -o godot_bin/godot.zip https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
+          curl -fL -o godot_bin/godot.zip https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
           unzip -q godot_bin/godot.zip -d godot_bin
-          chmod +x godot_bin/Godot_v4.3-stable_linux.x86_64
+          chmod +x godot_bin/Godot_v4.7.2-stable_linux.x86_64
           echo "$PWD/godot_bin" >> $GITHUB_PATH
 
-          mkdir -p ~/.local/share/godot/export_templates/4.3.stable
-          curl -fL -o godot_bin/templates.tpz https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
+          mkdir -p ~/.local/share/godot/export_templates/4.7.2.stable
+          curl -fL -o godot_bin/templates.tpz https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz
           unzip -q godot_bin/templates.tpz -d godot_bin/templates_extracted
-          cp -r godot_bin/templates_extracted/templates/* ~/.local/share/godot/export_templates/4.3.stable/
+          cp -r godot_bin/templates_extracted/templates/* ~/.local/share/godot/export_templates/4.7.2.stable/
 
       - name: Generate Debug Keystore
         run: |
@@ -105,7 +105,7 @@ jobs:
       - name: Export Android APK
         run: |
           mkdir -p dist
-          ./godot_bin/Godot_v4.3-stable_linux.x86_64 --headless --export-debug "Android" dist/DroneFlames_v0.32.0_good_boy_irl.apk
+          ./godot_bin/Godot_v4.7.2-stable_linux.x86_64 --headless --export-debug "Android" dist/DroneFlames_v0.32.0_good_boy_irl.apk
 
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
@@ -118,7 +118,10 @@ jobs:
     name: Publish GitHub Release
     needs: [build-windows, build-android]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    if: |
+      always() &&
+      needs.build-windows.result == 'success' &&
+      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
 
     steps:
       - name: Checkout Repository
