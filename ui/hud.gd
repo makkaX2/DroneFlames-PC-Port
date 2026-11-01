@@ -246,7 +246,7 @@ func _build_bottom() -> void :
 	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.add_child(gap)
 	tab_row = HBoxContainer.new()
-	tab_row.alignment = BoxContainer.ALIGNMENT_FILL
+	tab_row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	tab_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tab_row.add_theme_constant_override("separation", 1)
 	tab_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -260,7 +260,7 @@ func _build_bottom() -> void :
 	holder.add_child(bottom_panel)
 	var row: = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
-	row.alignment = BoxContainer.ALIGNMENT_FILL
+	row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bottom_panel.add_child(row)
 	_left_grid = GridContainer.new()

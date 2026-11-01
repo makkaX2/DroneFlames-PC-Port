@@ -154,6 +154,11 @@ func _process(delta: float) -> void :
 func _input(ev: InputEvent) -> void :
 	if _done:
 		return
+	if ev is InputEventKey and ev.pressed and not ev.echo:
+		if ev.keycode in [KEY_SPACE, KEY_ESCAPE, KEY_ENTER]:
+			_finish(false)
+			get_viewport().set_input_as_handled()
+			return
 	var down: int = -1
 	if ev is InputEventScreenTouch:
 		down = 1 if (ev as InputEventScreenTouch).pressed else 0

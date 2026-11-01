@@ -84,6 +84,10 @@ func _ready() -> void :
 			var ishots: RefCounted = (load("res://dev/impossible_shots.gd") as GDScript).new()
 			set_meta("impossible_shots", ishots)
 			ishots.call("run", self, a)
+		elif a == "--verify":
+			var v: RefCounted = (load("res://dev/verify_game.gd") as GDScript).new()
+			set_meta("verify_game", v)
+			v.call("run", self)
 
 
 
