@@ -1,0 +1,10 @@
+{
+  "version": "0.32.0",
+  "apk_filename": "DroneFlames_v0.32.0_2610312032_TEST_wt_test.apk",
+  "apk_sha256": "8e11b55bce6db686d72a14e9557f9ffdf7f313428f3e7dad485573aede29c52a",
+  "apk_size_bytes": 130250835,
+  "godot_version": "4.7.2.stable",
+  "package_name": "com.kolesnyk.droneflames",
+  "imported_at": "2026-10-31T22:36:32.645956",
+  "extracted_files_count": 1420
+}

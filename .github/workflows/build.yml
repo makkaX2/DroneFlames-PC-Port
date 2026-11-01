@@ -1,0 +1,155 @@
+name: Automated Build & Release
+
+on:
+  push:
+    branches: [ "master", "main" ]
+    tags: [ "v*" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows PC Port
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository (with Git LFS)
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup --no-progress
+          echo "C:\Program Files (x86)\Inno Setup 6" >> $env:GITHUB_PATH
+
+      - name: Build Portable ZIP and Inno Setup Installer
+        run: |
+          python build.py
+
+      - name: Upload Windows Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-builds
+          path: |
+            dist/*.exe
+            dist/*.zip
+          if-no-files-found: error
+
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Download Godot 4.3 Headless & Export Templates
+        run: |
+          mkdir -p godot_bin
+          curl -L -o godot_bin/godot.zip https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
+          unzip godot_bin/godot.zip -d godot_bin
+          chmod +x godot_bin/Godot_v4.3-stable_linux.x86_64
+          echo "$PWD/godot_bin" >> $GITHUB_PATH
+
+          mkdir -p ~/.local/share/godot/export_templates/4.3.stable
+          curl -L -o godot_bin/templates.tpz https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
+          unzip godot_bin/templates.tpz -d godot_bin/templates_extracted
+          cp -r godot_bin/templates_extracted/templates/* ~/.local/share/godot/export_templates/4.3.stable/
+
+      - name: Generate Debug Keystore
+        run: |
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
+
+      - name: Export Android APK
+        run: |
+          mkdir -p dist
+          ./godot_bin/Godot_v4.3-stable_linux.x86_64 --headless --export-debug "Android" dist/DroneFlames_v0.32.0_good_boy_irl.apk
+
+      - name: Upload Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build
+          path: dist/*.apk
+          if-no-files-found: ignore
+
+  release:
+    name: Publish GitHub Release
+    needs: [build-windows, build-android]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-builds
+          path: dist
+
+      - name: Download Android Artifact (Optional)
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: android-build
+          path: dist
+
+      - name: Display Release Files
+        run: ls -la dist/
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'DroneFlames PC Port (Latest Automated Build)' }}
+          prerelease: false
+          files: |
+            dist/*.exe
+            dist/*.zip
+            dist/*.apk
+          body: |
+            ## 🎮 DroneFlames — PC Port by @good_boy_irl
+            Automated Release Build for commit `${{ github.sha }}`.
+
+            ### 📦 Download Links:
+            - **Windows Setup Installer:** `DroneFlames_PC_Setup_v0.32.0_good_boy_irl.exe`
+            - **Windows Portable (.ZIP):** `DroneFlames_PC_v0.32.0_good_boy_irl.zip`
+
+            ---
+
+            ### 🚀 PC Port Features & Updates:
+            - **Smooth WASD Movement:** Native smooth camera panning (`W`, `A`, `S`, `D` / Arrow keys + `Shift` for boost).
+            - **Smooth Zoom & Scroll:** Fine-tuned mouse wheel zoom with exponential lerp interpolation.
+            - **Keyboard Hotkeys:**
+              - `Space`: Pause / Resume match
+              - `Tab`: Cycle game speed
+              - `1` - `7`: Switch HUD panels
+              - `B`: Quick build tab
+              - `E`: Economy view
+              - `C` / `D`: Diplomacy
+              - `R`: Center camera on player capital
+              - `M`: Mute / Unmute audio
+              - `H`: Show PC controls help
+              - `F11` / `Alt+Enter`: Toggle fullscreen
+            - **Native Windows WebRTC Multiplayer:** Native 64-bit WebRTC DLLs enabled.
+            - **Unlocked Developer Mode & Cosmetics:** All 99 cosmetic items unlocked, Developer Mode & Perf Probe enabled.
+            - **Watermark & Attribution:** Persistent in-game and UI watermark attribution by `@good_boy_irl`.
