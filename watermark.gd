@@ -42,6 +42,17 @@ func _input(event: InputEvent) -> void:
 			else:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		# PC Optimization: Throttle FPS to 15 when game is in background / alt-tabbed to save GPU and battery
+		Engine.max_fps = 15
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		# Restore active framerate cap immediately upon focus
+		if ResourceLoader.exists("res://game/save.gd"):
+			var save_cls = load("res://game/save.gd")
+			if save_cls != null and save_cls.has_method("apply_power_save"):
+				save_cls.apply_power_save()
+
 func _update_title() -> void:
 	var win := get_window()
 	if win:

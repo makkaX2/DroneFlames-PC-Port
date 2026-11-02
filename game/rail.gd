@@ -981,6 +981,8 @@ static func _station_ok_in(arr: Dictionary, c: Vector2i, country_id: int) -> boo
 			var inner: bool = y >= c.y and y <= c.y + STATION_FD and x >= c.x - 2 and x < c.x + STATION_FW + 2
 			if inner and ((flags[i] & (WorldData.F_OCCUPIED | WorldData.F_CITY | WorldData.F_BRIDGE)) != 0 or msk[i] != 0):
 				return false
+			if inner and (biome[i] == Biome.ROCK or biome[i] == Biome.SNOW):
+				return false
 			if inner and y < c.y + STATION_FD and x >= c.x and x < c.x + STATION_FW and (flags[i] & WorldData.F_ROAD) != 0:
 				return false
 	return true

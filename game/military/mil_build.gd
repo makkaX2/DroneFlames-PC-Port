@@ -151,6 +151,8 @@ func check_place(kind: int, nw: Vector2i, country: Country, parent: Facility = n
 				return Loc.t("Стройте только на своей территории") + (Loc.t(" или у союзника (ПВО, казармы, окопы)") if country.is_player else "")
 			if bio[i] <= Biome.RIVER:
 				return Loc.t("Нельзя строить на воде")
+			if not dk and (bio[i] == Biome.ROCK or bio[i] == Biome.SNOW):
+				return Loc.t("Нельзя на скалах")
 			if (fl[i] & busy) != 0:
 				if not dk or (fl[i] & (WorldData.F_OCCUPIED | WorldData.F_BRIDGE)) != 0:
 					return Loc.t("Место занято: дома или дороги")

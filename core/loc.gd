@@ -114,14 +114,12 @@ static func _apply(code: String, ps: bool) -> void :
 		if _tr != null:
 			TranslationServer.add_translation(_tr)
 	TranslationServer.set_locale(code)
-	if TranslationServer.has_method("get_or_add_domain"):
-		var d = TranslationServer.call("get_or_add_domain", &"")
-		if d:
-			d.pseudolocalization_accents_enabled = false
-			d.pseudolocalization_double_vowels_enabled = false
-			d.pseudolocalization_fake_bidi_enabled = false
-			d.pseudolocalization_skip_placeholders_enabled = true
-			d.pseudolocalization_expansion_ratio = PSEUDO_RATIO
+	var d: TranslationDomain = TranslationServer.get_or_add_domain(&"")
+	d.pseudolocalization_accents_enabled = false
+	d.pseudolocalization_double_vowels_enabled = false
+	d.pseudolocalization_fake_bidi_enabled = false
+	d.pseudolocalization_skip_placeholders_enabled = true
+	d.pseudolocalization_expansion_ratio = PSEUDO_RATIO
 	TranslationServer.pseudolocalization_enabled = ps
 	var changed: bool = code != lang or ps != pseudo_on
 	lang = code

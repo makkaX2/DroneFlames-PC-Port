@@ -45,6 +45,7 @@ const NIGHT_SMOKE: Dictionary = {
 var _night_on: bool = false
 const SMOKE_GREY: = Color(0.66, 0.64, 0.6)
 var _ns: Dictionary = {}
+var _fcat: Dictionary = {}
 var fires_live: Array = []
 var _fire_t: float = 0.0
 var _det30: bool = false
@@ -195,6 +196,26 @@ func fog_alpha(sname: String, p: Vector2) -> float:
 	return 0.0
 
 
+
+
+func _fog_alpha_fast(s: AnimatedSprite2D, fog: bool) -> float:
+	if not fog:
+		return 1.0
+	var cat: int = int(_fcat.get(s.animation, -1))
+	if cat < 0:
+		var sname: String = String(s.animation)
+		if AIR_FX.has(sname):
+			cat = 0 if sname == "intercept_flash" else 1
+		else:
+			cat = 0 if FOG_SHOW.has(sname) or sname.begins_with("fire_") or sname.begins_with("x_") else 2
+		_fcat[s.animation] = cat
+	if cat == 0:
+		return 1.0
+	if cat == 1:
+		return 1.0 if gw.vision.sees_air(s.position) else 0.0
+	return 1.0 if gw.vision.sees(s.position) else 0.0
+
+
 func _process(delta: float) -> void :
 	if gw == null:
 		return
@@ -213,7 +234,7 @@ func _process(delta: float) -> void :
 				var nf: int = int(_ns.get(s.animation, -1))
 				s.self_modulate = nt if nf >= 0 and s.frame >= nf else (SMOKE_GREY if s.get_meta("grey", false) else Color.WHITE)
 			if fog or _fog_on:
-				var fa: float = fog_alpha(String(s.animation), s.position)
+				var fa: float = _fog_alpha_fast(s, fog)
 				if s.modulate.a != fa:
 					s.modulate = Color(1, 1, 1, fa)
 	_fog_on = fog

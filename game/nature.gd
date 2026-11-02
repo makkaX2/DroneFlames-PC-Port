@@ -53,6 +53,8 @@ func _init(world: GameWorld) -> void :
 
 func _orig(i: int) -> int:
 	var b: int = _gen[i] if i < _gen.size() else Biome.GRASS
+	if Biome.is_water(b):
+		return b
 	if b == Biome.BURNT or not Biome.is_natural_land(b):
 		return Biome.GRASS
 	return b
@@ -98,7 +100,9 @@ func _dead_tree(i: int) -> bool:
 
 func _taken(i: int, x: int, y: int) -> bool:
 	var d: WorldData = gw.data
-	if d.has_flag(x, y, WorldData.F_CITY | WorldData.F_ROAD):
+	if Biome.is_water(d.biome[i]) or (i < _gen.size() and Biome.is_water(_gen[i])):
+		return true
+	if d.has_flag(x, y, WorldData.F_CITY | WorldData.F_ROAD | WorldData.F_BRIDGE):
 		return true
 	if d.has_flag(x, y, WorldData.F_OCCUPIED) and not gw.tree_at.has(i):
 		return true

@@ -35,6 +35,8 @@ var _since: float = 0.0
 var _has_dist: bool = false
 var _full: bool = true
 var _drect: Rect2i = Rect2i()
+var _fly: Rect2i = Rect2i()
+var _stale: Vector4 = Vector4(-1, -1, -1, -1)
 const DIST_PAD: int = 10
 var _px: float = -1.0
 var _mode: int = -1
@@ -123,8 +125,29 @@ func territory_changed(rect: Rect2i = Rect2i()) -> void :
 		_drect = _drect.merge(rect) if _drect.has_area() else rect
 	else:
 		_full = true
+	_stale_upd()
 	if gw != null and gw.labels != null:
 		gw.labels.territory_changed()
+
+
+
+
+
+func _stale_upd() -> void :
+	if gw == null or gw.data == null or gw.territory == null or gw.territory_border == null:
+		return
+	var whole: = Rect2i(Vector2i.ZERO, Vector2i(gw.data.w, gw.data.h))
+	var r: Rect2i = _fly
+	if _full:
+		r = whole
+	elif _drect.has_area():
+		var g: Rect2i = _drect.grow(DIST_PAD).intersection(whole)
+		r = r.merge(g) if r.has_area() else g
+	var v: = Vector4(r.position.x, r.position.y, r.end.x, r.end.y) if r.has_area() else Vector4.ZERO
+	if v != _stale:
+		_stale = v
+		for spr: Sprite2D in [gw.territory, gw.territory_border]:
+			(spr.material as ShaderMaterial).set_shader_parameter("stale_box", v)
 
 
 func _setup(tex: Texture2D) -> void :
@@ -177,6 +200,8 @@ func _process(delta: float) -> void :
 			_vps[_stage].render_target_update_mode = SubViewport.UPDATE_ONCE
 		else:
 			_stage = -1
+			_fly = Rect2i()
+			_stale_upd()
 			if not _has_dist:
 				_has_dist = true
 				for spr: Sprite2D in [gw.territory, gw.territory_border]:
@@ -385,6 +410,8 @@ func _begin_chain() -> void :
 		r = _drect.grow(DIST_PAD).intersection(whole)
 	_full = false
 	_drect = Rect2i()
+	_fly = r
+	_stale_upd()
 	dist_px += r.get_area()
 	for i in 3:
 		var cr: = _vps[i].get_child(0) as ColorRect

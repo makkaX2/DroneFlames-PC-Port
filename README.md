@@ -1,7 +1,7 @@
 # 🎮 DroneFlames — PC Port by @good_boy_irl
 
 [![Build & Release](https://github.com/makkaX2/DroneFlames-PC-Port/actions/workflows/build.yml/badge.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-0.33.2-blue.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/releases)
+[![Version](https://img.shields.io/badge/version-0.33.4-blue.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64%20%7C%20Direct3D%2012-0078d7.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/releases)
 [![Telegram Community](https://img.shields.io/badge/Telegram-Порты%20и%20моды-2CA5E0?logo=telegram)](https://t.me/droneflamesmod)
 [![Engine](https://img.shields.io/badge/engine-Godot%204.3%2B-478cbf.svg)](https://godotengine.org)
@@ -57,11 +57,20 @@
    - *Обратите внимание:* канал посвящён пользовательским модификациям и портам, не является официальным каналом разработчиков игры.
 
 7. 🔓 **Разблокировка косметики и Dev Mode:**
-   - Открыты все **99 предметов кастомизации** (титулы разработчика, RGB-рамки, аватары 2026).
+   - Открыты все **118 предметов кастомизации** (титулы разработчика, RGB-рамки, аватары 2026, а также все 19 новых соревновательных титулов v0.33.4).
    - Включён **Developer Mode (`dev_mode`)** и оверлей **PERF PROBE** для мониторинга производительности и FPS.
 
-8. ⚡ **Графический движок Direct3D 12 (D3D12):**
-   - Нативная поддержка современных видеокарт Windows без просадок FPS.
+8. ⚡ **Оптимизации производительности и энергосбережения:**
+   - **Шейдерная оптимизация дистанционного поля территорий v0.33.4:** ускорение отрисовки границ карты и существенное снижение нагрузки на GPU/CPU.
+   - **Кэширование категорий тумана v0.33.4:** быстрый расчёт прозрачности спрайтов эффектов (`AnimatedSprite2D`).
+   - **ПК-троттлинг в фоне:** снижение частоты кадров до 15 FPS при сворачивании игры или потере фокуса окна (Alt-Tab) для тихой работы кулеров и экономии батареи ноутбуков.
+   - **Многопоточный воркер:** оптимизация `WorkerThreadPool` под многоядерные процессоры ПК для быстрой генерации карт и чанков.
+   - **Графический движок Direct3D 12 (D3D12):** нативная поддержка современных видеокарт Windows без просадок FPS.
+
+9. 🧩 **Система пользовательских модификаций (Modding System):**
+   - Нативная поддержка модов `.dfmod` и папок с модами в `mods/`.
+   - Встроенный визуальный **Менеджер модов** в главном меню с поддержкой включения/отключения, настроек и деталей каждого мода.
+   - Полноценные моды в комплекте: Воздушно-десантные войска (ВДВ/Airborne Assault), Танковый завод, Кассетные ПТРК, Тактический ядерный удар, Расширение городов, Discord Rich Presence, Пакет карт и сценариев.
 
 9. 🎬 **Сохранение аутентичности и оригинального интро DroneFlames:**
    - Полностью сохранены оригинальное интро-видео, экран заставки и брендинг игры без чужих подмен.
@@ -81,7 +90,7 @@
 
 * **Играть без установки:** запустите `Play_DroneFlames.bat`.
 * **Запуск с отладочной консолью:** запустите `Play_DroneFlames_Debug.bat`.
-* **Установка инсталлером:** скачайте готовый `DroneFlames_PC_Setup_v0.33.2_good_boy_irl.exe` из [Releases](https://github.com/makkaX2/DroneFlames-PC-Port/releases).
+* **Установка инсталлером:** скачайте готовый `DroneFlames_PC_Setup_v0.33.4_good_boy_irl.exe` из [Releases](https://github.com/makkaX2/DroneFlames-PC-Port/releases).
 
 ---
 
@@ -89,8 +98,8 @@
 
 В репозитории настроен автоматический CI/CD пайплайн (`.github/workflows/build.yml`):
 * При любом изменении кода и пуше в `master` / `main` автоматически:
-  1. Собирается переносимый архив **Portable ZIP** (`DroneFlames_PC_v0.33.2_good_boy_irl.zip`).
-  2. Через **Inno Setup 6** компилируется полноценный установщик **Setup EXE** (`DroneFlames_PC_Setup_v0.33.2_good_boy_irl.exe`).
+  1. Собирается переносимый архив **Portable ZIP** (`DroneFlames_PC_v0.33.4_good_boy_irl.zip`).
+  2. Через **Inno Setup 6** компилируется полноценный установщик **Setup EXE** (`DroneFlames_PC_Setup_v0.33.4_good_boy_irl.exe`).
   3. Собирается **Android APK** с актуальным кодом.
   4. Создаётся или обновляется релиз во вкладке **Releases**, куда загружаются готовые файлы.
 
@@ -109,8 +118,8 @@ python build.py
 ```
 
 Готовые файлы появятся в папке `dist/`:
-- `dist/DroneFlames_PC_Setup_v0.32.0_good_boy_irl.exe`
-- `dist/DroneFlames_PC_v0.32.0_good_boy_irl.zip`
+- `dist/DroneFlames_PC_Setup_v0.33.4_good_boy_irl.exe`
+- `dist/DroneFlames_PC_v0.33.4_good_boy_irl.zip`
 
 ---
 

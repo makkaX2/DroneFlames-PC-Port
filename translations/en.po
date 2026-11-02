@@ -33992,3 +33992,25 @@ msgstr "Fixed: fronts against a neighbour you are not at war with no longer vani
 #: ui/menus.gd:12
 msgid "НОВОЕ: настройка «Размер интерфейса» (80–100%) в разделе «Графика»; очередь верфи прокручивается"
 msgstr "NEW: «Interface size» setting (80–100%) in Graphics; the shipyard queue scrolls"
+
+#. kind: t
+#: game/military/mil_build.gd:154
+msgid "Нельзя строить в горах"
+msgstr "Can’t build on mountains"
+
+#. kind: t
+#: ui/menus.gd:902
+msgid "ОТКРЫТАЯ БЕТА"
+msgstr "OPEN BETA"
+
+#: ui/menus.gd:12
+msgid "Исправлено: на горах больше нельзя строить вокзалы и здания; на мостах и над водой не вырастают деревья"
+msgstr "Fixed: stations and buildings can no longer be built on mountains; trees no longer grow on bridges or over water"
+
+#: ui/menus.gd:12
+msgid "Android: открыт онлайн-мультиплеер (открытая бета)"
+msgstr "Android: online multiplayer is open (open beta)"
+
+#: ui/menus.gd:12
+msgid "Оптимизация: карта рисуется быстрее — выше FPS и меньше нагрев на iPhone и Android, картинка та же"
+msgstr "Optimization: the map renders faster — higher FPS and less heat on iPhone and Android, same visuals"

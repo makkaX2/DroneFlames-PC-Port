@@ -51,6 +51,24 @@ var temp0: float = -1.0
 var file: String = ""
 var report: String = ""
 var lbl: Label
+
+var r_cpu: float = 0.0
+var r_gpu: float = 0.0
+var r_obj: float = 0.0
+var r_prim: float = 0.0
+var r_tp: float = 0.0
+var r_tph: float = 0.0
+var r_n: int = 0
+const SWEEP_PH: float = 1.0
+const SWEEP_SKIP: float = 0.15
+var sweeping: bool = false
+var sw_nodes: Array = []
+var sw_i: int = 0
+var sw_t: float = 0.0
+var sw_ph: int = 0
+var sw_acc: Array = [0, 0.0, 0.0, 0.0, 0.0, 0.0]
+var sw_base: Array = []
+var sw_res: Array = []
 var copy_btn: Button
 var _ui_t: float = 0.0
 
@@ -146,8 +164,12 @@ func _process(delta: float) -> void :
 		next_min += 60.0
 		_minute(w)
 		_write()
+	_render_acc()
 	if el >= dur:
-		_finish("")
+		if not sweeping:
+			_sweep_begin(w)
+		if _sweep(delta, dt):
+			_finish("")
 		return
 	_ui_t -= delta
 	if _ui_t <= 0.0:
@@ -171,9 +193,84 @@ func _enc_watch(w: GameWorld, now: int) -> void :
 		enc_ms.append(float(now - enc_t0) / 1000.0)
 
 
+
+func _render_acc() -> void :
+	var vp: RID = get_viewport().get_viewport_rid()
+	r_cpu += RenderingServer.viewport_get_measured_render_time_cpu(vp) + RenderingServer.get_frame_setup_time_cpu()
+	r_gpu += RenderingServer.viewport_get_measured_render_time_gpu(vp)
+	r_obj += Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
+	r_prim += Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
+	r_tp += Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+	r_tph += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+	r_n += 1
+
+
+
+
+
+func _sweep_begin(w: GameWorld) -> void :
+	sweeping = true
+	sw_nodes = []
+	for c: Node in w.get_children():
+		if c is CanvasItem and (c as CanvasItem).visible:
+			sw_nodes.append(c)
+	var sc: Node = w.get_parent()
+	if sc != null:
+		for c2: Node in sc.get_children():
+			if c2 is CanvasLayer and c2 != self and (c2 as CanvasLayer).visible:
+				sw_nodes.append(c2)
+	sw_i = 0
+	sw_t = 0.0
+	sw_ph = 0
+	sw_base = []
+	sw_acc = [0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+
+
+func _sweep(delta: float, dt: float) -> bool:
+	if sw_i >= sw_nodes.size():
+		return true
+	sw_t += delta
+	if sw_t >= SWEEP_SKIP:
+		var vp: RID = get_viewport().get_viewport_rid()
+		sw_acc[0] += 1
+		sw_acc[1] += dt
+		sw_acc[2] += RenderingServer.viewport_get_measured_render_time_gpu(vp)
+		sw_acc[3] += RenderingServer.viewport_get_measured_render_time_cpu(vp) + RenderingServer.get_frame_setup_time_cpu()
+		sw_acc[4] += Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+		sw_acc[5] += Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
+	if sw_t >= SWEEP_PH:
+		var n: float = maxf(1.0, float(sw_acc[0]))
+		var r: Array = [float(sw_acc[1]) / n, float(sw_acc[2]) / n, float(sw_acc[3]) / n, float(sw_acc[4]) / n, float(sw_acc[5]) / n]
+		sw_acc = [0, 0.0, 0.0, 0.0, 0.0, 0.0]
+		sw_t = 0.0
+		var nd: Node = sw_nodes[sw_i] if is_instance_valid(sw_nodes[sw_i]) else null
+		if sw_ph == 0:
+			sw_base = r
+			sw_ph = 1
+			if nd != null:
+				nd.set("visible", false)
+		else:
+			sw_ph = 0
+			sw_i += 1
+			if nd != null:
+				nd.set("visible", true)
+				sw_res.append([String(nd.name), float(sw_base[0]) - float(r[0]), float(sw_base[1]) - float(r[1]), float(sw_base[2]) - float(r[2]), 
+					float(sw_base[3]) - float(r[3]), float(sw_base[4]) - float(r[4])])
+	lbl.text = "PERF LAYER SWEEP %d/%d (layers blink: ok)" % [mini(sw_i + 1, sw_nodes.size()), sw_nodes.size()]
+	return sw_i >= sw_nodes.size()
+
+
+func _sweep_restore() -> void :
+	if sweeping and sw_ph == 1 and sw_i < sw_nodes.size() and is_instance_valid(sw_nodes[sw_i]):
+		(sw_nodes[sw_i] as Node).set("visible", true)
+	sweeping = false
+
+
 func _begin(w: GameWorld, now: int) -> void :
 	gw = w
 	running = true
+	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 	t0_us = now
 	last_us = now
 	GameWorld.perf_prof = true
@@ -261,13 +358,17 @@ func _overlay(el: float) -> void :
 	objs_max = maxi(objs_max, int(Performance.get_monitor(Performance.OBJECT_COUNT)))
 	if gw != null and is_instance_valid(gw):
 		objs_map_max = maxi(objs_map_max, gw.obj_spr.size() - gw._free_ids.size())
-	lbl.text = "PERF %02d:%02d/%02d:00  fps %d  sim %.1f ms/step\nmem %d MB  vmem %d MB  nodes %d  dc %d" % [
+	var vp: RID = get_viewport().get_viewport_rid()
+	lbl.text = "PERF %02d:%02d/%02d:00  fps %d  sim %.1f ms/step\nmem %d MB  vmem %d MB  nodes %d  dc %d\ncpu %.1f gpu %.1f ms  obj %d" % [
 		int(el) / 60, int(el) % 60, int(dur) / 60, int(fps), sim_tot / float(maxi(1, steps)), 
 		roundi(Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0), roundi(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0), 
-		int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)), int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))]
+		int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)), int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)), 
+		RenderingServer.viewport_get_measured_render_time_cpu(vp) + RenderingServer.get_frame_setup_time_cpu(), RenderingServer.viewport_get_measured_render_time_gpu(vp), 
+		int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME))]
 
 
 func _finish(why: String) -> void :
+	_sweep_restore()
 	running = false
 	done = true
 	GameWorld.perf_prof = false
@@ -319,6 +420,22 @@ func _report(why: String) -> String:
 	L.append("sim by system:" + sl)
 	L.append("memory static MB: start %.0f max %.0f | video MB: start %.0f max %.0f | objects max %d | nodes max %d | map objects max %d" % [mem0, mem_max, vmem0, vmem_max, objs_max, nodes_max, objs_map_max])
 	L.append("draw calls avg %.0f max %d" % [draw_sum / float(maxi(1, ft.size())), draw_max])
+
+	var rn: float = float(maxi(1, r_n))
+	L.append("render per frame: cpu %.2f ms | gpu %.2f ms | objects %.0f | primitives %.0f | TIME_PROCESS %.2f ms | TIME_PHYSICS %.2f ms" % [
+		r_cpu / rn, r_gpu / rn, r_obj / rn, r_prim / rn, r_tp / rn, r_tph / rn])
+	if not sw_res.is_empty():
+		for key: Array in [[1, "frame"], [2, "gpu"], [3, "render cpu"]]:
+			var srt: Array = sw_res.duplicate()
+			srt.sort_custom( func(a: Array, b: Array) -> bool: return float(a[int(key[0])]) > float(b[int(key[0])]))
+			var tl: String = ""
+			for e: Array in srt.slice(0, 5):
+				tl += "  %s %.2f" % [e[0], float(e[int(key[0])])]
+			L.append("layer sweep top by %s ms:%s" % [key[1], tl])
+		var al: String = ""
+		for e2: Array in sw_res:
+			al += "\n  %-18s frame %6.2f gpu %6.2f rcpu %6.2f dc %5.0f obj %6.0f" % e2
+		L.append("layer sweep (ms saved when hidden):" + al)
 	if not rows.is_empty():
 		var r0: Array = rows[mini(1, rows.size() - 1)]
 		var r1: Array = rows[rows.size() - 1]

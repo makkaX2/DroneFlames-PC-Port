@@ -30,6 +30,8 @@ uniform vec4 war_col : source_color = vec4(0.91, 0.25, 0.165, 1.0);
 // the country colour, the inner line gets lighter and the colour band one unit wider.
 uniform vec3 night_comp = vec3(1.0);
 uniform float night_k = 0.0;
+// R351 PERF: cells (x0, y0, x1, y1; end exclusive) whose distance field is not current yet (MapModeLayer._stale_upd).
+uniform vec4 stale_box = vec4(0.0, 0.0, 1e9, 1e9);
 
 const float DR = 9.0;  // territory_dist.gdshader R + 1
 
@@ -60,7 +62,23 @@ void fragment() {
 	// Distance (world px) from this fragment to the nearest foreign cell, war-enemy cell.
 	float e = 99.0;
 	float we = 99.0;
+	// R351 PERF: a cell with a differing 8-neighbour is at most 1 cell from a border cell of the
+	// distance field, so the bilinear sample there reads <= 1 + sqrt(2) cells: e <= 11.8 (<= 21.6 even
+	// if the field went through an sRGB encode). A current field reading e > 22 means no neighbour
+	// differs: the scan below would find nothing and e / we come from the same sample as before.
+	bool fast = false;
+	vec4 dv = vec4(1.0);
+	if (has_dist) {
+		vec2 cf = vec2(c);
+		if (cf.x < stale_box.x || cf.y < stale_box.y || cf.x >= stale_box.z || cf.y >= stale_box.w) {
+			dv = texture(dist_tex, UV);
+			fast = (dv.r * DR + 0.5) * 4.0 > 22.0;
+		}
+	}
 	for (int dy = -1; dy <= 1; dy++) {
+		if (fast) {
+			break;
+		}
 		for (int dx = -1; dx <= 1; dx++) {
 			if (dx == 0 && dy == 0) {
 				continue;
@@ -78,7 +96,9 @@ void fragment() {
 		}
 	}
 	if (e > 98.0 && has_dist) {
-		vec4 dv = texture(dist_tex, UV);
+		if (!fast) {
+			dv = texture(dist_tex, UV);
+		}
 		e = (dv.r * DR + 0.5) * 4.0;
 		if (dv.g < 0.999) {
 			we = (dv.g * DR + 0.5) * 4.0;
