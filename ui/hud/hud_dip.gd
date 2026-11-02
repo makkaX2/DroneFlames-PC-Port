@@ -420,6 +420,22 @@ func _trade24() -> bool:
 	return true
 
 
+func _fit_ad_rules_window() -> void :
+	if ad_rules_sheet == null or not is_instance_valid(ad_rules_sheet) or ad_rules_sheet.get_parent() != root:
+		return
+	var available: Vector2 = root.size - Vector2(24.0, 24.0)
+	if available.x <= 0.0 or available.y <= 0.0:
+		return
+	var panel_size: Vector2 = Vector2(minf(620.0, available.x), minf(460.0, available.y))
+	if ad_rules_sheet.custom_minimum_size != panel_size:
+		ad_rules_sheet.custom_minimum_size = panel_size
+	if ad_rules_sheet.size != panel_size:
+		ad_rules_sheet.size = panel_size
+	var panel_position: Vector2 = (root.size - panel_size) * 0.5
+	if ad_rules_sheet.position != panel_position:
+		ad_rules_sheet.position = panel_position
+
+
 func open_ad_rules(focus: int = -1) -> void :
 	if not _hub_ok():
 		return
@@ -429,18 +445,19 @@ func open_ad_rules(focus: int = -1) -> void :
 	var vp: Vector2 = root.get_viewport_rect().size
 	var sheet_h: float = floorf(vp.y * 0.74) - BuildPanel.TAB_H
 	var is_pc: bool = root.size.x >= 700
-	var final_h: float = minf(460.0, root.size.y - 120.0) if is_pc else sheet_h
+	var final_h: float = minf(460.0, maxf(1.0, root.size.y - 24.0)) if is_pc else sheet_h
 	var sh: Control = (load("res://ui/ui24/ad_rules_sheet.gd") as GDScript).new()
 	sh.name = "AdRulesSheet"
 	sh.call("setup", self, final_h, _safe_margins().y if not is_pc else 0.0, focus)
 	ad_rules_sheet = sh
 	ui24_open(sh)
 	if is_pc:
-		var sh_w: float = minf(620.0, root.size.x - 40.0)
+		var sh_w: float = minf(620.0, maxf(1.0, root.size.x - 24.0))
 		sh.custom_minimum_size = Vector2(sh_w, final_h)
 		sh.size = Vector2(sh_w, final_h)
-		sh.position = Vector2(roundf((root.size.x - sh_w) * 0.5), roundf((root.size.y - final_h - 70.0) * 0.5 + 20.0))
 		root.add_child(sh)
+		_fit_ad_rules_window()
+		call_deferred("_fit_ad_rules_window")
 	else:
 		holder.add_child(sh)
 		bottom_panel.visible = false

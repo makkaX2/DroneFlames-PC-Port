@@ -551,6 +551,25 @@ func unregister_texture(sprite_name: String) -> void:
 	if custom_textures.has(sprite_name):
 		custom_textures.erase(sprite_name)
 
+## Удаляет подключение мода к HUD и его добавленные кнопки при выключении.
+func cleanup_mod_hud(hud: Node, action: Callable, mod_keys: Array = []) -> void:
+	if hud == null or not is_instance_valid(hud):
+		return
+	if hud.has_signal("action") and hud.is_connected("action", action):
+		hud.disconnect("action", action)
+	var keys: Dictionary = hud.get("keys") if hud.get("keys") is Dictionary else {}
+	var labels: Dictionary = hud.get("key_labels") if hud.get("key_labels") is Dictionary else {}
+	for key_value in mod_keys:
+		var key: String = String(key_value)
+		var button: Control = keys.get(key) as Control
+		if button != null and is_instance_valid(button):
+			var slot: Node = button.get_parent()
+			if slot != null and slot.get_parent() != null:
+				slot.get_parent().remove_child(slot)
+				slot.queue_free()
+		keys.erase(key)
+		labels.erase(key)
+
 func get_custom_texture(sprite_name: String) -> Texture2D:
 	return custom_textures.get(sprite_name, null)
 

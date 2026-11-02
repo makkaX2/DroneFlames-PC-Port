@@ -46,10 +46,10 @@ static func fit(l: Label, w: float, fs: int) -> void :
 
 
 
-static func make_tab(icon_name: String, label: String) -> Button:
+static func make_tab(icon_name: String, label: String, tab_w: float = TAB_W, keyboard_accessible: bool = false) -> Button:
 	var b: = Button.new()
-	b.custom_minimum_size = Vector2(TAB_W, TAB_H)
-	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(tab_w, TAB_H)
+	b.focus_mode = Control.FOCUS_ALL if keyboard_accessible else Control.FOCUS_NONE
 	b.toggle_mode = true
 	b.add_theme_stylebox_override("normal", UiKit.sb("wb_tab", 2, 2))
 	b.add_theme_stylebox_override("hover", UiKit.sb("wb_tab", 2, 2))
@@ -64,7 +64,7 @@ static func make_tab(icon_name: String, label: String) -> Button:
 	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tl.clip_text = true
-	fit(tl, TAB_W - 6.0, TAB_FONT)
+	fit(tl, tab_w - 8.0, TAB_FONT + (1 if keyboard_accessible else 0))
 	b.add_child(tl)
 	tl.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	tl.offset_top = -17.0

@@ -358,10 +358,14 @@ func _build_bottom() -> void :
 		UiKit.snd("ui_click")
 	)
 
+	var desktop_tabs: bool = root.size.x >= 900.0
+	var desktop_tab_labels: Array[String] = ["КАРТА", "ГОРОДА", "УДАРЫ", "ПВО", "АРМИЯ", "ДИПЛОМАТИЯ", "ФЛОТ"]
+	var tab_width: float = 108.0 if desktop_tabs else BuildPanel.TAB_W
 	for p in PAGE_DEFS.size():
 		var def: Array = PAGE_DEFS[p]
-
-		var tb: Button = BuildPanel.make_tab(String(def[0]), String(TAB_SHORT[p]))
+		var tab_label: String = desktop_tab_labels[p] if desktop_tabs else String(TAB_SHORT[p])
+		var tb: Button = BuildPanel.make_tab(String(def[0]), tab_label, tab_width, desktop_tabs)
+		tb.tooltip_text = "%s · %s %d" % [Loc.t(String(PAGE_TITLES[p])), Loc.t("Клавиша"), p + 1]
 		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		tb.pressed.connect( func() -> void : _on_tab_tap(p))
 		var num_badge: = Label.new()
@@ -615,6 +619,7 @@ func _process(delta: float) -> void :
 		_dip_t = 0.5
 		_update_dip_chip()
 	_layout_top_stack()
+	_fit_ad_rules_window()
 	if gw.player != null and gw.player.eliminated and hint.text == "":
 		set_hint("НАБЛЮДЕНИЕ: ВАША СТРАНА ВЫБЫЛА")
 
