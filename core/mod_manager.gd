@@ -29,6 +29,7 @@ const REPO_CATALOG_URL: String = "https://raw.githubusercontent.com/makkaX2/Dron
 var installed_mods: Dictionary = {} # mod_id -> Dictionary
 var catalog_mods: Array = []        # Array of Dictionary
 var enabled_mod_ids: Array = []     # Array of String
+var disabled_mod_ids: Array = []    # Array of String (explicitly disabled mods)
 var uninstalled_mod_ids: Array = [] # Array of String (built-in mods that the user deleted)
 var cached_icons: Dictionary = {}    # mod_id -> Texture2D
 
@@ -91,6 +92,117 @@ func _ensure_directories() -> void:
 		if not da.dir_exists("mods/cache/icons"):
 			da.make_dir("mods/cache/icons")
 
+	_create_mods_readme()
+	_seed_builtin_mods_to_user_dir()
+
+func _create_mods_readme() -> void:
+	var readme_path: String = USER_MODS_DIR.path_join("ИНСТРУКЦИЯ_ПО_МОДАМ.txt")
+	if not FileAccess.file_exists(readme_path):
+		var fa: FileAccess = FileAccess.open(readme_path, FileAccess.WRITE)
+		if fa:
+			var txt: String = "=== DroneFlames PC Port - Папка Модификаций ===\n"
+			txt += "Автор ПК-порта и системы модов: @good_boy_irl\n"
+			txt += "Сообщество мододелов: https://t.me/droneflamesmod\n\n"
+			txt += "КАК РАБОТАЮТ МОДЫ:\n"
+			txt += "1. Каждая папка здесь представляет собой отдельную модификацию.\n"
+			txt += "   В папке должны быть как минимум два файла:\n"
+			txt += "   - mod.json: манифест мода (id, name, version, author, description, type, entry)\n"
+			txt += "   - mod.gd: GDScript-скрипт с методом init_mod(mm)\n\n"
+			txt += "2. Вы можете редактировать любые существующие моды прямо в этой папке:\n"
+			txt += "   - Изменять параметры юнитов, зданий, стоимость и баланс\n"
+			txt += "   - Добавлять свои типы карт, сценарии и механики\n\n"
+			txt += "3. Для установки нового мода:\n"
+			txt += "   - Поместите файл .dfmod (или распакованную папку) прямо в эту папку.\n"
+			txt += "   - В главном меню игры откройте «МОДЫ» и нажмите «ОБНОВИТЬ» (или перезапустите игру).\n\n"
+			txt += "4. Управление модами:\n"
+			txt += "   - Включать, отключать и удалять моды можно прямо из главного меню в разделе «МОДЫ».\n"
+			txt += "===============================================\n"
+			fa.store_string(txt)
+			fa.close()
+
+## Копирует встроенные моды из дистрибутива игры в user://mods при первом запуске или обновлении
+func _seed_builtin_mods_to_user_dir() -> void:
+	var da_res: DirAccess = DirAccess.open(BUILTIN_MODS_DIR)
+	if not da_res:
+		return
+	
+	da_res.list_dir_begin()
+	var item: String = da_res.get_next()
+	while item != "":
+		if da_res.current_is_dir() and not item.begins_with("."):
+			var src_mod: String = BUILTIN_MODS_DIR.path_join(item)
+			var dst_mod: String = USER_MODS_DIR.path_join(item)
+			var manifest_src: String = src_mod.path_join("mod.json")
+			var manifest_dst: String = dst_mod.path_join("mod.json")
+			# Если в user://mods еще нет этой папки мода, копируем целиком
+			if not DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(dst_mod)):
+				_copy_dir_recursive(src_mod, dst_mod)
+			elif FileAccess.file_exists(manifest_src) and FileAccess.file_exists(manifest_dst):
+				var v_src: String = _read_manifest_version(manifest_src)
+				var v_dst: String = _read_manifest_version(manifest_dst)
+				if _is_version_greater(v_src, v_dst):
+					_copy_dir_recursive(src_mod, dst_mod)
+		elif not da_res.current_is_dir() and item.ends_with(".dfmod"):
+			var src_file: String = BUILTIN_MODS_DIR.path_join(item)
+			var mod_name: String = item.trim_suffix(".dfmod")
+			var dst_folder: String = USER_MODS_DIR.path_join(mod_name)
+			if not DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(dst_folder)):
+				_extract_zip(src_file, dst_folder)
+		item = da_res.get_next()
+	da_res.list_dir_end()
+
+func _read_manifest_version(path: String) -> String:
+	var fa: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if not fa:
+		return "0.0.0"
+	var text: String = fa.get_as_text()
+	fa.close()
+	var p: JSON = JSON.new()
+	if p.parse(text) == OK and p.data is Dictionary:
+		return String(p.data.get("version", "1.0.0"))
+	return "0.0.0"
+
+func _is_version_greater(v1: String, v2: String) -> bool:
+	var p1: PackedStringArray = v1.trim_prefix("v").split(".")
+	var p2: PackedStringArray = v2.trim_prefix("v").split(".")
+	var max_len: int = maxi(p1.size(), p2.size())
+	for i in max_len:
+		var n1: int = int(p1[i]) if i < p1.size() else 0
+		var n2: int = int(p2[i]) if i < p2.size() else 0
+		if n1 > n2:
+			return true
+		elif n1 < n2:
+			return false
+	return false
+
+func _copy_dir_recursive(src: String, dst: String) -> void:
+	var da: DirAccess = DirAccess.open(src)
+	if not da:
+		return
+	var global_dst: String = ProjectSettings.globalize_path(dst)
+	if not DirAccess.dir_exists_absolute(global_dst):
+		DirAccess.make_dir_recursive_absolute(global_dst)
+	
+	da.list_dir_begin()
+	var fn: String = da.get_next()
+	while fn != "":
+		if fn != "." and fn != "..":
+			var src_item: String = src.path_join(fn)
+			var dst_item: String = dst.path_join(fn)
+			if da.current_is_dir():
+				_copy_dir_recursive(src_item, dst_item)
+			else:
+				var fa_in: FileAccess = FileAccess.open(src_item, FileAccess.READ)
+				if fa_in:
+					var buf: PackedByteArray = fa_in.get_buffer(fa_in.get_length())
+					fa_in.close()
+					var fa_out: FileAccess = FileAccess.open(dst_item, FileAccess.WRITE)
+					if fa_out:
+						fa_out.store_buffer(buf)
+						fa_out.close()
+		fn = da.get_next()
+	da.list_dir_end()
+
 ## Возвращает локальный путь к директории модов (для открытия в проводнике)
 func get_mods_disk_path() -> String:
 	return ProjectSettings.globalize_path(USER_MODS_DIR)
@@ -100,12 +212,21 @@ func open_mods_folder_in_os() -> void:
 	var path: String = get_mods_disk_path()
 	OS.shell_open(path)
 
+## Восстанавливает все базовые моды ПК-порта и включает их
+func restore_builtin_mods() -> void:
+	uninstalled_mod_ids.clear()
+	disabled_mod_ids.clear()
+	_save_config()
+	_seed_builtin_mods_to_user_dir()
+	scan_installed_mods()
+
 # ==============================================================================
 # КОНФИГУРАЦИЯ И СОСТОЯНИЕ МОДОВ
 # ==============================================================================
 
 func _load_config() -> void:
 	enabled_mod_ids.clear()
+	disabled_mod_ids.clear()
 	uninstalled_mod_ids.clear()
 	if not FileAccess.file_exists(CONFIG_PATH):
 		return
@@ -116,12 +237,22 @@ func _load_config() -> void:
 		var test_json: JSON = JSON.new()
 		if test_json.parse(json_str) == OK and test_json.data is Dictionary:
 			var data: Dictionary = test_json.data
-			var arr: Variant = data.get("enabled_mods", [])
-			if arr is Array:
-				for m in arr:
+			if data.has("disabled_mods") and data["disabled_mods"] is Array:
+				for m in data["disabled_mods"]:
 					var sid: String = String(m).strip_edges()
-					if sid != "" and not enabled_mod_ids.has(sid):
-						enabled_mod_ids.append(sid)
+					if sid != "" and not disabled_mod_ids.has(sid):
+						disabled_mod_ids.append(sid)
+			elif data.has("enabled_mods") and data["enabled_mods"] is Array:
+				# Совместимость со старым форматом: если в старом конфиге мод не был включен,
+				# но только если старый список не был пустым
+				var old_enabled: Array = []
+				for m in data["enabled_mods"]:
+					old_enabled.append(String(m).strip_edges())
+				if not old_enabled.is_empty():
+					for mod_key in installed_mods.keys():
+						if not old_enabled.has(mod_key) and not disabled_mod_ids.has(mod_key):
+							disabled_mod_ids.append(mod_key)
+
 			var u_arr: Variant = data.get("uninstalled_mods", [])
 			if u_arr is Array:
 				for u in u_arr:
@@ -134,6 +265,7 @@ func _save_config() -> void:
 	if fa:
 		var data: Dictionary = {
 			"enabled_mods": enabled_mod_ids,
+			"disabled_mods": disabled_mod_ids,
 			"uninstalled_mods": uninstalled_mod_ids
 		}
 		fa.store_string(JSON.stringify(data, "\t"))
@@ -166,20 +298,16 @@ func scan_installed_mods() -> void:
 	# 3. Сканируем res://mods/ (встроенные/исходные моды)
 	_scan_dir(BUILTIN_MODS_DIR, false)
 
-	# 4. Активируем включенные моды
-	var initial_setup: bool = not FileAccess.file_exists(CONFIG_PATH)
+	# 4. Активируем моды: по умолчанию ВСЕ установленные моды активны, кроме отключенных пользователем!
+	enabled_mod_ids.clear()
 	for mod_id in installed_mods.keys():
-		var should_enable: bool = enabled_mod_ids.has(mod_id)
-		if initial_setup and not enabled_mod_ids.has(mod_id):
-			should_enable = true
-			enabled_mod_ids.append(mod_id)
-		
+		var should_enable: bool = not disabled_mod_ids.has(mod_id)
 		if should_enable:
+			if not enabled_mod_ids.has(mod_id):
+				enabled_mod_ids.append(mod_id)
 			_load_mod(mod_id)
 
-	if initial_setup and not enabled_mod_ids.is_empty():
-		_save_config()
-
+	_save_config()
 	mods_updated.emit()
 	print("[ModManager] Scanned installed mods: %d found, %d enabled" % [installed_mods.size(), enabled_mod_ids.size()])
 
@@ -288,7 +416,7 @@ func is_mod_installed(mod_id: String) -> bool:
 	return installed_mods.has(mod_id)
 
 func is_mod_enabled(mod_id: String) -> bool:
-	return enabled_mod_ids.has(mod_id)
+	return not disabled_mod_ids.has(mod_id)
 
 func is_mod_loaded(mod_id: String) -> bool:
 	if not installed_mods.has(mod_id):
@@ -300,10 +428,13 @@ func toggle_mod(mod_id: String, enable: bool) -> void:
 		return
 	
 	if enable:
+		disabled_mod_ids.erase(mod_id)
 		if not enabled_mod_ids.has(mod_id):
 			enabled_mod_ids.append(mod_id)
 		_load_mod(mod_id)
 	else:
+		if not disabled_mod_ids.has(mod_id):
+			disabled_mod_ids.append(mod_id)
 		enabled_mod_ids.erase(mod_id)
 		_unload_mod(mod_id)
 
@@ -592,6 +723,7 @@ func uninstall_mod(mod_id: String) -> void:
 	var mod: Dictionary = installed_mods[mod_id]
 	toggle_mod(mod_id, false)
 	enabled_mod_ids.erase(mod_id)
+	disabled_mod_ids.erase(mod_id)
 	if not uninstalled_mod_ids.has(mod_id):
 		uninstalled_mod_ids.append(mod_id)
 	_save_config()

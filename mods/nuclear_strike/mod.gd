@@ -199,7 +199,7 @@ func can_place_at(cell: Vector2i) -> bool:
 		for dx in range(SILO_SIZE.x):
 			var cx = cell.x + dx
 			var cy = cell.y + dy
-			if d.get_owner(cx, cy) != player.id:
+			if d.get_owner_id(cx, cy) != player.id:
 				return false
 			var b = d.get_biome(cx, cy)
 			if Biome.is_water(b):
@@ -564,7 +564,8 @@ class NuclearWorldLayer extends Node2D:
 		if mod == null or world == null:
 			return
 		if event is InputEventMouseButton and event.pressed:
-			var cell = world.cell_at_screen(event.position)
+			var wp: Vector2 = world.camera.screen_to_world(event.position) if world.camera != null else event.position
+			var cell = Vector2i(floori(wp.x / float(GameWorld.CELL)), floori(wp.y / float(GameWorld.CELL)))
 			var wpos = Vector2(cell * GameWorld.CELL + Vector2i(GameWorld.CELL / 2, GameWorld.CELL / 2))
 
 			if event.button_index == MOUSE_BUTTON_LEFT:
@@ -593,8 +594,9 @@ class NuclearWorldLayer extends Node2D:
 
 		# 1. Отрисовка призрака при постройке шахты
 		if mod.is_placing:
-			var mouse_pos = get_global_mouse_position()
-			var cell = world.cell_at_screen(mouse_pos)
+			var mouse_sp: Vector2 = get_viewport().get_mouse_position()
+			var wp: Vector2 = world.camera.screen_to_world(mouse_sp) if world.camera != null else mouse_sp
+			var cell = Vector2i(floori(wp.x / float(GameWorld.CELL)), floori(wp.y / float(GameWorld.CELL)))
 			var can_p = mod.can_place_at(cell)
 			var p_col = Color(0.1, 0.9, 0.2, 0.45) if can_p else Color(0.95, 0.15, 0.15, 0.45)
 			var rect = Rect2(Vector2(cell * GameWorld.CELL), Vector2(mod.SILO_SIZE * GameWorld.CELL))

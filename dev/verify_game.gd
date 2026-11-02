@@ -241,6 +241,89 @@ func run(main: Node) -> void:
 				main.hud._city_rename_dialog = null
 		print("[VERIFY] City rename verified successfully: ", test_city.name)
 
+	# 7. Test Mod Buildings Placement
+	print("[VERIFY] Testing Mod Buildings Placement (Tank Factory, Silo, VDV HQ)...")
+	if main.world:
+		if main.world.player == null and not main.world.countries.is_empty():
+			main.world.player = main.world.countries[0]
+		var p = main.world.player
+		if p != null:
+			p.money = 50000
+			p.metal = 500
+			p.uranium = 100
+		
+			# Find a valid 20x20 land spot and assign to player
+			var test_cell = Vector2i(-1, -1)
+			for cy in range(50, main.world.data.h - 50, 10):
+				for cx in range(50, main.world.data.w - 50, 10):
+					var all_land = true
+					for dy in range(15):
+						for dx in range(15):
+							if Biome.is_water(main.world.data.get_biome(cx + dx, cy + dy)):
+								all_land = false
+								break
+						if not all_land:
+							break
+					if all_land:
+						test_cell = Vector2i(cx, cy)
+						for dy in range(15):
+							for dx in range(15):
+								main.world.data.set_owner_id(cx + dx, cy + dy, p.id)
+						break
+				if test_cell.x != -1:
+					break
+			
+			if test_cell.x != -1:
+				var mm = main.get_node_or_null("/root/ModManager")
+				if mm:
+					# 1. Test Tank Factory
+					if mm.installed_mods.has("tank_factory"):
+						var tf = mm.installed_mods["tank_factory"].get("_instance")
+						if tf:
+							print("[VERIFY] Testing Tank Factory placement at: ", test_cell)
+							var can_tf = tf.can_place_at(test_cell)
+							print("[VERIFY] Tank Factory can_place_at: ", can_tf)
+							assert(can_tf, "Tank factory must be placeable on player land!")
+							var prev_f_count = main.world.mil.facilities.size()
+							tf.place_factory_at(test_cell)
+							assert(main.world.mil.facilities.size() > prev_f_count, "Facility count must increase after placement!")
+							print("[VERIFY] Tank Factory successfully placed! Total facilities: ", main.world.mil.facilities.size())
+					
+					# 2. Test VDV HQ
+					var vdv_cell = test_cell + Vector2i(5, 0)
+					if mm.installed_mods.has("airborne_assault"):
+						var vdv = mm.installed_mods["airborne_assault"].get("_instance")
+						if vdv:
+							print("[VERIFY] Testing VDV HQ placement at: ", vdv_cell)
+							var can_vdv = vdv.can_place_hq_at(vdv_cell)
+							print("[VERIFY] VDV HQ can_place_hq_at: ", can_vdv)
+							assert(can_vdv, "VDV HQ must be placeable on player land!")
+							var prev_f_count = main.world.mil.facilities.size()
+							vdv.place_hq_at(vdv_cell)
+							assert(main.world.mil.facilities.size() > prev_f_count, "Facility count must increase after placement!")
+							print("[VERIFY] VDV HQ successfully placed! Total facilities: ", main.world.mil.facilities.size())
+
+					# 3. Test Nuclear Silo
+					var silo_cell = test_cell + Vector2i(0, 5)
+					if mm.installed_mods.has("nuclear_strike"):
+						var ns = mm.installed_mods["nuclear_strike"].get("_instance")
+						if ns:
+							print("[VERIFY] Testing Nuclear Silo placement at: ", silo_cell)
+							var can_ns = ns.can_place_at(silo_cell)
+							print("[VERIFY] Nuclear Silo can_place_at: ", can_ns)
+							assert(can_ns, "Nuclear Silo must be placeable on player land!")
+							var prev_f_count = main.world.mil.facilities.size()
+							ns.place_silo_at(silo_cell)
+							assert(main.world.mil.facilities.size() > prev_f_count, "Facility count must increase after placement!")
+							print("[VERIFY] Nuclear Silo successfully placed! Total facilities: ", main.world.mil.facilities.size())
+
+					# 4. Test GameWorld cell_at_screen & WorldData get_owner
+					assert(main.world.has_method("cell_at_screen"), "GameWorld must have cell_at_screen!")
+					var c_res = main.world.cell_at_screen(Vector2(100, 100))
+					assert(c_res is Vector2i, "cell_at_screen must return Vector2i!")
+					assert(main.world.data.get_owner(test_cell.x, test_cell.y) == p.id, "WorldData.get_owner alias must return player id!")
+					print("[VERIFY] Compatibility methods cell_at_screen and get_owner verified!")
+
 	print("[VERIFY] ALL VERIFICATIONS PASSED SUCCESSFULLY!")
 	tree.quit(0)
 

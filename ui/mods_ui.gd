@@ -128,6 +128,15 @@ static func build(menus: Menus, parent: VBoxContainer) -> void:
 	)
 	action_row.add_child(btn_folder)
 
+	var btn_restore: Button = UiKit.big("⚡ ВОССТАНОВИТЬ ВСЕ", "stone", "", 36.0, 10)
+	btn_restore.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_restore.tooltip_text = "Восстанавливает и активирует все базовые моды ПК-порта"
+	btn_restore.pressed.connect(func() -> void:
+		mm.restore_builtin_mods()
+		menus.show_mods(true)
+	)
+	action_row.add_child(btn_restore)
+
 	var btn_refresh: Button = UiKit.big("🔄 ОБНОВИТЬ", "stone", "", 36.0, 10)
 	btn_refresh.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_refresh.pressed.connect(func() -> void:

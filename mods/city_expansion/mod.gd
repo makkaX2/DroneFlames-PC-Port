@@ -251,7 +251,7 @@ func _spawn_new_quarters(c: City, count: int) -> void:
 				var cell = c.center + Vector2i(dx, dy)
 				if not d.inside(cell.x, cell.y):
 					continue
-				if d.get_owner(cell.x, cell.y) != c.country_id:
+				if d.get_owner_id(cell.x, cell.y) != c.country_id:
 					continue
 				var b = d.get_biome(cell.x, cell.y)
 				if Biome.is_water(b):

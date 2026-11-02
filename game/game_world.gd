@@ -549,3 +549,11 @@ func _exit_tree() -> void :
 	for key: String in ["fire", "siren", "drone", "heli"]:
 		Sfx.loop(key, "", false)
 	Sfx.detach_world(self)
+
+
+## Преобразование экранных координат в координаты ячейки карты (для модов и UI)
+func cell_at_screen(screen_pos: Vector2) -> Vector2i:
+	if camera != null:
+		var wp: Vector2 = camera.screen_to_world(screen_pos)
+		return Vector2i(floori(wp.x / float(CELL)), floori(wp.y / float(CELL)))
+	return Vector2i(floori(screen_pos.x / float(CELL)), floori(screen_pos.y / float(CELL)))

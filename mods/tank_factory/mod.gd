@@ -222,7 +222,7 @@ func can_place_at(cell: Vector2i) -> bool:
 			var cy = cell.y + dy
 
 			# Проверка принадлежности территории игроку
-			if d.get_owner(cx, cy) != player.id:
+			if d.get_owner_id(cx, cy) != player.id:
 				return false
 
 			# Проверка на сушу (не вода)

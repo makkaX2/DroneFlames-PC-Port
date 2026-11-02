@@ -2659,50 +2659,11 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 		nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cl_vb.add_child(nl)
 
-	var status_lbl: Label = UiKit.lbl("", 10, UiKit.GOLD, 2)
-	status_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_lbl.visible = false
-	vb.add_child(status_lbl)
-
-	var pbar: = ProgressBar.new()
-	pbar.custom_minimum_size = Vector2(0, 16)
-	pbar.min_value = 0.0
-	pbar.max_value = 100.0
-	pbar.value = 0.0
-	pbar.visible = false
-	vb.add_child(pbar)
-
-	var dl_btn: Button = UiKit.big("СКАЧАТЬ И ОБНОВИТЬ", "green", "", 44.0, 13)
+	var dl_btn: Button = UiKit.big("СКАЧАТЬ ОБНОВЛЕНИЕ", "green", "", 44.0, 13)
 	dl_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dl_btn.pressed.connect(func() -> void:
 		UiKit.snd("ui_click")
-		if dl_url.begins_with("http") and (dl_url.ends_with(".exe") or dl_url.ends_with(".zip")) and up != null:
-			dl_btn.disabled = true
-			status_lbl.visible = true
-			status_lbl.text = Loc.t("Загрузка обновления: 0%...")
-			pbar.visible = true
-			pbar.value = 0.0
-			
-			var on_prog: Callable = func(_rec: int, _tot: int, pct: float) -> void:
-				pbar.value = pct
-				status_lbl.text = Loc.t("Загрузка обновления: %d%%...") % int(pct)
-			
-			var on_done: Callable = func(path: String) -> void:
-				status_lbl.text = Loc.t("Загрузка завершена! Запуск установщика...")
-				await get_tree().create_timer(0.5).timeout
-				if up.has_method("apply_and_restart"):
-					up.call("apply_and_restart", path, false)
-			
-			var on_fail: Callable = func(_reason: String) -> void:
-				status_lbl.text = Loc.t("Открываем страницу загрузки в браузере...")
-				OS.shell_open(dl_url)
-			
-			up.download_progress.connect(on_prog, CONNECT_ONE_SHOT)
-			up.download_completed.connect(on_done, CONNECT_ONE_SHOT)
-			up.download_failed.connect(on_fail, CONNECT_ONE_SHOT)
-			up.call("download_update", dl_url, asset_name)
-		else:
-			OS.shell_open(dl_url)
+		OS.shell_open(dl_url)
 	)
 	vb.add_child(dl_btn)
 
@@ -2710,7 +2671,8 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 	br_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	br_btn.pressed.connect(func() -> void:
 		UiKit.snd("ui_click")
-		OS.shell_open(dl_url)
+		var gh_url: String = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/tag/v" + tag
+		OS.shell_open(gh_url)
 	)
 	vb.add_child(br_btn)
 

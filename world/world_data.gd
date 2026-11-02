@@ -65,9 +65,19 @@ func get_owner_id(x: int, y: int) -> int:
 	return owners[y * w + x]
 
 
+## Совместимость для модов (алиас к get_owner_id)
+func get_owner(x: int, y: int) -> int:
+	return owners[y * w + x]
+
+
 func set_owner_id(x: int, y: int, o: int) -> void :
 	owners[y * w + x] = o
 	owners_dirty = true
+
+
+## Совместимость для модов (алиас к set_owner_id)
+func set_owner(x: int, y: int, o: int) -> void:
+	set_owner_id(x, y, o)
 
 
 func has_flag(x: int, y: int, f: int) -> bool:
