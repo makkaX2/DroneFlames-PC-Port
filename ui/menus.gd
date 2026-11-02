@@ -6,9 +6,13 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.4 (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.4.1 (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
+	"ХОТФИКС v0.33.4.1: исправлена постройка зданий из модов (Танковые заводы, Ядерные шахты, Штабы ВДВ)",
+	"МОДЫ v0.33.4.1: автоматическое наполнение папки %APPDATA%/DroneFlames/mods исходниками модов и инструкцией",
+	"МОДЫ v0.33.4.1: все 8 модификаций включены по умолчанию; добавлена кнопка «Восстановить все»",
+	"ОБНОВЛЕНИЯ v0.33.4.1: мгновенное скачивание установщика в браузере по клику без зависаний",
 	"ПК-ПОРТ: управление клавиатурой и мышью (WASD, зум колесом, F11 полный экран)",
 	"СИСТЕМА МОДИФИКАЦИЙ: поддержка модов (.dfmod), менеджер модов в главном меню, ВДВ десант",
 	"ОПТИМИЗАЦИЯ v0.33.4: быстрый расчёт дистанционного поля территорий и шейдеров границ",
@@ -2531,7 +2535,7 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 	elif changelog == "" and up != null:
 		changelog = String(up.get("latest_changelog"))
 	if tag == "":
-		tag = "0.33.4"
+		tag = "0.33.4.1"
 	if dl_url == "":
 		dl_url = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/latest"
 

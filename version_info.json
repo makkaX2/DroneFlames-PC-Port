@@ -1,5 +1,6 @@
 {
-  "version": "0.33.4",
+  "version": "0.33.4.1",
+  "base_upstream_version": "0.33.4",
   "apk_filename": "DroneFlames_v0.33.4_android.apk",
   "apk_sha256": "68e2fd929fdb0e165926b83f93f5474dbad4a83a74373da46f93469bbac98845",
   "apk_size_bytes": 131046250,
