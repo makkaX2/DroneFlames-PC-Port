@@ -64,7 +64,7 @@ var _sb: Dictionary = {}
 var _cell_w: float = 60.0
 
 
-func setup(h: Node, sheet_h: float, bottom_pad: float, focus: int = -1) -> void :
+func setup(h: Node, sheet_h: float, bottom_pad: float, focus: int = -1, sheet_w: float = -1.0) -> void :
 	hud = h
 	gw = hud.gw
 	player = gw.player
@@ -80,7 +80,7 @@ func setup(h: Node, sheet_h: float, bottom_pad: float, focus: int = -1) -> void 
 	tree_exiting.connect( func() -> void :
 		if hud != null and is_instance_valid(hud):
 			hud.call("ui24_closed", self))
-	var vw: float = hud.root.get_viewport_rect().size.x if hud.get("root") != null else 360.0
+	var vw: float = sheet_w if sheet_w > 0.0 else (hud.root.get_viewport_rect().size.x if hud.get("root") != null else 360.0)
 	var inner_w: float = vw - 16.0 - 12.0 - 8.0
 	cols = 10 if inner_w >= 580.0 else 5
 	_cell_w = floorf((inner_w - float(cols - 1) * 3.0) / float(cols))

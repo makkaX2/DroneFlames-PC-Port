@@ -446,15 +446,15 @@ func open_ad_rules(focus: int = -1) -> void :
 	var sheet_h: float = floorf(vp.y * 0.74) - BuildPanel.TAB_H
 	var is_pc: bool = root.size.x >= 700
 	var final_h: float = minf(460.0, maxf(1.0, root.size.y - 24.0)) if is_pc else sheet_h
+	var final_w: float = minf(620.0, maxf(1.0, root.size.x - 24.0)) if is_pc else vp.x
 	var sh: Control = (load("res://ui/ui24/ad_rules_sheet.gd") as GDScript).new()
 	sh.name = "AdRulesSheet"
-	sh.call("setup", self, final_h, _safe_margins().y if not is_pc else 0.0, focus)
+	sh.call("setup", self, final_h, _safe_margins().y if not is_pc else 0.0, focus, final_w)
 	ad_rules_sheet = sh
 	ui24_open(sh)
 	if is_pc:
-		var sh_w: float = minf(620.0, maxf(1.0, root.size.x - 24.0))
-		sh.custom_minimum_size = Vector2(sh_w, final_h)
-		sh.size = Vector2(sh_w, final_h)
+		sh.custom_minimum_size = Vector2(final_w, final_h)
+		sh.size = Vector2(final_w, final_h)
 		root.add_child(sh)
 		_fit_ad_rules_window()
 		call_deferred("_fit_ad_rules_window")
