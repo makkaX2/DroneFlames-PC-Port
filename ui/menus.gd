@@ -6,9 +6,13 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.4.4 (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.4.5 (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
+	"НАСТРОЙКИ v0.33.4.5: выбор разрешения рендера с сохранением; список ограничен разрешением монитора",
+	"СИСТЕМА МОДОВ v0.33.4.5: исправлена загрузка скачанных модов с собственными типами и безопасная установка поверх старой версии",
+	"СИСТЕМА МОДОВ v0.33.4.5: после установки встроенного мода каталог обновляется сразу; исправлено отображение авторов без дублирования @",
+	"МОД ПТРК v0.33.4.5: урон и проверка целей используют боевую систему игры, союзники защищены от поражения",
 	"АВТООБНОВЛЕНИЕ v0.33.4.4: устранено ложное циклическое уведомление об обновлении при уже установленной последней версии",
 	"МУЛЬТИПЛЕЕР v0.33.4.3: сохранение партии у хоста по кнопке «СОХРАНИТЬ» в меню паузы (Esc)",
 	"МУЛЬТИПЛЕЕР v0.33.4.3: игроки сохраняются у хоста по никам и автоматически восстанавливают свои страны при входе",
@@ -2560,7 +2564,7 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 	elif changelog == "" and up != null:
 		changelog = String(up.get("latest_changelog"))
 	if tag == "":
-		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.4"
+		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.5"
 	var direct_installer_url: String = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [tag, tag]
 	if dl_url == "" or dl_url.contains("/releases/tag/") or dl_url.contains("/releases/latest") or not dl_url.ends_with(".exe"):
 		dl_url = direct_installer_url

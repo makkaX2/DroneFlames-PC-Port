@@ -1,7 +1,7 @@
 # 🎮 DroneFlames — PC Port by @good_boy_irl
 
 [![Build & Release](https://github.com/makkaX2/DroneFlames-PC-Port/actions/workflows/build.yml/badge.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-0.33.4.4-blue.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/releases)
+[![Version](https://img.shields.io/badge/version-0.33.4.5-blue.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64%20%7C%20Direct3D%2012-0078d7.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/releases)
 [![Telegram Community](https://img.shields.io/badge/Telegram-Порты%20и%20моды-2CA5E0?logo=telegram)](https://t.me/droneflamesmod)
 [![Engine](https://img.shields.io/badge/engine-Godot%204.3%2B-478cbf.svg)](https://godotengine.org)
@@ -61,6 +61,7 @@
    - Включён **Developer Mode (`dev_mode`)** и оверлей **PERF PROBE** для мониторинга производительности и FPS.
 
 8. ⚡ **Оптимизации производительности и энергосбережения:**
+   - **Разрешение рендера:** выбор стандартных разрешений вплоть до максимального разрешения текущего монитора; снижение разрешения уменьшает нагрузку на GPU.
    - **Шейдерная оптимизация дистанционного поля территорий v0.33.4:** ускорение отрисовки границ карты и существенное снижение нагрузки на GPU/CPU.
    - **Кэширование категорий тумана v0.33.4:** быстрый расчёт прозрачности спрайтов эффектов (`AnimatedSprite2D`).
    - **ПК-троттлинг в фоне:** снижение частоты кадров до 15 FPS при сворачивании игры или потере фокуса окна (Alt-Tab) для тихой работы кулеров и экономии батареи ноутбуков.
@@ -90,7 +91,7 @@
 
 * **Играть без установки:** запустите `Play_DroneFlames.bat`.
 * **Запуск с отладочной консолью:** запустите `Play_DroneFlames_Debug.bat`.
-* **Установка инсталлером:** скачайте готовый `DroneFlames_PC_Setup_v0.33.4.4_good_boy_irl.exe` из [Releases](https://github.com/makkaX2/DroneFlames-PC-Port/releases).
+* **Установка инсталлером:** скачайте готовый `DroneFlames_PC_Setup_v0.33.4.5_good_boy_irl.exe` из [Releases](https://github.com/makkaX2/DroneFlames-PC-Port/releases).
 
 ---
 
@@ -98,8 +99,8 @@
 
 В репозитории настроен автоматический CI/CD пайплайн (`.github/workflows/build.yml`):
 * При любом изменении кода и пуше в `master` / `main` автоматически:
-  1. Собирается переносимый архив **Portable ZIP** (`DroneFlames_PC_v0.33.4.4_good_boy_irl.zip`).
-  2. Через **Inno Setup 6** компилируется полноценный установщик **Setup EXE** (`DroneFlames_PC_Setup_v0.33.4.4_good_boy_irl.exe`).
+  1. Собирается переносимый архив **Portable ZIP** (`DroneFlames_PC_v0.33.4.5_good_boy_irl.zip`).
+  2. Через **Inno Setup 6** компилируется полноценный установщик **Setup EXE** (`DroneFlames_PC_Setup_v0.33.4.5_good_boy_irl.exe`).
   3. Собирается **Android APK** с актуальным кодом.
   4. Создаётся или обновляется релиз во вкладке **Releases**, куда загружаются готовые файлы.
 
@@ -118,8 +119,8 @@ python build.py
 ```
 
 Готовые файлы появятся в папке `dist/`:
-- `dist/DroneFlames_PC_Setup_v0.33.4.4_good_boy_irl.exe`
-- `dist/DroneFlames_PC_v0.33.4.4_good_boy_irl.zip`
+- `dist/DroneFlames_PC_Setup_v0.33.4.5_good_boy_irl.exe`
+- `dist/DroneFlames_PC_v0.33.4.5_good_boy_irl.zip`
 
 ---
 
