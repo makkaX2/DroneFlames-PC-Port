@@ -106,6 +106,8 @@ func _ready() -> void :
 
 func _main_menu() -> void :
 	in_menu = true
+	if has_node("/root/ModManager"):
+		get_node("/root/ModManager").clear_active_world()
 	tutorial.stop()
 	hud.visible = false
 	menus.close()
@@ -293,7 +295,9 @@ func start_world(s: WorldSettings) -> void :
 	_set_mode(Mode.CAPITAL)
 	hud.select_page(1)
 	if has_node("/root/ModManager"):
-		get_node("/root/ModManager").call_hook("on_world_started", [self, world])
+		var mod_manager: Node = get_node("/root/ModManager")
+		mod_manager.set_active_world(self, world)
+		mod_manager.call_hook("on_world_started", [self, world])
 
 
 func _notification(what: int) -> void :

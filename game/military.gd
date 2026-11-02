@@ -372,8 +372,15 @@ func launch_missiles(country: Country, target: Vector2, count: int) -> int:
 func _update_tels(dt: float) -> void :
 	for f: Facility in facilities:
 		if f.kind != Facility.Kind.TEL:
-			if f.moving:
+			# Only mobile defense facilities can use the shared vehicle movement path.
+			# A stale/corrupt moving flag on a factory (for example a mod building)
+			# must never make it drive or be parked as a vehicle.
+			if f.moving and is_mobile(f.kind):
 				_drive_tel(f, dt)
+			elif f.moving:
+				f.moving = false
+				f.mpath.clear()
+				drive_dir.erase(f.id)
 			continue
 		var c: Country = gw.country_by_id(f.country_id)
 		if f.moving:

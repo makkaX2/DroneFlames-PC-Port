@@ -48,6 +48,9 @@ var _download_temp_path: String = ""
 var _icon_download_queue: Array[Dictionary] = []
 var _is_downloading_icon: bool = false
 var _current_icon_mod_id: String = ""
+var _active_main: Node = null
+var _active_world: Node = null
+var _is_initializing_mod: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -286,12 +289,16 @@ func scan_installed_mods() -> void:
 	var user_mods_global: String = ProjectSettings.globalize_path(USER_MODS_DIR)
 	var builtin_mods_global: String = ProjectSettings.globalize_path(BUILTIN_MODS_DIR)
 	if DirAccess.dir_exists_absolute(exe_mods) and exe_mods != user_mods_global and exe_mods != builtin_mods_global:
+		_unpack_pending_dfmods(exe_mods)
 		_scan_dir_absolute(exe_mods, false)
 
 	# 3. Активируем ТОЛЬКО те моды, которые пользователь включил! (Ванильный режим по умолчанию)
 	for mod_id in installed_mods.keys():
 		if enabled_mod_ids.has(mod_id):
-			_load_mod(mod_id)
+			if not _load_mod(mod_id):
+				enabled_mod_ids.erase(mod_id)
+				if not disabled_mod_ids.has(mod_id):
+					disabled_mod_ids.append(mod_id)
 
 	_save_config()
 	mods_updated.emit()
@@ -306,18 +313,18 @@ func _unpack_pending_dfmods(base_path: String) -> void:
 	var fn: String = da.get_next()
 	var dfmods: Array[String] = []
 	while fn != "":
-		if not da.current_is_dir() and fn.ends_with(".dfmod"):
+		if not da.current_is_dir() and fn.get_extension().to_lower() == "dfmod":
 			dfmods.append(fn)
 		fn = da.get_next()
 	da.list_dir_end()
 
 	for dfmod_name in dfmods:
 		var full_file_path: String = base_path.path_join(dfmod_name)
-		var target_folder: String = base_path.path_join(dfmod_name.trim_suffix(".dfmod"))
+		var target_folder: String = base_path.path_join(dfmod_name.get_basename())
 		print("[ModManager] Extracting .dfmod package: ", full_file_path, " -> ", target_folder)
-		_extract_zip(full_file_path, target_folder)
-		# Удаляем распакованный .dfmod чтобы не перераспаковывать повторно
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(full_file_path))
+		if _extract_zip(full_file_path, target_folder):
+			# Оставляем повреждённые архивы на месте, чтобы их можно было заменить/диагностировать.
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(full_file_path))
 
 func _scan_dir(dir_path: String, is_builtin: bool) -> void:
 	var da: DirAccess = DirAccess.open(dir_path)
@@ -417,7 +424,10 @@ func toggle_mod(mod_id: String, enable: bool) -> void:
 		disabled_mod_ids.erase(mod_id)
 		if not enabled_mod_ids.has(mod_id):
 			enabled_mod_ids.append(mod_id)
-		_load_mod(mod_id)
+		if not _load_mod(mod_id):
+			enabled_mod_ids.erase(mod_id)
+			if not disabled_mod_ids.has(mod_id):
+				disabled_mod_ids.append(mod_id)
 	else:
 		if not disabled_mod_ids.has(mod_id):
 			disabled_mod_ids.append(mod_id)
@@ -437,17 +447,56 @@ func _load_mod(mod_id: String) -> bool:
 
 	var folder: String = String(mod.get("_folder_path", ""))
 	var entry_file: String = String(mod.get("entry", "mod.gd"))
+	if entry_file.is_empty() or entry_file.is_absolute_path() or entry_file.contains(".."):
+		mod["_load_error"] = "Некорректный путь entry в mod.json"
+		push_error("[ModManager] %s: %s" % [mod_id, mod["_load_error"]])
+		return false
 	var entry_path: String = folder.path_join(entry_file)
-	if FileAccess.file_exists(entry_path):
-		var scr: GDScript = load(entry_path) as GDScript
-		if scr:
-			var instance = scr.new()
-			mod["_instance"] = instance
-			if instance and instance.has_method("init_mod"):
-				instance.call("init_mod", self)
-		else:
-			print("[ModManager] Failed to load GDScript at: ", entry_path)
+	if not FileAccess.file_exists(entry_path):
+		mod["_load_error"] = "Не найден entry-файл: %s" % entry_file
+		push_error("[ModManager] %s: %s" % [mod_id, mod["_load_error"]])
+		return false
+	var scr: GDScript
+	if entry_path.begins_with("res://"):
+		scr = load(entry_path) as GDScript
+	else:
+		# ResourceLoader cannot load GDScript from user:// or an arbitrary portable
+		# directory. Compile the installed source directly so downloaded/portable
+		# mods use the same loader as built-in mods.
+		var source_file: FileAccess = FileAccess.open(entry_path, FileAccess.READ)
+		if source_file == null:
+			mod["_load_error"] = "Не удалось прочитать entry-файл: %s" % entry_file
+			push_error("[ModManager] %s: %s" % [mod_id, mod["_load_error"]])
 			return false
+		var source_code: String = source_file.get_as_text()
+		source_file.close()
+		# A downloaded update may define the same global script class as its
+		# built-in predecessor. The mod API instantiates the entry directly, so
+		# its global class_name declaration is unnecessary and can collide.
+		var class_name_line := RegEx.new()
+		class_name_line.compile("(?m)^class_name\\s+[A-Za-z_][A-Za-z0-9_]*\\s*\\r?\\n")
+		source_code = class_name_line.sub(source_code, "", true)
+		scr = GDScript.new()
+		scr.source_code = source_code
+		var compile_error: Error = scr.reload()
+		if compile_error != OK:
+			mod["_load_error"] = "Ошибка компиляции %s: %s" % [entry_file, error_string(compile_error)]
+			push_error("[ModManager] %s: %s" % [mod_id, mod["_load_error"]])
+			return false
+	if scr == null:
+		mod["_load_error"] = "Не удалось загрузить скрипт: %s (подробности в журнале Godot)" % entry_file
+		push_error("[ModManager] %s: %s" % [mod_id, mod["_load_error"]])
+		return false
+	var instance = scr.new()
+	if instance == null or not instance.has_method("init_mod"):
+		mod["_load_error"] = "В entry-скрипте отсутствует обязательный метод init_mod(mm)"
+		push_error("[ModManager] %s: %s" % [mod_id, mod["_load_error"]])
+		return false
+	mod["_instance"] = instance
+	mod["_load_error"] = ""
+	_is_initializing_mod = true
+	instance.call("init_mod", self)
+	_is_initializing_mod = false
 
 	mod["_loaded"] = true
 	print("[ModManager] Mod successfully activated: ", mod_id)
@@ -511,6 +560,16 @@ func register_hook(hook_name: String, callable: Callable) -> void:
 		hooks[hook_name] = []
 	if not hooks[hook_name].has(callable):
 		hooks[hook_name].append(callable)
+	if _is_initializing_mod and hook_name == "on_world_started" and callable.is_valid() and _active_main != null and is_instance_valid(_active_main) and _active_world != null and is_instance_valid(_active_world):
+		callable.call(_active_main, _active_world)
+
+func set_active_world(main: Node, world: Node) -> void:
+	_active_main = main
+	_active_world = world
+
+func clear_active_world() -> void:
+	_active_main = null
+	_active_world = null
 
 func unregister_hook(hook_name: String, callable: Callable) -> void:
 	if hooks.has(hook_name):
@@ -629,12 +688,16 @@ func install_builtin_mod(mod_id: String) -> bool:
 			enabled_mod_ids.append(mod_id)
 		disabled_mod_ids.erase(mod_id)
 		uninstalled_mod_ids.erase(mod_id)
-		_load_mod(mod_id)
+		var loaded: bool = _load_mod(mod_id)
+		if not loaded:
+			enabled_mod_ids.erase(mod_id)
+			if not disabled_mod_ids.has(mod_id):
+				disabled_mod_ids.append(mod_id)
 		_save_config()
 		mod_installed.emit(mod_id)
 		mods_updated.emit()
 		print("[ModManager] Installed and enabled mod from catalog: ", mod_id)
-		return true
+		return loaded
 	return false
 
 func fetch_catalog() -> void:
@@ -860,21 +923,56 @@ func _extract_zip(zip_path: String, target_dir: String) -> bool:
 		DirAccess.make_dir_recursive_absolute(global_target)
 
 	var files: PackedStringArray = reader.get_files()
+	var has_manifest: bool = files.has("mod.json")
+	# Распространённые архивы содержат один общий каталог верхнего уровня.
+	# Снимаем его только если внутри действительно лежит mod.json.
+	var wrapper: String = ""
+	if not has_manifest:
+		var first_component: String = ""
+		var one_root: bool = true
+		for entry in files:
+			var clean_entry: String = entry.trim_suffix("/")
+			if clean_entry.is_empty():
+				continue
+			var component: String = clean_entry.get_slice("/", 0)
+			if first_component.is_empty():
+				first_component = component
+			elif first_component != component:
+				one_root = false
+				break
+		if one_root and not first_component.is_empty() and files.has(first_component.path_join("mod.json")):
+			wrapper = first_component + "/"
+			has_manifest = true
+	if not has_manifest:
+		push_error("[ModManager] Archive does not contain mod.json: " + zip_path)
+		reader.close()
+		return false
 	for f in files:
-		if f.ends_with("/"):
-			DirAccess.make_dir_recursive_absolute(global_target.path_join(f))
+		var relative_path: String = f.trim_prefix(wrapper)
+		if relative_path.is_empty():
+			continue
+		var normalized: String = relative_path.replace("\\", "/")
+		if normalized.begins_with("/") or normalized.contains(":") or normalized.split("/").has(".."):
+			push_error("[ModManager] Rejected unsafe path in .dfmod archive: " + f)
+			reader.close()
+			return false
+		if normalized.ends_with("/"):
+			DirAccess.make_dir_recursive_absolute(global_target.path_join(normalized))
 			continue
 		
-		var dir_name: String = f.get_base_dir()
+		var dir_name: String = normalized.get_base_dir()
 		if dir_name != "":
 			DirAccess.make_dir_recursive_absolute(global_target.path_join(dir_name))
 		
 		var data: PackedByteArray = reader.read_file(f)
-		var out_file: String = global_target.path_join(f)
+		var out_file: String = global_target.path_join(normalized)
 		var fa: FileAccess = FileAccess.open(out_file, FileAccess.WRITE)
-		if fa:
-			fa.store_buffer(data)
-			fa.close()
+		if fa == null:
+			push_error("[ModManager] Could not write extracted mod file: " + normalized)
+			reader.close()
+			return false
+		fa.store_buffer(data)
+		fa.close()
 
 	reader.close()
 	return true

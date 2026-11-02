@@ -318,6 +318,11 @@ static func _build_mod_card(menus: Menus, parent: VBoxContainer, data: Dictionar
 	var author_lbl: Label = UiKit.lbl("Автор: @" + mod_author, 8, Color(0.6, 0.7, 0.9))
 	author_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	info_col.add_child(author_lbl)
+	var load_error: String = String(data.get("_load_error", ""))
+	if load_error != "":
+		var error_lbl: Label = UiKit.lbl("ОШИБКА ЗАГРУЗКИ: " + load_error, 8, UiKit.RED)
+		error_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		info_col.add_child(error_lbl)
 
 	# 3. Кнопки действий справа
 	var act_col: VBoxContainer = VBoxContainer.new()

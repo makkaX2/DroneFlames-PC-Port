@@ -5,7 +5,7 @@ extends RefCounted
 ## Добавляет шахтный комплекс МБР во вкладку «АРМИЯ» нижней панели.
 ## Позволяет обогащать уран и собирать термоядерные боеголовки.
 ## Производит пуск межконтинентальной баллистической ракеты с глобальным радиусом поражения,
-## кинематографичной ослепляющей вспышкой, ядерным грибом и выжиганием радиоактивной пустоши.
+## кинематографичной ослепляющей вспышкой, гигантским ядерным грибом и выжиганием радиоактивной пустоши.
 
 var mm_ref: Node = null
 var main_ref: Node = null
@@ -85,7 +85,7 @@ func _on_world_started(main: Node, world: Node) -> void:
 		if not main.hud.action.is_connected(_on_hud_action):
 			main.hud.action.connect(_on_hud_action)
 
-	# 2. Слой мира для визуализации призрака, шахты, полёта МБР и взрывов
+	# 2. Слой мира для визуализации призрака, шахты, полёта МБР и ядерных грибов
 	world_layer = NuclearWorldLayer.new()
 	world_layer.setup(self, main, world)
 	world.add_child(world_layer)
@@ -149,15 +149,20 @@ func _on_hud_action(nm: String) -> void:
 func _is_silo(f: Facility) -> bool:
 	if f == null:
 		return false
-	if f.has_meta("is_nuclear_silo") and f.get_meta("is_nuclear_silo"):
-		return true
-	if f.army_build == "nuclear_silo" or f.lower_sprite == "nuclear_silo":
-		f.set_meta("is_nuclear_silo", true)
-		f.set_meta("hp", f.hp if f.hp > 0.0 else SILO_MAX_HP)
-		f.set_meta("max_hp", SILO_MAX_HP)
-		f.set_meta("has_warhead", f.missiles > 0)
-		f.set_meta("producing", f.producing)
-		f.set_meta("prod_t", f.prod_t)
+	if f.army_build == "nuclear_silo" or f.lower_sprite == "nuclear_silo" or bool(f.get_meta("is_nuclear_silo", false)):
+		# ГАРАНТИЯ: Шахта — это стационарный железобетонный комплекс (CIV_FACTORY), ни в коем случае НЕ TEL!
+		# Блокируем любые попытки движка двигать шахту.
+		f.kind = Facility.Kind.CIV_FACTORY
+		f.moving = false
+		f.mdest = Vector2.ZERO
+		f.mpos = f.center_px()
+		if not f.has_meta("is_nuclear_silo"):
+			f.set_meta("is_nuclear_silo", true)
+			f.set_meta("hp", f.hp if f.hp > 0.0 else SILO_MAX_HP)
+			f.set_meta("max_hp", SILO_MAX_HP)
+			f.set_meta("has_warhead", f.missiles > 0)
+			f.set_meta("producing", f.producing)
+			f.set_meta("prod_t", f.prod_t)
 		return true
 	return false
 
@@ -250,15 +255,12 @@ func place_why(cell: Vector2i) -> String:
 				return "Нельзя строить на воде"
 
 			var fl = d.flags[cy * d.w + cx]
-			# Городские постройки и мосты блокируют
 			if (fl & (WorldData.F_CITY | WorldData.F_BRIDGE)) != 0:
 				return "Место занято: городские постройки"
 
-			# Если клетка занята, но там просто дерево — дерево будет спилено
 			if (fl & WorldData.F_OCCUPIED) != 0:
 				if world_ref.tree_at.has(cy * d.w + cx):
 					continue
-				# Проверяем, есть ли уже база или ПВО на этой клетке
 				if world_ref.mil != null and world_ref.mil.has_method("facility_at"):
 					var fac_at = world_ref.mil.facility_at(Vector2i(cx, cy))
 					if fac_at != null and is_instance_valid(fac_at):
@@ -292,18 +294,22 @@ func place_silo_at(cell: Vector2i) -> void:
 
 	var f = Facility.new()
 	f.id = world_ref.mil.facilities.size()
-	f.kind = Facility.Kind.TEL
+	# ВАЖНО: CIV_FACTORY — неподвижное сооружение. Ни при каких обстоятельствах не поедет!
+	f.kind = Facility.Kind.CIV_FACTORY
 	f.country_id = p.id
 	f.cell = cell
 	f.size = SILO_SIZE
 	f.army_build = "nuclear_silo"
 	f.lower_sprite = "nuclear_silo"
 	f.hp = SILO_MAX_HP
+	f.moving = false
+	f.mdest = Vector2.ZERO
+	f.mpos = f.center_px()
 	f.missiles = 1
 	f.set_meta("is_nuclear_silo", true)
 	f.set_meta("hp", SILO_MAX_HP)
 	f.set_meta("max_hp", SILO_MAX_HP)
-	f.set_meta("has_warhead", true) # Первая ракета входит в комплект постройки
+	f.set_meta("has_warhead", true)
 	f.set_meta("producing", false)
 	f.set_meta("prod_t", 0.0)
 
@@ -414,15 +420,17 @@ func launch_strike(target_world_pos: Vector2) -> void:
 
 	var start_pos = f.center_px()
 	var dist = start_pos.distance_to(target_world_pos)
-	var flight_duration = clampf(6.0 + dist * 0.003, 7.0, 11.0)
+	var flight_duration = clampf(5.5 + dist * 0.002, 6.5, 9.5)
 
-	# Звук и спецэффекты пуска
+	# Звук и эффекты пуска
 	if ClassDB.class_exists("Sfx"):
 		Sfx.play("vls_hatch_open", start_pos)
 		Sfx.play("missile_launch", start_pos)
+		Sfx.play("hyper_launch", start_pos)
 	if world_ref.fx != null:
 		world_ref.fx.spawn("tel_flash", start_pos.round(), 6)
 		world_ref.fx.spawn("launch_cloud", start_pos.round(), 5)
+		world_ref.fx.spawn("shockwave", start_pos.round(), 1)
 	if world_ref.has_method("camera_shake_launch"):
 		world_ref.camera_shake_launch(start_pos)
 
@@ -439,10 +447,10 @@ func launch_strike(target_world_pos: Vector2) -> void:
 	active_missiles.append(m)
 
 	if world_ref.has_method("say") and p != null:
-		world_ref.say(p, Loc.mk("ВНИМАНИЕ: Произведён запуск стратегической МБР с термоядерной боеголовкой!"))
+		world_ref.say(p, Loc.mk("ВНИМАНИЕ: Произведён запуск стратегической МБР «Сармат»!"))
 
 	if main_ref != null and main_ref.hud != null:
-		main_ref.hud.show_toast("Пуск МБР выполнен! Подлёт к цели через %d сек." % int(ceil(flight_duration)))
+		main_ref.hud.show_toast("Пуск МБР «Сармат» выполнен! Подлёт к цели через %d сек." % int(ceil(flight_duration)))
 		main_ref.hud.hide_ops()
 
 func _repair_silo(f: Facility) -> void:
@@ -460,6 +468,7 @@ func _repair_silo(f: Facility) -> void:
 		return
 	p.money -= SILO_REPAIR_COST
 	f.set_meta("hp", SILO_MAX_HP)
+	f.hp = SILO_MAX_HP
 	if ClassDB.class_exists("Sfx"):
 		Sfx.play("repair_work", f.center_px())
 	if main_ref != null and main_ref.hud != null:
@@ -499,6 +508,12 @@ func _tick_silos(delta: float) -> void:
 			continue
 		if not _is_silo(f):
 			continue
+		# Железная блокировка любого движения
+		f.kind = Facility.Kind.CIV_FACTORY
+		f.moving = false
+		f.mdest = Vector2.ZERO
+		f.mpos = f.center_px()
+
 		if bool(f.get_meta("producing", false)):
 			var t = float(f.get_meta("prod_t", 0.0)) + delta
 			f.set_meta("prod_t", t)
@@ -521,16 +536,17 @@ func _tick_missiles(delta: float) -> void:
 		m["t"] += delta
 		var k = clampf(m["t"] / m["duration"], 0.0, 1.0)
 		var cur_ground = (m["from"] as Vector2).lerp(m["target"], k)
-		var alt = 4.0 * 360.0 * k * (1.0 - k)
-		var screen_p = cur_ground - Vector2(0, alt)
+		var alt = 4.0 * 420.0 * k * (1.0 - k)
+		var m_pos = cur_ground - Vector2(0, alt)
 
-		# Добавление точек дымного следа
 		var trail = m["trail"] as Array
-		trail.append({"pos": screen_p, "t": 0.0})
-		if trail.size() > 40:
+		trail.append({"pos": m_pos, "t": 0.0})
+		if trail.size() > 60:
 			trail.pop_front()
 
-		# Свист падающей БЧ перед ударом
+		for tp in trail:
+			tp["t"] += delta
+
 		if not bool(m["whistled"]) and (m["duration"] - m["t"]) <= 1.8:
 			m["whistled"] = true
 			if ClassDB.class_exists("Sfx"):
@@ -545,45 +561,72 @@ func _detonate_nuclear(m: Dictionary) -> void:
 	var cell: Vector2i = Vector2i(floori(target_pos.x / float(GameWorld.CELL)), floori(target_pos.y / float(GameWorld.CELL)))
 	var country_id: int = int(m["country_id"])
 
-	# 1. Ослепляющая вспышка экрана
+	# 1. Регистрация гигантского ядерного взрыва (гриб + огненный купол + ударная волна)
+	var puffs: Array = []
+	for p_i in range(50):
+		var ang = randf() * TAU
+		var rad = randf_range(15.0, 115.0)
+		puffs.append({
+			"offset": Vector2(cos(ang) * rad, sin(ang) * rad * 0.65),
+			"size": randf_range(32.0, 64.0),
+			"burn": randf() > 0.4
+		})
+
+	var exp = {
+		"pos": target_pos,
+		"cell": cell,
+		"t": 0.0,
+		"duration": 12.0,
+		"country_id": country_id,
+		"max_radius": 260.0,
+		"cloud_height": 190.0,
+		"sound_phase": 0,
+		"puffs": puffs
+	}
+	active_explosions.append(exp)
+
+	# 2. Ослепляющая вспышка экрана
 	if flash_rect != null and is_instance_valid(flash_rect):
-		flash_rect.color = Color(1.0, 0.98, 0.85, 0.9)
+		flash_rect.color = Color(1.0, 1.0, 0.95, 1.0)
 		var tw = flash_rect.create_tween()
-		tw.tween_property(flash_rect, "color:a", 0.0, 0.65).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_property(flash_rect, "color", Color(1.0, 0.75, 0.25, 0.75), 0.5).set_trans(Tween.TRANS_QUAD)
+		tw.tween_property(flash_rect, "color:a", 0.0, 2.8).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
-	# 2. Мощнейший звук ядерного взрыва
+	# 3. Каскад сокрушительных звуков
 	if ClassDB.class_exists("Sfx"):
-		Sfx.play("expl_big", target_pos, 3.5)
-		Sfx.play("far_boom_1", target_pos, 3.0)
-		Sfx.play("building_collapse", target_pos, 2.5)
+		Sfx.play("expl_big", target_pos, 4.0)
+		Sfx.play("far_boom_1", target_pos, 4.0)
+		Sfx.play("building_collapse", target_pos, 3.5)
 
-	# 3. Сотрясение камеры по всей карте
+	# 4. Мощнейшее сотрясение экрана
 	if world_ref != null and world_ref.camera != null:
 		world_ref.camera.shake_pattern([
-			Vector2(10, 0), Vector2(-8, 6), Vector2(7, -8),
-			Vector2(-7, 4), Vector2(4, 4), Vector2(-3, -4),
-			Vector2(2, 2), Vector2(0, 0)
-		], 0.04)
+			Vector2(20, -10), Vector2(-18, 14), Vector2(16, -16),
+			Vector2(-15, 12), Vector2(12, 10), Vector2(-10, -12),
+			Vector2(10, 8), Vector2(-8, -8), Vector2(6, 6), Vector2(-5, -4),
+			Vector2(3, 3), Vector2(0, 0)
+		], 0.06)
 
-	# 4. Спавн множественных эффектов гриба и ударных волн
-	if world_ref.fx != null:
-		world_ref.fx.spawn("shockwave", target_pos, 1)
-		for off in [Vector2(-12, -8), Vector2(12, -8), Vector2(0, -20), Vector2(-6, -32), Vector2(6, -32), Vector2(0, -45)]:
-			world_ref.fx.spawn("explosion_l", target_pos + off, 6)
-		world_ref.fx.spawn("smoke_black_loop", target_pos + Vector2(0, -25), 6, world_ref.game_time + 40.0, true)
-		world_ref.fx.spawn("fire_small", target_pos, 4, world_ref.game_time + 35.0, true)
+	# 5. Массивное формирование кратеров и разрушение построек
+	var strike_offsets = [
+		Vector2i(0, 0),
+		Vector2i(-6, 0), Vector2i(6, 0), Vector2i(0, -6), Vector2i(0, 6),
+		Vector2i(-4, -4), Vector2i(4, -4), Vector2i(-4, 4), Vector2i(4, 4),
+		Vector2i(-10, 0), Vector2i(10, 0), Vector2i(0, -10), Vector2i(0, 10),
+		Vector2i(-8, -6), Vector2i(8, -6), Vector2i(-8, 6), Vector2i(8, 6),
+		Vector2i(-12, -4), Vector2i(12, -4), Vector2i(-12, 4), Vector2i(12, 4)
+	]
+	for off in strike_offsets:
+		if world_ref.has_method("_apply_strike"):
+			world_ref._apply_strike(cell + off, 12, "crater_l", 75.0, country_id)
 
-	# 5. Игровое сокрушительное поражение (радиус 18 клеток)
-	if world_ref.has_method("_apply_strike"):
-		world_ref._apply_strike(cell, 18, "crater_l", 85.0, country_id)
-
-	# 6. Выжигание ландшафта и радиационная пустошь
+	# 6. Тотальное выжигание ландшафта (радиус 30 клеток = более 60 клеток в ширину!)
 	var d = world_ref.data
 	if d != null:
-		var br = 16
-		for dy in range(-br, br + 1):
-			for dx in range(-br, br + 1):
-				if dx * dx + dy * dy <= br * br:
+		var burn_radius = 30
+		for dy in range(-burn_radius, burn_radius + 1):
+			for dx in range(-burn_radius, burn_radius + 1):
+				if dx * dx + dy * dy <= burn_radius * burn_radius:
 					var cx = cell.x + dx
 					var cy = cell.y + dy
 					if d.inside(cx, cy):
@@ -591,38 +634,64 @@ func _detonate_nuclear(m: Dictionary) -> void:
 						if Biome.is_natural_land(b):
 							d.set_biome(cx, cy, Biome.BURNT)
 
-	# 7. Уничтожение юнитов в эпицентре
+	# 7. Уничтожение всей армии и техники в радиусе 260 пикселей
 	if world_ref.army != null and world_ref.army.units != null:
-		var blast_r_sq = 85.0 * 85.0
+		var blast_r_sq = 260.0 * 260.0
 		for u in world_ref.army.units:
 			if u != null and is_instance_valid(u) and u.alive:
 				if u.pos.distance_squared_to(target_pos) <= blast_r_sq:
 					u.hp = 0.0
 					u.alive = false
 
-	# 8. Проверка на поражение АЭС или ТЭЦ (вторичный взрыв и авария сети)
+	# 8. Разрушение военных баз и заводов врага
 	if world_ref.mil != null and world_ref.mil.facilities != null:
-		for f in world_ref.mil.facilities:
-			if f == null or not is_instance_valid(f):
+		for f_item in world_ref.mil.facilities:
+			if f_item == null or not is_instance_valid(f_item):
 				continue
-			if (f.kind == Facility.Kind.NUCLEAR_PLANT or f.kind == Facility.Kind.POWER_PLANT) and f.center_px().distance_to(target_pos) <= 80.0:
-				f.u_fuel = 0.0
-				f.u_hits = 3
-				f.restore_t = 120.0
-				var vict = world_ref.country_by_id(f.country_id)
-				if vict != null:
-					vict.power_cap = maxi(0, vict.power_cap - 40)
-					if world_ref.has_method("say"):
-						world_ref.say(vict, Loc.mk("КАТАСТРОФА! В результате термоядерного удара разрушена энергостанция! Полный блэкаут сети."))
+			if f_item.center_px().distance_to(target_pos) <= 260.0:
+				f_item.hp = 0.0
+				f_item.restore_t = 180.0
+				if f_item.kind == Facility.Kind.NUCLEAR_PLANT or f_item.kind == Facility.Kind.POWER_PLANT:
+					f_item.u_fuel = 0.0
+					f_item.u_hits = 3
+					var vict = world_ref.country_by_id(f_item.country_id)
+					if vict != null:
+						vict.power_cap = maxi(0, vict.power_cap - 60)
+						if world_ref.has_method("say"):
+							world_ref.say(vict, Loc.mk("КАТАСТРОФА! В результате термоядерного удара разрушена энергостанция! Полный блэкаут сети."))
+
+	# 9. Множественные очаги пожара и дымовые завесы
+	if world_ref.fx != null:
+		world_ref.fx.spawn("shockwave", target_pos, 1)
+		for k in range(30):
+			var r_dist = randf_range(12.0, 210.0)
+			var f_ang = randf() * TAU
+			var fire_pos = target_pos + Vector2(cos(f_ang), sin(f_ang)) * r_dist
+			world_ref.fx.spawn("fire_small", fire_pos, 4, world_ref.game_time + 55.0, true)
+			world_ref.fx.spawn("smoke_black_loop", fire_pos + Vector2(0, -10), 6, world_ref.game_time + 60.0, true)
 
 	if world_ref.has_method("say"):
-		world_ref.say(world_ref.country_by_id(country_id), Loc.mk("ТЕРМОЯДЕРНЫЙ УДАР НАНЕСЁН ПО КВАДРАТУ (%d, %d)! Эпицентр выжжен.", [cell.x, cell.y]))
+		world_ref.say(world_ref.country_by_id(country_id), Loc.mk("ТЕРМОЯДЕРНЫЙ УДАР НАНЕСЁН ПО КВАДРАТУ (%d, %d)! Зона полностью уничтожена.", [cell.x, cell.y]))
 
 	if main_ref != null and main_ref.hud != null:
-		main_ref.hud.show_toast("Ядерный удар поразил цель! Эпицентр уничтожен.")
+		main_ref.hud.show_toast("Ядерный удар МБР нанесён! Цель и окружающая территория стёрты с лица земли.")
 
-func _tick_explosions(_delta: float) -> void:
-	pass
+func _tick_explosions(delta: float) -> void:
+	for i in range(active_explosions.size() - 1, -1, -1):
+		var exp = active_explosions[i]
+		exp["t"] += delta
+		var t = float(exp["t"])
+		if exp["sound_phase"] == 0 and t >= 1.2:
+			exp["sound_phase"] = 1
+			if ClassDB.class_exists("Sfx"):
+				Sfx.play("expl_big", exp["pos"], 3.5)
+				Sfx.play("building_collapse", exp["pos"], 3.0)
+		elif exp["sound_phase"] == 1 and t >= 2.5:
+			exp["sound_phase"] = 2
+			if ClassDB.class_exists("Sfx"):
+				Sfx.play("far_boom_1", exp["pos"], 3.0)
+		if t >= exp["duration"]:
+			active_explosions.remove_at(i)
 
 func _update_native_card(f: Facility) -> void:
 	if main_ref == null or main_ref.hud == null:
@@ -684,10 +753,10 @@ func _update_targeting_card() -> void:
 	else:
 		var cell: Vector2i = Vector2i(floori(target_point.x / float(GameWorld.CELL)), floori(target_point.y / float(GameWorld.CELL)))
 		var dist_km = targeting_silo.center_px().distance_to(target_point) * 0.004
-		var flight_s = int(ceil(clampf(6.0 + targeting_silo.center_px().distance_to(target_point) * 0.003, 7.0, 11.0)))
-		h._set_info("ЦЕЛЬ: КВАДРАТ (%d, %d) · ДИСТАНЦИЯ: %.1f КМ · ВРЕМЯ ПОЛЁТА: %d СЕК\nРАДИУС ПОРАЖЕНИЯ: 18 КЛЕТОК · ЭПИЦЕНТР БУДЕТ ВЫЖЖЕН" % [cell.x, cell.y, dist_km, flight_s], false)
+		var flight_s = int(ceil(clampf(5.5 + targeting_silo.center_px().distance_to(target_point) * 0.002, 6.5, 9.5)))
+		h._set_info("ЦЕЛЬ: КВАДРАТ (%d, %d) · ДИСТАНЦИЯ: %.1f КМ · ВРЕМЯ ПОЛЁТА: %d СЕК\nРАДИУС ПОРАЖЕНИЯ: 30 КЛЕТОК · ГЛОБАЛЬНЫЙ ТЕРМОЯДЕРНЫЙ ВЗРЫВ" % [cell.x, cell.y, dist_km, flight_s], false)
 
-	h.ops_detail.text = "Наведение стратегической МБР «Сармат». После подтверждения пуска ракета выйдет из шахты на твердотопливном ускорителе, выйдет на баллистическую траекторию и поразит цель. Защитные сооружения и ПВО противника в эпицентре будут уничтожены."
+	h.ops_detail.text = "Наведение стратегической МБР «Сармат». После подтверждения пуска ракета выйдет из шахты на твердотопливном ускорителе, выйдет на баллистическую траекторию и сокрушит цель. Все строения, войска и ПВО противника в зоне будут полностью стёрты."
 	h.ops_detail.visible = true
 
 	var acts: Array = []
@@ -710,13 +779,12 @@ class NuclearWorldLayer extends Node2D:
 		mod = p_mod
 		main = p_main
 		world = p_world
-		z_index = 80
+		z_index = 85
 
 	func _unhandled_input(event: InputEvent) -> void:
 		if mod == null or world == null or main == null:
 			return
 
-		# Обработка мыши (InputEventMouseButton) и сенсорного ввода (InputEventScreenTouch)
 		var is_press: bool = false
 		var is_cancel: bool = false
 		var ev_pos: Vector2 = Vector2.ZERO
@@ -733,7 +801,6 @@ class NuclearWorldLayer extends Node2D:
 				is_press = true
 				ev_pos = event.position
 
-		# Клавиша ESC для отмены
 		if event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode == KEY_ESCAPE:
 				if mod.is_placing:
@@ -786,11 +853,9 @@ class NuclearWorldLayer extends Node2D:
 			var fill_col = Color(0.2, 1.0, 0.3, 0.25) if valid else Color(1.0, 0.25, 0.25, 0.25)
 			var outline_col = Color(0.2, 1.0, 0.3, 0.95) if valid else Color(1.0, 0.25, 0.25, 0.95)
 
-			# Фундамент шахты
 			draw_rect(Rect2(pos, sz), fill_col)
 			draw_rect(Rect2(pos, sz), outline_col, false, 2.0)
 
-			# Сетка ячеек фундамента
 			for x in range(mod.SILO_SIZE.x + 1):
 				var lx = pos.x + float(x * GameWorld.CELL)
 				draw_line(Vector2(lx, pos.y), Vector2(lx, pos.y + sz.y), Color(outline_col.r, outline_col.g, outline_col.b, 0.3), 1.0)
@@ -798,40 +863,34 @@ class NuclearWorldLayer extends Node2D:
 				var ly = pos.y + float(y * GameWorld.CELL)
 				draw_line(Vector2(pos.x, ly), Vector2(pos.x + sz.x, ly), Color(outline_col.r, outline_col.g, outline_col.b, 0.3), 1.0)
 
-			# Круглая бронекрышка шахты в центре
 			var center_p = pos + sz * 0.5
-			draw_circle(center_p, 5.5, Color(0.15, 0.18, 0.22, 0.85))
-			draw_arc(center_p, 5.5, 0.0, TAU, 24, outline_col, 1.5)
-			draw_circle(center_p, 2.0, Color(outline_col.r, outline_col.g, outline_col.b, 0.9))
-
-			# Периметр безопасности
-			draw_arc(center_p, 20.0, 0.0, TAU, 32, Color(outline_col.r, outline_col.g, outline_col.b, 0.4), 1.0)
+			draw_circle(center_p, 6.0, Color(0.15, 0.18, 0.22, 0.85))
+			draw_arc(center_p, 6.0, 0.0, TAU, 24, outline_col, 1.5)
+			draw_circle(center_p, 2.5, Color(outline_col.r, outline_col.g, outline_col.b, 0.9))
+			draw_arc(center_p, 22.0, 0.0, TAU, 32, Color(outline_col.r, outline_col.g, outline_col.b, 0.4), 1.0)
 
 		# 2. Отрисовка тактического прицела при ядерном наведении
 		if mod.is_targeting:
 			var t_time = float(Time.get_ticks_msec()) * 0.005
 			var pulse = 0.8 + 0.2 * sin(t_time * 5.0)
-
-			# Если цель уже зафиксирована — отображаем её, иначе следуем за курсором
 			var aim_pos = mod.target_point if mod.target_point != Vector2.INF else mouse_w
 
-			# Линия траектории от шахты к цели
 			if mod.targeting_silo != null and is_instance_valid(mod.targeting_silo):
 				var silo_pos = mod.targeting_silo.center_px()
 				draw_line(silo_pos, aim_pos, Color(1.0, 0.8, 0.2, 0.4 * pulse), 1.5)
 				draw_circle(silo_pos, 4.0, Color(1.0, 0.85, 0.2, 0.8))
 
-			# Окружность радиуса поражения (18 клеток = 72-85 пикселей)
-			draw_circle(aim_pos, 85.0, Color(1.0, 0.15, 0.1, 0.2 * pulse))
-			draw_arc(aim_pos, 85.0, 0.0, TAU, 48, Color(1.0, 0.85, 0.2, 0.9 * pulse), 2.0)
-			draw_arc(aim_pos, 42.0, 0.0, TAU, 32, Color(1.0, 0.3, 0.1, 0.5 * pulse), 1.0)
+			# Окружность радиуса поражения (радиус 260px)
+			draw_circle(aim_pos, 260.0, Color(1.0, 0.15, 0.1, 0.15 * pulse))
+			draw_arc(aim_pos, 260.0, 0.0, TAU, 64, Color(1.0, 0.85, 0.2, 0.9 * pulse), 2.5)
+			draw_arc(aim_pos, 130.0, 0.0, TAU, 48, Color(1.0, 0.3, 0.1, 0.5 * pulse), 1.5)
 
 			# Тактическое перекрестье
-			draw_line(aim_pos - Vector2(28, 0), aim_pos + Vector2(28, 0), Color(1.0, 0.2, 0.1, 0.95), 2.0)
-			draw_line(aim_pos - Vector2(0, 28), aim_pos + Vector2(0, 28), Color(1.0, 0.2, 0.1, 0.95), 2.0)
-			draw_circle(aim_pos, 4.5, Color(1.0, 0.9, 0.15, 1.0))
+			draw_line(aim_pos - Vector2(36, 0), aim_pos + Vector2(36, 0), Color(1.0, 0.2, 0.1, 0.95), 2.0)
+			draw_line(aim_pos - Vector2(0, 36), aim_pos + Vector2(0, 36), Color(1.0, 0.2, 0.1, 0.95), 2.0)
+			draw_circle(aim_pos, 5.0, Color(1.0, 0.9, 0.15, 1.0))
 
-		# 3. Отрисовка построенных шахт на карте (укреплённая плита и статусная индикация)
+		# 3. Отрисовка построенных шахт на карте (железобетонный бронекупол и статус)
 		if world.mil != null and world.mil.facilities != null:
 			for f in world.mil.facilities:
 				if f == null or not is_instance_valid(f):
@@ -842,19 +901,104 @@ class NuclearWorldLayer extends Node2D:
 				var f_sz = Vector2(f.size * GameWorld.CELL)
 				var center_px = f.center_px()
 
-				# Световой статус-индикатор боеготовности
+				# Плита фундамента
+				draw_rect(Rect2(f_pos, f_sz), Color(0.2, 0.22, 0.25, 0.45))
+				draw_rect(Rect2(f_pos, f_sz), Color(0.35, 0.38, 0.42, 0.9), false, 1.5)
+
+				# Бронелюк шахты
+				draw_circle(center_px, 8.0, Color(0.12, 0.14, 0.16, 0.95))
+				draw_arc(center_px, 8.0, 0.0, TAU, 24, Color(0.5, 0.55, 0.6), 1.5)
+
+				# Индикатор готовности
 				var has_w = bool(f.get_meta("has_warhead", false))
 				var prod = bool(f.get_meta("producing", false))
 				var led_col = Color(0.2, 1.0, 0.3, 0.95) if has_w else (Color(1.0, 0.8, 0.2, 0.95) if prod else Color(1.0, 0.25, 0.25, 0.8))
-				draw_circle(f_pos + Vector2(3, 3), 2.0, led_col)
+				draw_circle(center_px, 3.0, led_col)
 
-		# 4. Отрисовка летящих МБР и их дымных конденсационных следов
+		# 4. Отрисовка летящей МБР и дымного инверсионного следа
 		for m in mod.active_missiles:
+			var k = clampf(m["t"] / m["duration"], 0.0, 1.0)
+			var cur_ground = (m["from"] as Vector2).lerp(m["target"], k)
+			var alt = 4.0 * 420.0 * k * (1.0 - k)
+			var m_pos = cur_ground - Vector2(0, alt)
+
+			# Тень на земле
+			draw_circle(cur_ground, 4.5, Color(0.0, 0.0, 0.0, 0.45))
+
+			# Дымный след
 			var trail = m["trail"] as Array
 			for tp in trail:
-				draw_circle(tp["pos"], 3.5, Color(0.95, 0.95, 0.95, 0.65))
-			if not trail.is_empty():
-				var head_pos = (trail.back())["pos"] as Vector2
-				# Корпус ракеты и факел двигателя
-				draw_circle(head_pos, 5.0, Color(1.0, 0.2, 0.2, 0.95))
-				draw_circle(head_pos, 3.0, Color(1.0, 0.9, 0.2, 1.0))
+				var tr_age = float(tp["t"])
+				var tr_a = clampf(1.0 - tr_age / 2.0, 0.0, 0.7)
+				var tr_sz = 3.0 + tr_age * 4.0
+				draw_circle(tp["pos"], tr_sz, Color(0.85, 0.88, 0.92, tr_a))
+
+			# Корпус ракеты
+			var next_k = minf(1.0, k + 0.01)
+			var next_g = (m["from"] as Vector2).lerp(m["target"], next_k)
+			var next_alt = 4.0 * 420.0 * next_k * (1.0 - next_k)
+			var next_pos = next_g - Vector2(0, next_alt)
+			var dir = (next_pos - m_pos).normalized()
+			if dir == Vector2.ZERO:
+				dir = Vector2.UP
+
+			draw_line(m_pos - dir * 14.0, m_pos + dir * 6.0, Color(0.92, 0.94, 0.96), 3.5)
+			draw_circle(m_pos + dir * 6.0, 2.5, Color(0.2, 0.22, 0.25)) # Головная часть
+			# Пламя двигателя
+			draw_line(m_pos - dir * 14.0, m_pos - dir * 26.0, Color(1.0, 0.75, 0.15), 3.0)
+			draw_circle(m_pos - dir * 24.0, 4.0, Color(1.0, 0.35, 0.05, 0.85))
+
+		# 5. Отрисовка колоссального термоядерного гриба и ударной волны
+		for exp in mod.active_explosions:
+			var pos: Vector2 = exp["pos"]
+			var t: float = float(exp["t"])
+			var max_rad: float = float(exp["max_radius"])
+			var cloud_h: float = float(exp["cloud_height"])
+
+			# А) Сверхзвуковая ударная волна (0 .. 3.5 сек)
+			if t < 3.5:
+				var sw_prog = clampf(t / 3.0, 0.0, 1.0)
+				var sw_rad = sin(sw_prog * PI * 0.5) * max_rad
+				var sw_alpha = (1.0 - sw_prog) * 0.95
+				draw_circle(pos, sw_rad, Color(1.0, 0.45, 0.1, sw_alpha * 0.18))
+				draw_arc(pos, sw_rad, 0, TAU, 72, Color(1.0, 0.95, 0.6, sw_alpha), 4.5)
+				draw_arc(pos, sw_rad * 0.93, 0, TAU, 64, Color(1.0, 0.38, 0.05, sw_alpha * 0.75), 2.5)
+
+			# Б) Огненный шар в эпицентре (0 .. 4.5 сек)
+			if t < 4.5:
+				var fb_rad = (sin(clampf(t / 0.9, 0.0, 1.0) * PI * 0.5) * 95.0) if t <= 0.9 else maxf(0.0, 95.0 - (t - 0.9) * 20.0)
+				var fb_alpha = clampf(1.0 - (t - 0.5) / 3.8, 0.0, 1.0)
+				if fb_rad > 0.0 and fb_alpha > 0.0:
+					draw_circle(pos, fb_rad * 1.35, Color(0.95, 0.25, 0.05, fb_alpha * 0.45))
+					draw_circle(pos, fb_rad, Color(1.0, 0.65, 0.1, fb_alpha * 0.85))
+					draw_circle(pos, fb_rad * 0.65, Color(1.0, 0.98, 0.88, fb_alpha * 0.98))
+
+			# В) Гигантский ядерный гриб (ножка и шапка) (0.3 .. 12 сек)
+			if t > 0.3:
+				var rise_k = clampf((t - 0.3) / 4.2, 0.0, 1.0)
+				var cur_h = rise_k * cloud_h
+				var cap_pos = pos - Vector2(0, cur_h)
+				var smoke_a = clampf(1.0 - (t - 4.5) / 7.2, 0.0, 0.95) if t > 4.5 else clampf((t - 0.3) / 1.0, 0.0, 0.95)
+
+				# Ножка гриба (поднимающийся столб кипящего дыма и огня)
+				for step in range(11):
+					var st_k = float(step) / 10.0
+					var st_p = pos.lerp(cap_pos, st_k)
+					var st_rad = (22.0 + sin(st_k * PI) * 14.0) * (0.6 + 0.4 * rise_k)
+					draw_circle(st_p, st_rad * 1.25, Color(0.12, 0.11, 0.1, smoke_a * 0.85))
+					draw_circle(st_p, st_rad * 0.8, Color(0.85, 0.35, 0.05, smoke_a * (1.0 - st_k * 0.5) * 0.55))
+
+				# Шапка ядерного гриба (расползающийся наковальнеобразный купол)
+				for puff in exp["puffs"]:
+					var puff_p = cap_pos + puff["offset"] * rise_k
+					var puff_sz = puff["size"] * (0.55 + 0.45 * rise_k)
+					var puff_col = Color(0.14, 0.13, 0.12, smoke_a * 0.9) if not puff["burn"] else Color(0.8, 0.32, 0.06, smoke_a * 0.65)
+					draw_circle(puff_p, puff_sz, puff_col)
+
+				# Кольца конденсации Вильсона (0.7 .. 3.8 сек)
+				if t >= 0.7 and t <= 3.8:
+					var w_prog = clampf((t - 0.7) / 3.0, 0.0, 1.0)
+					var w_rad = w_prog * 110.0
+					var w_a = (1.0 - w_prog) * 0.65
+					draw_arc(pos - Vector2(0, cur_h * 0.45), w_rad, 0, TAU, 48, Color(0.9, 0.94, 1.0, w_a), 2.5)
+					draw_arc(pos - Vector2(0, cur_h * 0.75), w_rad * 0.75, 0, TAU, 36, Color(0.9, 0.94, 1.0, w_a * 0.7), 2.0)
