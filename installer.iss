@@ -3,7 +3,7 @@
 
 #define MyAppName "DroneFlames"
 #ifndef MyAppVersion
-  #define MyAppVersion "0.33.4.6"
+  #define MyAppVersion "0.33.4.7"
 #endif
 #define MyAppPublisher "@good_boy_irl"
 #define MyAppURL "https://github.com/makkaX2/DroneFlames-PC-Port"
@@ -11,7 +11,7 @@
 #define MyAppId "{{9F5C24D1-A12E-4D78-831C-6BE3E71AA190}}"
 
 #ifndef SourceDir
-  #define SourceDir "build\DroneFlames_PC_v0.33.4.6_good_boy_irl"
+  #define SourceDir "build\DroneFlames_PC_v0.33.4.7_good_boy_irl"
 #endif
 
 #ifndef OutDir

@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.4.6 (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.4.7 (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
+	"ХОТФИКС v0.33.4.7: устранена ошибка компиляции меню, вызывавшая серый экран после запуска",
 	"ИНТЕРФЕЙС v0.33.4.6: автоматическое увеличение до 150% на 4K и до 200% на 5K+, масштаб можно выбрать вручную или вернуть на авто",
 	"НАСТРОЙКИ v0.33.4.5: выбор разрешения рендера с сохранением; список ограничен разрешением монитора",
 	"СИСТЕМА МОДОВ v0.33.4.5: исправлена загрузка скачанных модов с собственными типами и безопасная установка поверх старой версии",
@@ -2565,7 +2566,7 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 	elif changelog == "" and up != null:
 		changelog = String(up.get("latest_changelog"))
 	if tag == "":
-		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.6"
+		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.7"
 	var direct_installer_url: String = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [tag, tag]
 	if dl_url == "" or dl_url.contains("/releases/tag/") or dl_url.contains("/releases/latest") or not dl_url.ends_with(".exe"):
 		dl_url = direct_installer_url
@@ -2749,7 +2750,7 @@ func show_settings_sub(kind: String) -> void :
 			_label(vb, "Меньший режим снижает нагрузку на видеокарту. Разрешения выше подключённого экрана не показываются.", 9, UiKit.MUTED)
 		var uis: Array = ["АВТО"]
 		for k347: Variant in GameConfig.UI_SCALES:
-		uis.append("%d%%" % roundi(float(k347) * 100.0))
+			uis.append("%d%%" % roundi(float(k347) * 100.0))
 		_selector(vb, "РАЗМЕР ИНТЕРФЕЙСА", uis, func() -> int: return 0 if GameConfig.ui_scale_auto else GameConfig.ui_scale_i + 1, func(i: int) -> void :
 			if i == 0:
 				if GameConfig.ui_scale_auto:
