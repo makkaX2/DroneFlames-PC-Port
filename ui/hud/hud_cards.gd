@@ -24,6 +24,14 @@ func _card(key: String, icon: String, title: String, sub: String, rows: bool, ba
 		ops_detail.visible = false
 	if ops_title.text != title:
 		ops_title.text = title
+	if key.begins_with("city"):
+		ops_title.mouse_filter = Control.MOUSE_FILTER_STOP
+		ops_title.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		ops_title.tooltip_text = "Нажмите, чтобы переименовать город (F2)"
+	else:
+		ops_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ops_title.mouse_default_cursor_shape = Control.CURSOR_ARROW
+		ops_title.tooltip_text = ""
 	ops_sub.visible = sub != ""
 	if ops_sub.text != sub:
 		ops_sub.text = sub
@@ -155,6 +163,8 @@ func _fac_icon(kind: int) -> String:
 
 
 func show_facility(f: Facility, mil: Military, player: Country) -> void :
+	if f != null and f.get_meta("is_airborne_base", false):
+		return
 	var alive: bool = mil.alive(f)
 	_card("fac%d" % f.id, _fac_icon(f.kind), (Loc.t("Казармы армии №%d") % f.army_no) if f.kind == Facility.Kind.BARRACKS and f.army_no > 0 else Loc.t(Military.title_of(f.kind)), "" if f.kind == Facility.Kind.BARRACKS else _sentence(String(Military.PURPOSE.get(f.kind, ""))), false, 
 		alive and gw.econ.has_method("deep_card") and Economy.is_deep(f.kind) and not f.deposit.is_empty(), true)
@@ -796,10 +806,12 @@ func show_recon(inf: Dictionary) -> void :
 
 
 
+var _city_rename_dialog: Control = null
+
 func show_city(c: City) -> void :
 	var co: Country = gw.country_by_id(c.country_id)
 	var kinds: Array = ["Столица", "Город", "Посёлок"]
-	_card("city%d" % c.id, "icon_capital" if c.kind == City.Kind.CAPITAL else "icon_city", Loc.name(c.name), "%s · %s" % [Loc.t(String(kinds[clampi(c.kind, 0, 2)])), Loc.name(co.name) if co != null else ""], false, false, false)
+	_card("city%d" % c.id, "icon_capital" if c.kind == City.Kind.CAPITAL else "icon_city", Loc.name(c.name), "%s · %s" % [Loc.t(String(kinds[clampi(c.kind, 0, 2)])), Loc.name(co.name) if co != null else ""], false, false, true)
 	var info: String = Loc.t("УРОВЕНЬ %d · %s") % [c.level, Loc.t("СВЕТ ЕСТЬ") if c.powered else Loc.t("БЕЗ СВЕТА")]
 	if gw.get("naval") != null and gw.naval.is_colony(c):
 		info += "\n" + Loc.t(String(gw.naval.colony_info(c).get("text", Loc.t("КОЛОНИЯ")))).to_upper()
@@ -812,6 +824,169 @@ func show_city(c: City) -> void :
 	if gw.rail != null and co != null:
 		ops_detail.visible = true
 		ops_detail.text = String(gw.rail.dev_text(co.id))
+	_fill_acts("city_acts_%d" % c.id, [
+		_act("ИЗМЕНИТЬ\nНАЗВАНИЕ", "icon_rename", "city_rename", true)
+	])
+
+
+func show_city_rename_dialog(c: City) -> void :
+	if c == null or gw == null or root == null:
+		return
+	if _city_rename_dialog != null and is_instance_valid(_city_rename_dialog):
+		_city_rename_dialog.queue_free()
+		_city_rename_dialog = null
+
+	var co: Country = gw.country_by_id(c.country_id)
+	var bg: = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.02, 0.04, 0.1, 0.72)
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(bg)
+	_city_rename_dialog = bg
+
+	var cc: = CenterContainer.new()
+	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.add_child(cc)
+
+	var panel: = PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", UiKit.sb("wb_window", 16, 14))
+	var win_w: float = minf(460.0, root.size.x - 30.0)
+	panel.custom_minimum_size = Vector2(win_w, 0)
+	cc.add_child(panel)
+
+	var vb: = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	panel.add_child(vb)
+
+	# Header row
+	var hr: = HBoxContainer.new()
+	hr.add_theme_constant_override("separation", 8)
+	vb.add_child(hr)
+
+	var islot: = PanelContainer.new()
+	islot.add_theme_stylebox_override("panel", UiKit.sb("wb_slot", 3))
+	islot.custom_minimum_size = Vector2(36, 36)
+	islot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hr.add_child(islot)
+
+	var icc: = CenterContainer.new()
+	islot.add_child(icc)
+	var ic: TextureRect = UiKit.icon_rect("icon_capital" if c.kind == City.Kind.CAPITAL else "icon_city", 24.0)
+	icc.add_child(ic)
+
+	var tcol: = VBoxContainer.new()
+	tcol.add_theme_constant_override("separation", 1)
+	tcol.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tcol.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hr.add_child(tcol)
+
+	var title_lbl: Label = UiKit.lbl("ПЕРЕИМЕНОВАНИЕ ГОРОДА", 13, UiKit.TITLE, 3, 2)
+	tcol.add_child(title_lbl)
+
+	var kinds: Array = ["Столица", "Город", "Посёлок"]
+	var sub_txt: String = "%s · %s" % [Loc.t(String(kinds[clampi(c.kind, 0, 2)])), Loc.name(co.name) if co != null else ""]
+	var sub_lbl: Label = UiKit.lbl(sub_txt, 10, UiKit.MUTED, 1)
+	tcol.add_child(sub_lbl)
+
+	var close_b: Button = UiKit.close_btn(36.0)
+	var close_dlg = func() -> void :
+		UiKit.snd("ui_close")
+		if _city_rename_dialog != null and is_instance_valid(_city_rename_dialog):
+			_city_rename_dialog.queue_free()
+			_city_rename_dialog = null
+	close_b.pressed.connect(close_dlg)
+	hr.add_child(close_b)
+
+	# Description
+	var tip_lbl: Label = UiKit.lbl("Введите новое название для города:", 11, UiKit.TEXT, 2, 2)
+	vb.add_child(tip_lbl)
+
+	# Input row (LineEdit + Random button)
+	var ir: = HBoxContainer.new()
+	ir.add_theme_constant_override("separation", 6)
+	vb.add_child(ir)
+
+	var le: = LineEdit.new()
+	le.text = c.name
+	le.placeholder_text = "Название города"
+	le.max_length = 24
+	le.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	le.custom_minimum_size = Vector2(0, 42)
+	le.add_theme_font_override("font", UiKit.f_bold)
+	le.add_theme_font_size_override("font_size", 14)
+	le.add_theme_color_override("font_color", UiKit.TEXT)
+	le.add_theme_color_override("caret_color", UiKit.GOLD)
+	for st: String in ["normal", "focus", "read_only"]:
+		le.add_theme_stylebox_override(st, UiKit.sb("wb_slot" if st != "focus" else "wb_slot_pressed", 8, 4))
+	ir.add_child(le)
+
+	var rand_btn: Button = UiKit.big("🎲", "stone", "", 42.0, 14)
+	rand_btn.custom_minimum_size.x = 44
+	rand_btn.tooltip_text = "Случайное название"
+	rand_btn.pressed.connect(func() -> void :
+		var r: = Rng.new(randi())
+		var arch: int = co.arch if co != null else 0
+		var taken: Array = gw.cities.map(func(o: City) -> String: return o.name)
+		var gen_n: String = NameGen.city(r, arch, taken)
+		le.text = gen_n
+		le.grab_focus()
+		le.select_all()
+		UiKit.snd("ui_select")
+	)
+	ir.add_child(rand_btn)
+
+	# Buttons row (Cancel / Save)
+	var br: = HBoxContainer.new()
+	br.add_theme_constant_override("separation", 8)
+	br.alignment = BoxContainer.ALIGNMENT_END
+	vb.add_child(br)
+
+	var cancel_b: Button = UiKit.big("ОТМЕНА", "stone", "", 38.0, 12)
+	cancel_b.custom_minimum_size.x = 90
+	cancel_b.pressed.connect(close_dlg)
+	br.add_child(cancel_b)
+
+	var do_save: Callable = func() -> void :
+		var new_n: String = le.text.strip_edges()
+		if new_n == "":
+			UiKit.snd("ui_error")
+			return
+		if main_node != null and main_node.get("net") != null and bool(main_node.net.get("in_match")):
+			main_node.call("_sim", "", "cmd_city_rename", [c.id, new_n])
+		else:
+			gw.cmd_city_rename(c.id, new_n)
+		c.name = new_n
+		show_city(c)
+		city_label_drop(c.id)
+		_sync_city_labels()
+		show_toast(Loc.msg(Loc.mk("Город переименован: %s", [new_n])))
+		UiKit.snd("ui_build")
+		if _city_rename_dialog != null and is_instance_valid(_city_rename_dialog):
+			_city_rename_dialog.queue_free()
+			_city_rename_dialog = null
+
+	var save_b: Button = UiKit.big("СОХРАНИТЬ", "gold", "", 38.0, 12)
+	save_b.custom_minimum_size.x = 110
+	save_b.pressed.connect(do_save)
+	br.add_child(save_b)
+
+	le.text_submitted.connect(func(_t: String) -> void : do_save.call())
+
+	# Dismiss handlers
+	bg.gui_input.connect(func(ev: InputEvent) -> void :
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			close_dlg.call()
+	)
+
+	le.gui_input.connect(func(ev: InputEvent) -> void :
+		if ev is InputEventKey and ev.pressed and ev.keycode == KEY_ESCAPE:
+			close_dlg.call()
+	)
+
+	UiKit.pop_in(panel, 0.9, 0.16)
+	le.call_deferred("grab_focus")
+	le.call_deferred("select_all")
 
 func _hold_inject() -> void :
 	if army_ux == null or not is_instance_valid(army_ux) or String(army_ux.get("view")) != "army" or gw == null or gw.get("hold") == null:

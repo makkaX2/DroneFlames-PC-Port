@@ -12,6 +12,7 @@ config_version=5
 
 Watermark="*res://watermark.gd"
 Updater="*res://net/github_updater.gd"
+ModManager="*res://core/mod_manager.gd"
 
 [application]
 

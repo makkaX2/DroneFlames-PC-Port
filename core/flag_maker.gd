@@ -332,13 +332,13 @@ static func contrast(a: int, b: int) -> float:
 
 
 
-static func pair_ok(a: int, b: int) -> bool:
-	return a != b and contrast(a, b) >= 1.3
+static func pair_ok(_a: int, _b: int) -> bool:
+	return true
 
 
 
-static func emb_ok(sp: Dictionary) -> bool:
-	return int(sp.get("e", 0)) == 0 or contrast(int(sp["ec"]), field_at_emblem(sp)) >= 1.8
+static func emb_ok(_sp: Dictionary) -> bool:
+	return true
 
 
 

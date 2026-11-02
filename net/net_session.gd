@@ -31,7 +31,7 @@ const CFG_KEYS: Array = ["ranked", "bots", "difficulty", "aggression", "victory"
 ## the issuer's country id, -1 = none). Every entity argument must belong to the issuer as well
 ## (_owns); a City may be foreign (attack target). Add new player actions here (docs/NET_ARCH.md §5).
 const ALLOWED: Dictionary = {
-	".cmd_field": -1, ".cmd_build_sub": -1,
+	".cmd_field": -1, ".cmd_build_sub": -1, ".cmd_city_rename": -1,
 	"mil.build": -1, "mil.build_line": -1, "mil.demolish": -1, "mil.restore": -1, "mil.restore_all": -1,
 	"mil.set_halted": -1, "mil.set_prod_type": -1, "mil.set_standing": 0, "mil.set_smart": 0,
 	"mil.set_auto_strike": 0, "mil.set_auto_kab": 0, "mil.set_auto_drones": 0, "mil.launch": -1,

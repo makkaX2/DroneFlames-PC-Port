@@ -34,6 +34,7 @@ FOLDERS = [
     "core",
     "dev",
     "game",
+    "mods",
     "net",
     "translations",
     "ui",

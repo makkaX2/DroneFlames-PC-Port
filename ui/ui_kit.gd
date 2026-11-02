@@ -239,14 +239,23 @@ static func _at(sprite_name: String) -> SpriteAtlas:
 	return null
 
 
-static func tex(sprite_name: String) -> AtlasTexture:
+static func tex(sprite_name: String) -> Texture2D:
 	ensure()
+	if Engine.get_main_loop() != null:
+		var loop = Engine.get_main_loop()
+		if "root" in loop and loop.root != null and loop.root.has_node("ModManager"):
+			var mm = loop.root.get_node("ModManager")
+			var ct = mm.get_custom_texture(sprite_name)
+			if ct != null:
+				return ct
 	if sprite_name == "icon_play_big":
 		return atlas7.region("icon_play")
 	if sprite_name == "icon_attack_jet":
 		return _attack_icon()
 	var at: SpriteAtlas = _at(sprite_name)
 	if at == null:
+		if ResourceLoader.exists("res://assets/sprites/" + sprite_name + ".png"):
+			return load("res://assets/sprites/" + sprite_name + ".png")
 		return null
 	return at.region(sprite_name)
 

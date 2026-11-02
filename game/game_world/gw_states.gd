@@ -448,6 +448,15 @@ func cmd_field(o: Object, field: String, v: Variant) -> void :
 		o.set(field, v)
 
 
+func cmd_city_rename(cid: int, new_name: String) -> void :
+	if cid >= 0 and cid < cities.size():
+		var c: City = cities[cid]
+		if c != null:
+			var trimmed: String = new_name.strip_edges()
+			if trimmed != "":
+				c.name = trimmed
+
+
 
 func cmd_recall(cid: int, rid: int) -> String:
 	for d: Variant in recon.drones:

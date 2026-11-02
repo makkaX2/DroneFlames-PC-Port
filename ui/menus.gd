@@ -25,6 +25,7 @@ var gw: GameWorld
 var net: NetSession
 const KeybindManager = preload("res://core/keybind_manager.gd")
 const SavesUI = preload("res://ui/saves_ui.gd")
+const ModsUI = preload("res://ui/mods_ui.gd")
 var _mp_code: String = ""
 var _mp_lan_ip: String = ""
 var _mp_browse_ms: int = 0
@@ -345,17 +346,20 @@ func _map_block(parent: Control) -> void :
 		_pv_request())
 	hold.add_child(dice)
 
-	var chips: = HBoxContainer.new()
-	chips.alignment = BoxContainer.ALIGNMENT_CENTER
-	chips.add_theme_constant_override("separation", 6)
+	var chips: = HFlowContainer.new()
+	chips.alignment = FlowContainer.ALIGNMENT_CENTER
+	chips.add_theme_constant_override("h_separation", 6)
+	chips.add_theme_constant_override("v_separation", 4)
 	col.add_child(chips)
 	var grp: = ButtonGroup.new()
 	var chip_px: float = 64.0 if root.size.x >= 340.0 else 58.0
-	for t in GameConfig.MAP_TYPE_NAMES.size():
+	var all_maps: Array = GameConfig.get_all_map_types()
+	for t in all_maps.size():
+		var map_info: Dictionary = all_maps[t]
 		var v: = VBoxContainer.new()
 		v.add_theme_constant_override("separation", 1)
 		chips.add_child(v)
-		var b: Button = UiKit.slot(String(GameConfig.MAP_TYPE_ICONS[t]), true, chip_px)
+		var b: Button = UiKit.slot(String(map_info.get("icon", "map_t_normal")), true, chip_px)
 		b.button_group = grp
 		b.button_pressed = t == GameConfig.map_type
 		b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -365,7 +369,7 @@ func _map_block(parent: Control) -> void :
 			_pv_texts()
 			_pv_request())
 		v.add_child(b)
-		var l: Label = UiKit.lbl(String(GameConfig.MAP_TYPE_NAMES[t]), 9, UiKit.TEXT, 2, 2)
+		var l: Label = UiKit.lbl(String(map_info.get("name", "")), 9, UiKit.TEXT, 2, 2)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		v.add_child(l)
 	_pv_hint = _label(col, "", 10, UiKit.TEXT)
@@ -376,11 +380,14 @@ func _map_block(parent: Control) -> void :
 
 
 func _pv_texts() -> void :
-	var t: int = clampi(GameConfig.map_type, 0, 3)
+	var all_maps: Array = GameConfig.get_all_map_types()
+	var max_idx: int = maxi(0, all_maps.size() - 1)
+	var t: int = clampi(GameConfig.map_type, 0, max_idx)
+	var map_info: Dictionary = all_maps[t] if t < all_maps.size() else {}
 	if _pv_name != null and is_instance_valid(_pv_name):
-		_pv_name.text = String(GameConfig.MAP_TYPE_NAMES[t])
+		_pv_name.text = String(map_info.get("name", ""))
 	if _pv_hint != null and is_instance_valid(_pv_hint):
-		_pv_hint.text = String(GameConfig.MAP_TYPE_HINTS[t])
+		_pv_hint.text = String(map_info.get("hint", ""))
 	if _pv_warn != null and is_instance_valid(_pv_warn):
 		var w: String = ""
 		match t:
@@ -390,6 +397,9 @@ func _pv_texts() -> void :
 				w = Loc.t("На острове 1–2 страны, к остальным — десантом")
 			3:
 				w = Loc.t("Без ботов: материки делят только игроки") if GameConfig.bots == 0 else (Loc.t("Второй материк пуст: мало ботов") if GameConfig.bots < 3 else Loc.t("На каждом материке 2+ страны, за океан — десант"))
+			_:
+				if t >= 4:
+					w = "★ Карта из модификации: " + String(map_info.get("hint", ""))
 		_pv_warn.text = w
 		_pv_warn.visible = w != ""
 	_cb_crowd_paint()
@@ -955,13 +965,13 @@ func show_main() -> void :
 
 
 	var items: Array = [["ИГРАТЬ", "green", "setup", 58.0, "mi_play"], ["МУЛЬТИПЛЕЕР", "gold", "mp", 48.0, "mi_mp"], 
+		["МОДИФИКАЦИИ", "stone", "mods", 46.0, "mi_mods"],
 		[["ОБУЧЕНИЕ", "stone", "tutorial", 48.0, "mi_tutorial"], ["НАСТРОЙКИ", "stone", "settings_main", 48.0, "mi_settings"]]]
 	var has_save: bool = Save.has_save()
 	if has_save:
-
-
 		items = [["ПРОДОЛЖИТЬ", "green", "load_save", 58.0, "mi_continue"], 
 			[["НОВАЯ ПАРТИЯ", "gold", "setup", 48.0, "mi_new"], ["МУЛЬТИПЛЕЕР", "gold", "mp", 48.0, "mi_mp"]], 
+			["МОДИФИКАЦИИ", "stone", "mods", 46.0, "mi_mods"],
 			[["ОБУЧЕНИЕ", "stone", "tutorial", 48.0, "mi_tutorial"], ["НАСТРОЙКИ", "stone", "settings_main", 48.0, "mi_settings"]]]
 	var i2: int = 0
 	for it: Array in items:
@@ -1503,6 +1513,8 @@ func show_setup() -> void :
 	lim_hint[0] = _label(vb, _win_hint(no_limit), 10, UiKit.MUTED)
 	if not mp_host:
 		SavesUI.setup_block(self, vb)
+	if has_node("/root/ModManager"):
+		get_node("/root/ModManager").call_hook("on_setup_menu", [self, vb])
 
 	var more_b: Button = _nav_row(vb, "ЕЩЁ ПРАВИЛА", "СКРЫТЬ" if _more_open else ("ИИ, РУДЫ, ТУМАН, РЕЖИМ" if has_bots else "РУДЫ, ТУМАН, РЕЖИМ"), func() -> void :
 		_more_open = not _more_open
@@ -1545,6 +1557,16 @@ func show_flag_editor(bot: int = -1) -> void :
 	var vb: VBoxContainer = _screen((Loc.t("Флаг страны") if FlagEditor.from_profile else Loc.t("Ваша страна")) if FlagEditor.who < 0 else Loc.t("Страна врага"), 0.45)
 	current = "flag"
 	FlagEditor.new(self).build(vb)
+
+
+
+func show_mods(keep: bool = false) -> void:
+	var ks: int = _scroll.scroll_vertical if keep and _scroll != null and is_instance_valid(_scroll) else 0
+	var vb: VBoxContainer = _screen("Модификации", 0.55, not keep)
+	current = "mods"
+	ModsUI.build(self, vb)
+	if keep and _scroll != null:
+		_scroll.set_deferred("scroll_vertical", ks)
 
 
 
@@ -2411,6 +2433,7 @@ func show_settings(from_pause: bool) -> void :
 	_nav_row(vb, "УПРАВЛЕНИЕ", "КЛАВИАТУРА И МЫШЬ", show_controls.bind(from_pause))
 	_nav_row(vb, "ЗВУК", _sound_hint(), show_settings_sub.bind("audio"))
 	_nav_row(vb, "ГРАФИКА", Loc.t("ЭФФЕКТЫ: %s") % Loc.t(String(["НИЗКО", "НОРМА", "ВЫСОКО"][clampi(GameConfig.fx_level, 0, 2)])), show_settings_sub.bind("gfx"))
+	_nav_row(vb, "МОДИФИКАЦИИ", "КАТАЛОГ И УПРАВЛЕНИЕ", func() -> void : show_mods())
 	_selector(vb, "ПОДСКАЗКИ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.hints else 1, func(i: int) -> void : GameConfig.hints = i == 0, VW_SHORT)
 	_selector(vb, "ПЛАН РАЗВИТИЯ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 1 if Hud.plan_closed else 0, func(i: int) -> void : Hud.plan_closed = i == 1, VW_SHORT)
 	_selector(vb, "ПОДТВЕРЖДЕНИЕ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.confirm_actions else 1, func(i: int) -> void : GameConfig.confirm_actions = i == 0, VW_SHORT)

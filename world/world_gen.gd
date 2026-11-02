@@ -118,6 +118,20 @@ static func generate(s: WorldSettings) -> WorldData:
 		WorldGen2.rivers(world, s, hills_thr, snow_thr)
 	else:
 		_rivers(world, s, hills_thr, snow_thr)
+	
+	if s.map_type >= 4:
+		var custom_idx: int = s.map_type - 4
+		var custom_maps: Array = GameConfig.custom_maps_cache
+		if custom_maps.is_empty():
+			var loop = Engine.get_main_loop()
+			if loop != null and "root" in loop and loop.root != null and loop.root.has_node("ModManager"):
+				var mm = loop.root.get_node("ModManager")
+				custom_maps = mm.get_custom_map_types()
+		if custom_idx >= 0 and custom_idx < custom_maps.size():
+			var gen_fn = custom_maps[custom_idx].get("generator")
+			if gen_fn is Callable and gen_fn.is_valid():
+				gen_fn.call(world, s)
+	
 	print("[WorldGen] %dx%d seed=%d sea=%d in %d ms" % [w, h, sd, sea, Time.get_ticks_msec() - t0])
 	return world
 
@@ -138,7 +152,7 @@ static func _noise_layer(w: int, h: int, cell: int, s: int) -> PackedByteArray:
 
 
 static func _continent_mask(s: WorldSettings, w: int, h: int) -> PackedByteArray:
-	if s.map_type != 0:
+	if s.map_type == 1 or s.map_type == 2 or s.map_type == 3:
 		return _type_mask(s, w, h)
 
 	var lw: int = maxi(32, (s.layout_size if s.layout_size > 0 else w) / 8)
@@ -281,32 +295,35 @@ static func _type_mask(s: WorldSettings, w: int, h: int) -> PackedByteArray:
 			for k in 6:
 				var r3: int = maxi(1, base_r * rng.range_ab(8, 16) / 100)
 				blobs.append([off + rng.range_i(span), off + rng.range_i(span), r3, r3, 212])
-		_:
+		3:
 
 			var lines: Array = _chan_lines(s)
-			var ln: Array = lines[0]
-			var c: int = WorldGen2.icos(int(ln[2]))
-			var sn: int = WorldGen2.isin(int(ln[2]))
-			base_r = lw * 20 / 100
-			warp_pct = 44
-			amp2_pct = 20
-			for side: int in [-1, 1]:
-				var cx: int = lw / 2 - side * sn * lw * 24 / 100 / 4096
-				var cy: int = lh / 2 + side * c * lh * 24 / 100 / 4096
-				var ra: int = lw * rng.range_ab(28, 35) / 100
-				var rb: int = lw * rng.range_ab(13, 17) / 100
-				var rx: int = (absi(c) * ra + absi(sn) * rb) / 4096
-				var ry: int = (absi(sn) * ra + absi(c) * rb) / 4096
-				blobs.append([cx, cy, maxi(4, rx), maxi(4, ry), 255])
-				for k in 7:
-					blobs.append([cx + rng.range_ab( - rx, rx) * 8 / 10, cy + rng.range_ab( - ry, ry) * 8 / 10, maxi(3, rx * rng.range_ab(30, 60) / 100), maxi(3, ry * rng.range_ab(30, 60) / 100), 236])
-				for k in 2:
-					var ang: int = int(ln[2]) + (90 if side > 0 else 270) + rng.range_ab(-60, 60)
-					var dd: int = maxi(rx, ry) * rng.range_ab(80, 105) / 100
-					blobs.append([cx + WorldGen2.icos(ang) * dd / 4096, cy + WorldGen2.isin(ang) * dd / 4096, maxi(2, ra * rng.range_ab(14, 24) / 100), maxi(2, ra * rng.range_ab(10, 18) / 100), 226])
-			for k in 5:
-				var r4: int = maxi(1, base_r * rng.range_ab(6, 14) / 100)
-				blobs.append([off + rng.range_i(span), off + rng.range_i(span), r4, r4, 210])
+			if not lines.is_empty():
+				var ln: Array = lines[0]
+				var c: int = WorldGen2.icos(int(ln[2]))
+				var sn: int = WorldGen2.isin(int(ln[2]))
+				base_r = lw * 20 / 100
+				warp_pct = 44
+				amp2_pct = 20
+				for side: int in [-1, 1]:
+					var cx: int = lw / 2 - side * sn * lw * 24 / 100 / 4096
+					var cy: int = lh / 2 + side * c * lh * 24 / 100 / 4096
+					var ra: int = lw * rng.range_ab(28, 35) / 100
+					var rb: int = lw * rng.range_ab(13, 17) / 100
+					var rx: int = (absi(c) * ra + absi(sn) * rb) / 4096
+					var ry: int = (absi(sn) * ra + absi(c) * rb) / 4096
+					blobs.append([cx, cy, maxi(4, rx), maxi(4, ry), 255])
+					for k in 7:
+						blobs.append([cx + rng.range_ab( - rx, rx) * 8 / 10, cy + rng.range_ab( - ry, ry) * 8 / 10, maxi(3, rx * rng.range_ab(30, 60) / 100), maxi(3, ry * rng.range_ab(30, 60) / 100), 236])
+					for k in 2:
+						var ang: int = int(ln[2]) + (90 if side > 0 else 270) + rng.range_ab(-60, 60)
+						var dd: int = maxi(rx, ry) * rng.range_ab(80, 105) / 100
+						blobs.append([cx + WorldGen2.icos(ang) * dd / 4096, cy + WorldGen2.isin(ang) * dd / 4096, maxi(2, ra * rng.range_ab(14, 24) / 100), maxi(2, ra * rng.range_ab(10, 18) / 100), 226])
+				for k in 5:
+					var r4: int = maxi(1, base_r * rng.range_ab(6, 14) / 100)
+					blobs.append([off + rng.range_i(span), off + rng.range_i(span), r4, r4, 210])
+		_:
+			pass
 	var data: = PackedByteArray()
 	data.resize(lw * lh)
 	var warp_x: PackedByteArray = _noise_layer(lw, lh, maxi(2, lw / 6), s.world_seed + 5151)

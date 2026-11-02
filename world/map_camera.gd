@@ -95,6 +95,8 @@ func strat_k() -> float:
 
 
 static func strat_k_of(z: float) -> float:
+	if zs.is_empty():
+		zs = ZOOMS.duplicate()
 	var t: float = (log(float(zs[0])) - log(maxf(z, 0.001))) / (log(float(zs[0])) - log(STRAT_FULL))
 	return smoothstep(0.0, 1.0, t)
 

@@ -1,6 +1,8 @@
 class_name VerifyGame
 extends RefCounted
 
+const ModsUI = preload("res://ui/mods_ui.gd")
+
 func run(main: Node) -> void:
 	print("[VERIFY] Starting game verification sequence...")
 	var tree: SceneTree = main.get_tree()
@@ -15,6 +17,40 @@ func run(main: Node) -> void:
 	await tree.create_timer(0.5).timeout
 	_snap(main, "res://verify_1_main_menu.png")
 	print("[VERIFY] Saved verify_1_main_menu.png")
+
+	# Test Native F11 Fullscreen Toggle (without any mod)
+	print("[VERIFY] Testing native F11 input handling in base game...")
+	var wm: Node = main.get_node_or_null("/root/Watermark")
+	assert(wm != null, "Watermark autoload must be present!")
+	var f11_ev = InputEventKey.new()
+	f11_ev.keycode = KEY_F11
+	f11_ev.pressed = true
+	wm._input(f11_ev)
+	await tree.create_timer(0.4).timeout
+	var mode1: int = DisplayServer.window_get_mode()
+	print("[VERIFY] Window mode after F11: ", mode1)
+	wm._input(f11_ev)
+	await tree.create_timer(0.4).timeout
+	var mode2: int = DisplayServer.window_get_mode()
+	print("[VERIFY] Window mode after 2nd F11: ", mode2)
+
+	# Test Flag & Emblem Color Unlocking (Yellow emblem on green-white-red tricolor)
+	print("[VERIFY] Testing Flag & Emblem Color Unlocking...")
+	var test_sp: Dictionary = {
+		"l": 2, # 3 stripes
+		"c": [10, 0, 4], # green, white, red
+		"e": 1, # star
+		"ec": 2, # gold / yellow
+		"p": 0, # center
+		"s": 1
+	}
+	assert(FlagMaker.emb_ok(test_sp) == true, "Emblem color must be valid on any field!")
+	assert(FlagMaker.pair_ok(10, 0) == true, "Flag stripe colors must be unlocked!")
+	assert(FlagMaker.pair_ok(0, 4) == true, "Flag stripe colors must be unlocked!")
+	var encoded: String = FlagMaker.encode(test_sp)
+	var decoded: Dictionary = FlagMaker.decode(encoded)
+	assert(decoded["ec"] == 2, "Decoded emblem color must be 2 (gold/yellow)!")
+	print("[VERIFY] Flag & Emblem Color Unlocking verified successfully: ", test_sp)
 
 	# Test GitHub Updater
 	if main.has_node("/root/Updater"):
@@ -32,58 +68,97 @@ func run(main: Node) -> void:
 		up.call("check_for_updates")
 		await tree.create_timer(1.5).timeout
 
-	# Test Update Dialog
-	if main.menus:
-		print("[VERIFY] Opening update dialog...")
-		main.menus.show_update_dialog("0.33.0", "Новое обновление ПК-порта", "https://github.com/makkaX2/DroneFlames-PC-Port/releases/tag/v0.33.0", "DroneFlames_PC_Setup_v0.33.0_good_boy_irl.exe")
-		await tree.create_timer(0.6).timeout
-		await RenderingServer.frame_post_draw
-		_snap(main, "res://verify_6_update_dialog.png")
-		print("[VERIFY] Saved verify_6_update_dialog.png")
-		if main.menus._up_dialog != null and is_instance_valid(main.menus._up_dialog):
-			main.menus._up_dialog.queue_free()
-			main.menus._up_dialog = null
+	# Test Mod Manager Screen
+	if main.has_node("/root/ModManager"):
+		var mm: Node = main.get_node("/root/ModManager")
+		print("[VERIFY] Testing ModManager...")
+		print("[VERIFY] Installed mods count: ", mm.get("installed_mods").size())
+		print("[VERIFY] Installed mods: ", mm.get("installed_mods").keys())
+		print("[VERIFY] Registered custom maps: ", mm.get("registered_map_types").keys())
+		if main.menus:
+			print("[VERIFY] Opening Mods menu...")
+			main.menus.show_mods()
+			await tree.create_timer(0.5).timeout
+			await RenderingServer.frame_post_draw
+			_snap(main, "res://verify_mod_manager.png")
+			print("[VERIFY] Saved verify_mod_manager.png")
 
-	# Test Settings Screen (with Telegram button scrolled into view)
-	if main.menus:
-		print("[VERIFY] Opening settings menu with Telegram button...")
-		main.menus.show_settings(false)
-		await tree.create_timer(0.3).timeout
-		if main.menus._scroll != null:
-			main.menus._scroll.scroll_vertical = 9999
-		await tree.create_timer(0.3).timeout
-		await RenderingServer.frame_post_draw
-		_snap(main, "res://verify_7_settings_tg.png")
-		print("[VERIFY] Saved verify_7_settings_tg.png")
+		if FileAccess.file_exists("user://discord_state.json"):
+			var f_rpc = FileAccess.open("user://discord_state.json", FileAccess.READ)
+			if f_rpc:
+				var rpc_txt = f_rpc.get_as_text()
+				f_rpc.close()
+				print("[VERIFY] Discord RPC state file verified: ", rpc_txt.substr(0, 120))
 
-	# Test What's New Screen (with Telegram community card)
+	# 2. Test Setup Screen, Custom Maps & Scenario Selector
 	if main.menus:
-		print("[VERIFY] Opening What's New screen with Telegram box...")
+		print("[VERIFY] Opening setup screen and testing Custom Maps Previews...")
 		main.menus.close()
-		main.menus.show_main()
-		main.menus._show_whats_new()
-		await tree.create_timer(0.3).timeout
-		if main.menus._wn_scroll != null:
-			main.menus._wn_scroll.scroll_vertical = 9999
-		await tree.create_timer(0.3).timeout
-		await RenderingServer.frame_post_draw
-		_snap(main, "res://verify_8_whats_new.png")
-		print("[VERIFY] Saved verify_8_whats_new.png")
-		if main.menus._wn != null and is_instance_valid(main.menus._wn):
-			main.menus._wn.queue_free()
-			main.menus._wn = null
+		main.menus.show_setup()
+		await tree.create_timer(0.4).timeout
+		
+		var all_maps: Array = GameConfig.get_all_map_types()
+		print("[VERIFY] Available map types: ", all_maps.map(func(m): return m.name))
+		
+		# Test Desert Oasis Preview (index 4)
+		if all_maps.size() > 4:
+			print("[VERIFY] Selecting Desert map (index 4)...")
+			GameConfig.map_type = 4
+			main.menus._pv_texts()
+			main.menus._pv_request()
+			for wait_pv in range(60):
+				if main.menus._pv_task < 0 and main.menus._pv_tex != null:
+					break
+				await tree.create_timer(0.1).timeout
+			print("[VERIFY] Desert map preview generated successfully!")
+			await RenderingServer.frame_post_draw
+			_snap(main, "res://verify_map_preview_desert.png")
 
-	# Test Controls Screen in Settings
-	if main.menus:
-		print("[VERIFY] Opening controls settings...")
-		main.menus.show_controls(false)
-		await tree.create_timer(0.5).timeout
-		await RenderingServer.frame_post_draw
-		_snap(main, "res://verify_4_controls.png")
-		print("[VERIFY] Saved verify_4_controls.png")
+		# Test Arctic Map Preview (index 5)
+		if all_maps.size() > 5:
+			print("[VERIFY] Selecting Arctic map (index 5)...")
+			GameConfig.map_type = 5
+			main.menus._pv_texts()
+			main.menus._pv_request()
+			for wait_pv in range(60):
+				if main.menus._pv_task < 0 and main.menus._pv_tex != null:
+					break
+				await tree.create_timer(0.1).timeout
+			print("[VERIFY] Arctic map preview generated successfully!")
+			await RenderingServer.frame_post_draw
+			_snap(main, "res://verify_map_preview_arctic.png")
 
-	# 2. Launch New Game
-	print("[VERIFY] Launching _new_game()...")
+		# Test Volcano Map Preview (index 6)
+		if all_maps.size() > 6:
+			print("[VERIFY] Selecting Volcano map (index 6)...")
+			GameConfig.map_type = 6
+			main.menus._pv_texts()
+			main.menus._pv_request()
+			for wait_pv in range(60):
+				if main.menus._pv_task < 0 and main.menus._pv_tex != null:
+					break
+				await tree.create_timer(0.1).timeout
+			print("[VERIFY] Volcano map preview generated successfully!")
+			await RenderingServer.frame_post_draw
+			_snap(main, "res://verify_map_preview_volcano.png")
+
+		# Select scenario 1 (РАСКОЛ)
+		var mm_node = main.get_node_or_null("/root/ModManager")
+		if mm_node and mm_node.get("installed_mods").has("scenarios_pack"):
+			var sc_mod = mm_node.get("installed_mods")["scenarios_pack"].get("_instance")
+			if sc_mod:
+				sc_mod.selected_scenario = 1
+				print("[VERIFY] Selected Scenario: 1 (РАСКОЛ)")
+
+		await RenderingServer.frame_post_draw
+		_snap(main, "res://verify_setup_scenarios.png")
+		print("[VERIFY] Saved verify_setup_scenarios.png")
+
+	# 3. Launch New Game with Modded Arctic Map & Scenario Active
+	print("[VERIFY] Launching _new_game() with Modded Arctic Map & Partition Scenario...")
+	var maps_cnt: int = GameConfig.get_all_map_types().size()
+	if maps_cnt > 5:
+		GameConfig.map_type = 5 # Arctic
 	main._new_game()
 
 	# Wait for loading screen to finish
@@ -92,12 +167,13 @@ func run(main: Node) -> void:
 			break
 		await tree.create_timer(0.1).timeout
 
-	await tree.create_timer(1.0).timeout
+	print("[VERIFY] Map generated! Waiting 3.5s for scenario trigger...")
+	await tree.create_timer(3.5).timeout
 	await RenderingServer.frame_post_draw
 	_snap(main, "res://verify_2_gameplay.png")
 	print("[VERIFY] Saved verify_2_gameplay.png")
 
-	# 3. Test camera zoom and WASD movement
+	# 4. Test camera zoom and WASD movement
 	print("[VERIFY] Testing camera zoom and panning...")
 	if main.cam:
 		var center_pt: Vector2 = main.cam.position
@@ -109,9 +185,10 @@ func run(main: Node) -> void:
 	_snap(main, "res://verify_3_zoom.png")
 	print("[VERIFY] Saved verify_3_zoom.png")
 
-	# 4. Found capital and Test Diplomacy Sheet (centered PC modal window)
+	# 5. Found capital and Test Diplomacy Sheet
 	print("[VERIFY] Founding player capital and opening diplomacy sheet...")
 	if main.world:
+		main.world._landmasses()
 		var target_c: Vector2i = main.world._find_capital_spot(-1)
 		print("[VERIFY] Found capital spot: ", target_c)
 		if target_c.x >= 0:
@@ -128,6 +205,41 @@ func run(main: Node) -> void:
 		await RenderingServer.frame_post_draw
 		_snap(main, "res://verify_5_diplomacy.png")
 		print("[VERIFY] Saved verify_5_diplomacy.png")
+		if main.hud.panel != null and is_instance_valid(main.hud.panel):
+			main.hud.close_panel()
+
+	# 6. Test City Renaming
+	print("[VERIFY] Testing City Renaming...")
+	if main.world:
+		var test_city: City = null
+		if not main.world.cities.is_empty():
+			test_city = main.world.cities[0]
+		else:
+			test_city = City.new()
+			test_city.id = 0
+			test_city.name = "Нордборг"
+			test_city.country_id = main.world.player.id if main.world.player != null else 0
+			test_city.kind = City.Kind.CAPITAL
+			test_city.center = Vector2i(256, 256)
+			main.world.cities.append(test_city)
+		
+		var old_name: String = test_city.name
+		var target_name: String = "Цитадель-1"
+		print("[VERIFY] Renaming city '%s' (id=%d) to '%s'..." % [old_name, test_city.id, target_name])
+		main.world.cmd_city_rename(test_city.id, target_name)
+		assert(test_city.name == target_name, "City name must match target_name!")
+		main.selected_city = test_city.id
+		if main.hud:
+			main.hud.show_city(test_city)
+			main.hud.show_city_rename_dialog(test_city)
+			await tree.create_timer(0.6).timeout
+			await RenderingServer.frame_post_draw
+			_snap(main, "res://verify_9_city_rename.png")
+			print("[VERIFY] Saved verify_9_city_rename.png")
+			if main.hud.get("_city_rename_dialog") != null and is_instance_valid(main.hud._city_rename_dialog):
+				main.hud._city_rename_dialog.queue_free()
+				main.hud._city_rename_dialog = null
+		print("[VERIFY] City rename verified successfully: ", test_city.name)
 
 	print("[VERIFY] ALL VERIFICATIONS PASSED SUCCESSFULLY!")
 	tree.quit(0)

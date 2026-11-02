@@ -150,6 +150,38 @@ static func lakes_for(size: int) -> int:
 
 
 
+static var custom_maps_cache: Array = []
+
+static func _get_mod_manager() -> Node:
+	var loop = Engine.get_main_loop()
+	if loop != null and "root" in loop and loop.root != null and loop.root.has_node("ModManager"):
+		return loop.root.get_node("ModManager")
+	return null
+
+static func get_all_map_types() -> Array:
+	var res: Array = []
+	for i in MAP_TYPE_NAMES.size():
+		res.append({
+			"name": String(MAP_TYPE_NAMES[i]),
+			"hint": String(MAP_TYPE_HINTS[i]),
+			"icon": String(MAP_TYPE_ICONS[i]),
+			"land": int(MAP_LAND[i])
+		})
+	var custom_maps: Array = custom_maps_cache
+	if custom_maps.is_empty():
+		var mm = _get_mod_manager()
+		if mm != null:
+			custom_maps = mm.get_custom_map_types()
+			custom_maps_cache = custom_maps
+	for cm in custom_maps:
+		res.append({
+			"name": String(cm.get("name", "МОД")),
+			"hint": String(cm.get("hint", "")),
+			"icon": String(cm.get("icon", "map_t_normal")),
+			"land": int(cm.get("land_percent", 50))
+		})
+	return res
+
 static func apply_map(s: WorldSettings, consume: bool = false) -> void :
 	if tutorial:
 		return
@@ -157,9 +189,22 @@ static func apply_map(s: WorldSettings, consume: bool = false) -> void :
 		s.world_seed = map_seed
 		if consume:
 			map_seed = -1
-	s.map_type = clampi(map_type, 0, 3)
-	if s.map_type != 0:
-		s.land_percent = int(MAP_LAND[s.map_type])
+	var all_maps: Array = get_all_map_types()
+	var max_type_idx: int = maxi(0, all_maps.size() - 1)
+	s.map_type = clampi(map_type, 0, max_type_idx)
+	if s.map_type >= 0 and s.map_type < MAP_LAND.size():
+		if s.map_type != 0:
+			s.land_percent = int(MAP_LAND[s.map_type])
+	elif s.map_type >= MAP_LAND.size():
+		var custom_idx: int = s.map_type - MAP_LAND.size()
+		var custom_maps: Array = custom_maps_cache
+		if custom_maps.is_empty():
+			var mm = _get_mod_manager()
+			if mm != null:
+				custom_maps = mm.get_custom_map_types()
+				custom_maps_cache = custom_maps
+		if custom_idx >= 0 and custom_idx < custom_maps.size():
+			s.land_percent = int(custom_maps[custom_idx].get("land_percent", 50))
 	s.rivers = int(RIVERS[clampi(rivers_i, 0, 3)])
 	s.lakes = lakes_for(s.size)
 

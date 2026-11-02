@@ -75,6 +75,7 @@ func _ready() -> void :
 	_main_menu()
 	var all_args: Array = OS.get_cmdline_user_args()
 	all_args.append_array(OS.get_cmdline_args())
+	print("[MainReady] All cmdline args received: ", all_args)
 	for a: String in all_args:
 		if a.begins_with("--net-test="):
 			var nt: RefCounted = (load("res://dev/net_autotest.gd") as GDScript).new()
@@ -92,6 +93,10 @@ func _ready() -> void :
 			var v: RefCounted = (load("res://dev/verify_game.gd") as GDScript).new()
 			set_meta("verify_game", v)
 			v.call("run", self)
+		elif a.begins_with("--airborne-demo"):
+			var ad: RefCounted = (load("res://dev/airborne_demo.gd") as GDScript).new()
+			set_meta("airborne_demo", ad)
+			ad.call("run", self)
 
 
 
@@ -171,6 +176,8 @@ func _on_menu(req: String) -> void :
 			menus.show_settings(false)
 		"settings_pause":
 			menus.show_settings(true)
+		"mods":
+			menus.show_mods()
 		"start":
 			GameConfig.tutorial = false
 			if GameConfig.cb_on:
@@ -281,6 +288,8 @@ func start_world(s: WorldSettings) -> void :
 	hud.refresh()
 	_set_mode(Mode.CAPITAL)
 	hud.select_page(1)
+	if has_node("/root/ModManager"):
+		get_node("/root/ModManager").call_hook("on_world_started", [self, world])
 
 
 func _notification(what: int) -> void :
@@ -486,6 +495,8 @@ func _process(delta: float) -> void :
 	if _perf_t >= 5.0:
 		_perf_t = 0.0
 		print("[Perf] fps=%d draw_calls=%d objects=%d cities=%d zoom=%.2f" % [Engine.get_frames_per_second(), int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)), world.obj_spr.size() - world._free_ids.size(), world.cities.size(), cam.zoom.x])
+	if has_node("/root/ModManager") and not in_menu:
+		get_node("/root/ModManager").call_hook("on_match_tick", [self, world, delta])
 
 
 func _on_action(nm: String) -> void :
@@ -536,6 +547,9 @@ func _on_action(nm: String) -> void :
 				_set_mode(Mode.NONE if mode == Mode.TOWN else Mode.TOWN)
 			else:
 				_set_mode(Mode.CAPITAL)
+		"city_rename":
+			if selected_city >= 0 and selected_city < world.cities.size():
+				hud.show_city_rename_dialog(world.cities[selected_city])
 		"strike":
 			if net.in_match:
 				hud.show_toast("Тестовый удар в сетевой партии недоступен")
@@ -1174,6 +1188,7 @@ func _unhandled_input(event: InputEvent) -> void :
 	if event is InputEventKey and event.pressed and not event.echo:
 		var kc_global: int = (event as InputEventKey).keycode
 		if kc_global == KEY_F11 or (kc_global == KEY_ENTER and event.alt_pressed):
+			get_viewport().set_input_as_handled()
 			_toggle_fullscreen()
 			return
 	if in_menu:
@@ -1318,7 +1333,13 @@ func _unhandled_input(event: InputEvent) -> void :
 
 
 
+var _last_fullscreen_toggle: int = 0
+
 func _toggle_fullscreen() -> void :
+	var now: int = Time.get_ticks_msec()
+	if now - _last_fullscreen_toggle < 350:
+		return
+	_last_fullscreen_toggle = now
 	var cur: int = DisplayServer.window_get_mode()
 	if cur == DisplayServer.WINDOW_MODE_FULLSCREEN or cur == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
@@ -1362,6 +1383,10 @@ func _handle_pc_shortcut(k: int, ev: InputEventKey) -> bool :
 	if KeybindManager.is_event_match(ev, "speed_next"):
 		_on_action("speed_next")
 		return true
+	if ev.keycode == KEY_F2 and ev.pressed and not ev.echo:
+		if selected_city >= 0 and world != null and selected_city < world.cities.size() and hud != null and hud.has_method("show_city_rename_dialog"):
+			hud.show_city_rename_dialog(world.cities[selected_city])
+			return true
 	if KeybindManager.is_event_match(ev, "zoom_in"):
 		if cam != null:
 			cam.step_zoom(1, cam.view_size() * 0.5)

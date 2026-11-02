@@ -486,36 +486,16 @@ func _set_layout(l: int) -> void :
 
 
 func _fix_colors() -> void :
-	var cs: Array = sp["c"]
-	var n: int = int(FlagMaker.L_NCOL[int(sp["l"])])
-	if n >= 2 and not FlagMaker.pair_ok(int(cs[0]), int(cs[1])):
-		cs[1] = _best_for(1)
-	if n >= 3 and not (FlagMaker.pair_ok(int(cs[2]), int(cs[0])) and FlagMaker.pair_ok(int(cs[2]), int(cs[1]))):
-		cs[2] = _best_for(2)
-	if not FlagMaker.emb_ok(sp):
-		sp["ec"] = FlagMaker.auto_ec(sp)
+	pass
 
 
 func _best_for(k: int) -> int:
 	var cs: Array = sp["c"]
-	for hm: Array in FlagMaker.HARMONY:
-		if hm.has(cs[0]):
-			for v: int in hm:
-				if _color_ok(k, v):
-					return v
-	for v2 in FlagMaker.COLS.size():
-		if _color_ok(k, v2):
-			return v2
 	return int(cs[k])
 
 
 
-func _color_ok(k: int, v: int) -> bool:
-	var cs: Array = sp["c"]
-	var n: int = int(FlagMaker.L_NCOL[int(sp["l"])])
-	for j in n:
-		if j != k and not FlagMaker.pair_ok(v, int(cs[j])):
-			return false
+func _color_ok(_k: int, _v: int) -> bool:
 	return true
 
 
@@ -599,16 +579,14 @@ func _tab_colors() -> void :
 			s5["e"] = 0
 			sw.texture = FlagMaker.tex(FlagMaker.encode(s5), 18, 12)
 			_paint_chip(b2, slot == kk))
-	var ok_f: Callable = func(v: int) -> bool: return _color_ok(slot, v)
+	var ok_f: Callable = func(_v: int) -> bool: return true
 	var cur_f: Callable = func(_v: int) -> int: return int((sp["c"] as Array)[slot])
 	var pick_f: Callable = func(v: int) -> void :
 		_push()
 		(sp["c"] as Array)[slot] = v
-		if not FlagMaker.emb_ok(sp):
-			sp["ec"] = FlagMaker.auto_ec(sp)
 		_changed(false)
 	_palette(ok_f, cur_f, pick_f)
-	body.add_child(_caption("Тусклые цвета сливаются с соседними — их не выбрать", false))
+	body.add_child(_caption("Доступны все цвета палитры", false))
 	_land_row()
 
 
@@ -663,18 +641,12 @@ static func land_picker(parent: Control, who_i: int, cur: Callable, now: Callabl
 		b.resized.connect( func() -> void : x.position = ((b.size - x.size) * 0.5).round())
 		UiKit.tap_snd(b)
 		b.pressed.connect( func() -> void :
-			var holder: String = CustomBots.land_holder(li, who_i)
-			if holder != "":
-				cap.text = Loc.t("Этот цвет уже у страны %s") % holder.to_upper()
-				cap.add_theme_color_override("font_color", UiKit.RED)
-				UiKit.snd("ui_error")
-				return
 			if int(cur.call()) != li:
 				pick.call(li))
 		sr.add_child(b)
 		reps.append( func() -> void :
 			var on: bool = int(now.call()) == li
-			var held: bool = CustomBots.land_holder(li, who_i) != ""
+			var held: bool = CustomBots.land_holder(li, who_i) != "" and who_i >= 0
 			x.visible = held
 			b.modulate = Color(1, 1, 1, 0.4 if held else 1.0)
 			var c: Color = land_color(li)
@@ -714,9 +686,8 @@ func _palette(ok: Callable, cur: Callable, pick: Callable) -> void :
 		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 		var vi: int = v
 		b.pressed.connect( func() -> void :
-			if bool(ok.call(vi)):
-				UiKit.snd("ui_select")
-				pick.call(vi))
+			UiKit.snd("ui_select")
+			pick.call(vi))
 		g.add_child(b)
 		var x: TextureRect = TextureRect.new()
 		x.texture = _mask_tex(["#...#", ".#.#.", "..#..", ".#.#.", "#...#"], Color(UiKit.OUTLINE, 0.85))
@@ -726,17 +697,17 @@ func _palette(ok: Callable, cur: Callable, pick: Callable) -> void :
 		x.stretch_mode = TextureRect.STRETCH_SCALE
 		x.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		x.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		x.visible = false
 		b.add_child(x)
 		b.resized.connect( func() -> void : x.position = ((b.size - x.size) * 0.5).round())
 		paints.append( func() -> void :
 			var on: bool = int(cur.call(vi)) == vi
-			var good: bool = bool(ok.call(vi)) or on
 			var s: StyleBox = _swatch_sb(vi, on)
 			for st: String in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
 				b.add_theme_stylebox_override(st, s)
-			b.modulate = Color(1, 1, 1, 1.0 if good else 0.4)
-			x.visible = not good
-			b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if good else Control.CURSOR_ARROW)
+			b.modulate = Color(1, 1, 1, 1.0)
+			x.visible = false
+			b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND)
 
 
 func _tab_emblem() -> void :
@@ -771,8 +742,6 @@ func _tab_emblem() -> void :
 				return
 			_push()
 			sp["e"] = ei
-			if ei > 0 and not FlagMaker.emb_ok(sp):
-				sp["ec"] = FlagMaker.auto_ec(sp)
 			_changed(false))
 		g.add_child(b)
 		paints.append( func() -> void : _paint_chip(b, int(sp["e"]) == ei))
@@ -780,11 +749,7 @@ func _tab_emblem() -> void :
 	body.add_child(nm)
 	paints.append( func() -> void : nm.text = Loc.t("ЭМБЛЕМА: %s") % Loc.t(FlagMaker.EMB_NAMES[int(sp["e"])]))
 	body.add_child(_caption("ЦВЕТ ЭМБЛЕМЫ"))
-	var ok_e: Callable = func(v: int) -> bool:
-		var s4: Dictionary = sp.duplicate(true)
-		s4["ec"] = v
-		s4["e"] = maxi(1, int(sp["e"]))
-		return FlagMaker.emb_ok(s4)
+	var ok_e: Callable = func(_v: int) -> bool: return true
 	var cur_e: Callable = func(_v: int) -> int: return int(sp["ec"])
 	var pick_e: Callable = func(v: int) -> void :
 		_push()
@@ -793,7 +758,7 @@ func _tab_emblem() -> void :
 			sp["e"] = 1
 		_changed(false)
 	_palette(ok_e, cur_e, pick_e)
-	body.add_child(_caption("× — цвет сливается с полем флага под эмблемой: её не будет видно", false))
+	body.add_child(_caption("Доступны все цвета палитры для эмблемы", false))
 	_choice_row(Loc.t("МЕСТО", "emblem"), FlagMaker.PLACES, "p")
 	_choice_row("РАЗМЕР", FlagMaker.SIZE_NAMES, "s")
 
@@ -817,8 +782,6 @@ func _choice_row(title: String, names: Array, key: String) -> void :
 			sp[key] = ii
 			if int(sp["e"]) == 0:
 				sp["e"] = 1
-			if not FlagMaker.emb_ok(sp):
-				sp["ec"] = FlagMaker.auto_ec(sp)
 			_changed(false))
 		r.add_child(b)
 		paints.append( func() -> void : _paint_chip(b, int(sp[key]) == ii))

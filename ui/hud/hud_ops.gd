@@ -81,6 +81,10 @@ func _build_ops() -> void :
 	ops_title = UiKit.lbl("", 14, UiKit.TITLE, 3, 3)
 	ops_title.clip_text = true
 	ops_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	ops_title.gui_input.connect(func(ev: InputEvent) -> void :
+		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
+			if _ops_key.begins_with("city"):
+				action.emit("city_rename"))
 	tcol.add_child(ops_title)
 	ops_sub = UiKit.lbl("", 10, UiKit.MUTED, 1)
 	ops_sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
