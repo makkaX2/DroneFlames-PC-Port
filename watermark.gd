@@ -31,7 +31,7 @@ func _get_game_version() -> String:
 			var json = JSON.parse_string(txt)
 			if json is Dictionary and json.has("version"):
 				return "v" + String(json["version"])
-	return "v0.33.4.5"
+	return "v0.33.4.6"
 
 func _setup_app_icon() -> void:
 	# 1. Native Windows .ico for taskbar and window frame
@@ -87,8 +87,12 @@ func _input(event: InputEvent) -> void:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 			else:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+			call_deferred("_apply_ui_scale")
 			call_deferred("_update_title")
 			call_deferred("_setup_app_icon")
+
+func _apply_ui_scale() -> void:
+	Save.apply_ui_scale()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:

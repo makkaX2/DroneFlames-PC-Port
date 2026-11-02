@@ -90,7 +90,8 @@ static var fps_i: int = 1
 const FPS_CAPS: Array = [30, 60, 0]
 
 static var ui_scale_i: int = 4
-const UI_SCALES: Array = [0.8, 0.85, 0.9, 0.95, 1.0]
+static var ui_scale_auto: bool = true
+const UI_SCALES: Array = [0.8, 0.85, 0.9, 0.95, 1.0, 1.25, 1.5, 1.75, 2.0]
 static var resolution_w: int = 1280
 static var resolution_h: int = 720
 static var creative: bool = false

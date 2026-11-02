@@ -39,7 +39,7 @@ const GENERIC: Array = ["defense", "diplo", "ai", "session"]
 const CFG: Array = ["bots", "difficulty", "aggression", "victory", "target_i", "time_i", "size_i", "tutorial", "fog", "ore_preset", "ore_custom", "creative", "expand_i", "reserves_i", "ai_autodig", "alliances", "limit_i"]
 
 
-const PREFS: Array = ["night", "hints", "econ_fx", "clouds", "fx_level", "ground_detail", "day_grade", "perf_hud", "confirm_actions", "dev_mode", "arch_i", "opening", "notif_mode", "plan_pos", "power_save", "my_name", "my_flag", "my_land", "cb_on", "cb_list", "my_money", "lang", "pseudo_loc", "fps_i", "ui_scale_i", "resolution_w", "resolution_h"]
+const PREFS: Array = ["night", "hints", "econ_fx", "clouds", "fx_level", "ground_detail", "day_grade", "perf_hud", "confirm_actions", "dev_mode", "arch_i", "opening", "notif_mode", "plan_pos", "power_save", "my_name", "my_flag", "my_land", "cb_on", "cb_list", "my_money", "lang", "pseudo_loc", "fps_i", "ui_scale_i", "ui_scale_auto", "resolution_w", "resolution_h"]
 const DISPLAY_RESOLUTIONS: Array[Vector2i] = [
 	Vector2i(3840, 2160), Vector2i(2560, 1600), Vector2i(2560, 1440),
 	Vector2i(1920, 1200), Vector2i(1920, 1080), Vector2i(1680, 1050),
@@ -912,6 +912,7 @@ static func load_prefs() -> void :
 	if cf.load(prefs_path) != OK:
 		apply_display_resolution()
 		apply_power_save()
+		apply_ui_scale()
 		Loc.boot()
 		return
 	for n: String in PREFS:
@@ -1000,18 +1001,47 @@ const IDLE_FPS: int = 30
 
 
 static func apply_ui_scale() -> void :
+	if GameConfig.ui_scale_auto:
+		GameConfig.ui_scale_i = automatic_ui_scale_index()
 	GameConfig.ui_scale_i = clampi(GameConfig.ui_scale_i, 0, GameConfig.UI_SCALES.size() - 1)
 	var k: float = float(GameConfig.UI_SCALES[GameConfig.ui_scale_i])
 	var st: SceneTree = Engine.get_main_loop() as SceneTree
 	if st == null or st.root == null:
 		return
 	st.root.content_scale_factor = 1.0
-	var v1: Vector2 = st.root.get_visible_rect().size
-	if v1.x > 1.0 and v1.y > 1.0:
-		k = minf(k, minf(v1.x / 360.0, v1.y / 640.0))
+	var screen: int = DisplayServer.window_get_current_screen()
+	if screen < 0:
+		screen = DisplayServer.SCREEN_PRIMARY
+	var output_size: Vector2i = DisplayServer.screen_get_size(screen)
+	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_WINDOWED:
+		output_size = DisplayServer.window_get_size()
+	if output_size.x > 1 and output_size.y > 1:
+		k = minf(k, minf(float(output_size.x) / 360.0, float(output_size.y) / 640.0))
 	k = maxf(k, 0.5)
 	st.root.content_scale_factor = k
 	MapCamera.set_ui_k(k, st.root.get_camera_2d())
+
+
+static func automatic_ui_scale_index() -> int:
+	var screen: int = DisplayServer.window_get_current_screen()
+	if screen < 0:
+		screen = DisplayServer.SCREEN_PRIMARY
+	var screen_size: Vector2i = DisplayServer.screen_get_size(screen)
+	var target_scale: float = 1.0
+	if screen_size.x >= 5120 and screen_size.y >= 2880:
+		target_scale = 2.0
+	elif screen_size.x >= 3840 and screen_size.y >= 2160:
+		target_scale = 1.5
+	elif screen_size.x >= 2560 and screen_size.y >= 1440:
+		target_scale = 1.25
+	var closest_index: int = 4
+	var closest_delta: float = INF
+	for i in GameConfig.UI_SCALES.size():
+		var delta: float = absf(float(GameConfig.UI_SCALES[i]) - target_scale)
+		if delta < closest_delta:
+			closest_delta = delta
+			closest_index = i
+	return closest_index
 
 
 static func apply_power_save() -> void :

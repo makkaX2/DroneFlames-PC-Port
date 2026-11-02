@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.4.5 (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.4.6 (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
+	"ИНТЕРФЕЙС v0.33.4.6: автоматическое увеличение до 150% на 4K и до 200% на 5K+, масштаб можно выбрать вручную или вернуть на авто",
 	"НАСТРОЙКИ v0.33.4.5: выбор разрешения рендера с сохранением; список ограничен разрешением монитора",
 	"СИСТЕМА МОДОВ v0.33.4.5: исправлена загрузка скачанных модов с собственными типами и безопасная установка поверх старой версии",
 	"СИСТЕМА МОДОВ v0.33.4.5: после установки встроенного мода каталог обновляется сразу; исправлено отображение авторов без дублирования @",
@@ -2564,7 +2565,7 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 	elif changelog == "" and up != null:
 		changelog = String(up.get("latest_changelog"))
 	if tag == "":
-		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.5"
+		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.6"
 	var direct_installer_url: String = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [tag, tag]
 	if dl_url == "" or dl_url.contains("/releases/tag/") or dl_url.contains("/releases/latest") or not dl_url.ends_with(".exe"):
 		dl_url = direct_installer_url
@@ -2743,17 +2744,26 @@ func show_settings_sub(kind: String) -> void :
 					GameConfig.resolution_w = selected.x
 					GameConfig.resolution_h = selected.y
 					Save.apply_display_resolution()
+					Save.apply_ui_scale()
 					Save.save_prefs(), 108.0)
 			_label(vb, "Меньший режим снижает нагрузку на видеокарту. Разрешения выше подключённого экрана не показываются.", 9, UiKit.MUTED)
-		var uis: Array = []
+		var uis: Array = ["АВТО"]
 		for k347: Variant in GameConfig.UI_SCALES:
-			uis.append("%d%%" % roundi(float(k347) * 100.0))
-		_selector(vb, "РАЗМЕР ИНТЕРФЕЙСА", uis, func() -> int: return GameConfig.ui_scale_i, func(i: int) -> void :
-			if i == GameConfig.ui_scale_i:
-				return
-			GameConfig.ui_scale_i = i
+		uis.append("%d%%" % roundi(float(k347) * 100.0))
+		_selector(vb, "РАЗМЕР ИНТЕРФЕЙСА", uis, func() -> int: return 0 if GameConfig.ui_scale_auto else GameConfig.ui_scale_i + 1, func(i: int) -> void :
+			if i == 0:
+				if GameConfig.ui_scale_auto:
+					return
+				GameConfig.ui_scale_auto = true
+			else:
+				var scale_i: int = i - 1
+				if not GameConfig.ui_scale_auto and scale_i == GameConfig.ui_scale_i:
+					return
+				GameConfig.ui_scale_i = scale_i
+				GameConfig.ui_scale_auto = false
 			Save.apply_ui_scale()
 			Save.save_prefs(), VW_SHORT)
+		_label(vb, "Авто: 150% на 4K, 200% на 5K+. Можно выбрать масштаб вручную.", 9, UiKit.MUTED)
 		_selector(vb, "ДЕНЬ/НОЧЬ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.night else 1, func(i: int) -> void : GameConfig.night = i == 0, VW_SHORT)
 		_selector(vb, "ЦВЕТ СУТОК", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.day_grade else 1, func(i: int) -> void : GameConfig.day_grade = i == 0, VW_SHORT)
 		_selector(vb, "ОБЛАКА", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.clouds else 1, func(i: int) -> void : GameConfig.clouds = i == 0, VW_SHORT)
