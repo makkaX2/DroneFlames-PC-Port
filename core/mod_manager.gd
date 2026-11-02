@@ -416,6 +416,20 @@ func is_mod_loaded(mod_id: String) -> bool:
 		return false
 	return bool(installed_mods[mod_id].get("_loaded", false))
 
+func _prepare_external_mod_source(source_code: String) -> String:
+	var class_line := RegEx.new()
+	class_line.compile("(?m)^class_name\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*\\r?\\n")
+	var class_match: RegExMatch = class_line.search(source_code)
+	if class_match == null:
+		return source_code
+	var declared_class: String = class_match.get_string(1)
+	source_code = class_line.sub(source_code, "", true)
+	# Remove a duplicate global class registration while preserving annotations
+	# inside the same mod by replacing that self-type with its RefCounted base.
+	var self_type := RegEx.new()
+	self_type.compile("([:,\\[]\\s*|->\\s*|\\bis\\s+)" + declared_class + "\\b")
+	return self_type.sub(source_code, "$1RefCounted", true)
+
 func toggle_mod(mod_id: String, enable: bool) -> void:
 	if not installed_mods.has(mod_id):
 		return
@@ -470,12 +484,8 @@ func _load_mod(mod_id: String) -> bool:
 			return false
 		var source_code: String = source_file.get_as_text()
 		source_file.close()
-		# A downloaded update may define the same global script class as its
-		# built-in predecessor. The mod API instantiates the entry directly, so
-		# its global class_name declaration is unnecessary and can collide.
-		var class_name_line := RegEx.new()
-		class_name_line.compile("(?m)^class_name\\s+[A-Za-z_][A-Za-z0-9_]*\\s*\\r?\\n")
-		source_code = class_name_line.sub(source_code, "", true)
+		# External scripts can shadow classes already included in the project.
+		source_code = _prepare_external_mod_source(source_code)
 		scr = GDScript.new()
 		scr.source_code = source_code
 		var compile_error: Error = scr.reload()
@@ -672,7 +682,7 @@ func _valid_mod_id(mod_id: String) -> bool:
 	if mod_id.is_empty():
 		return false
 	var re := RegEx.new()
-	re.compile("^[A-Za-z0-9_-]+$")
+	re.compile("^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 	return re.search(mod_id) != null
 
 func _validate_mod_stage(stage_path: String, expected_id: String) -> String:
@@ -699,9 +709,7 @@ func _validate_mod_stage(stage_path: String, expected_id: String) -> String:
 		return "Не найден entry-файл: %s" % entry_file
 	var source_code: String = source_file.get_as_text()
 	source_file.close()
-	var class_name_line := RegEx.new()
-	class_name_line.compile("(?m)^class_name\\s+[A-Za-z_][A-Za-z0-9_]*\\s*\\r?\\n")
-	source_code = class_name_line.sub(source_code, "", true)
+	source_code = _prepare_external_mod_source(source_code)
 	var script := GDScript.new()
 	script.source_code = source_code
 	var compile_error: Error = script.reload()
