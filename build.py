@@ -12,7 +12,7 @@ import zipfile
 import subprocess
 from pathlib import Path
 
-VERSION = "0.33.4.3"
+VERSION = "0.33.4.4"
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")

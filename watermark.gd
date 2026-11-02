@@ -31,7 +31,7 @@ func _get_game_version() -> String:
 			var json = JSON.parse_string(txt)
 			if json is Dictionary and json.has("version"):
 				return "v" + String(json["version"])
-	return "v0.33.4.3"
+	return "v0.33.4.4"
 
 func _setup_app_icon() -> void:
 	# 1. Native Windows .ico for taskbar and window frame
@@ -58,6 +58,12 @@ func _setup_updater() -> void:
 		up.update_available.connect(_on_update_available)
 
 func _on_update_available(new_version: String, _changelog: String, _dl_url: String, _asset_name: String) -> void:
+	var cur_v: String = _get_game_version().trim_prefix("v").strip_edges()
+	var new_v: String = new_version.trim_prefix("v").strip_edges()
+	var up: Node = get_node_or_null("/root/Updater")
+	if up != null and up.get_script() != null and up.get_script().has_method("compare_versions"):
+		if up.get_script().compare_versions(new_v, cur_v) <= 0:
+			return
 	print("[PC Port] New version available on GitHub: v" + new_version)
 	_base_title = "DroneFlames " + _get_game_version() + " — PC Port by @good_boy_irl (Обновление v" + new_version + " доступно!)"
 	_update_title()

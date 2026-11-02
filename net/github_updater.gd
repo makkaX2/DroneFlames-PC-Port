@@ -2,9 +2,6 @@ class_name GitHubUpdater
 extends Node
 ## Модуль автоматических обновлений игры через GitHub Releases
 ## Автор интеграции: @good_boy_irl
-##
-## СТАТУС: Готовая реализация в кодовой базе.
-## По умолчанию отключен (enabled = false) для активации в будущем.
 
 signal update_available(new_version: String, changelog: String, download_url: String, asset_name: String)
 signal no_update_found()
@@ -16,7 +13,7 @@ signal download_failed(reason: String)
 @export var enabled: bool = true ## Активировать проверку при старте
 @export var repo_owner: String = "makkaX2"
 @export var repo_name: String = "DroneFlames-PC-Port"
-@export var current_version: String = "0.33.4.2"
+@export var current_version: String = "0.33.4.4"
 
 var latest_tag: String = ""
 var latest_changelog: String = ""
@@ -32,7 +29,38 @@ var _http_download: HTTPRequest
 var _is_downloading: bool = false
 var _download_path: String = ""
 
+static func clean_version_string(v: String) -> String:
+	var s: String = v.strip_edges()
+	if s.begins_with("v") or s.begins_with("V"):
+		s = s.substr(1).strip_edges()
+	var sp: int = s.find(" ")
+	if sp != -1:
+		s = s.substr(0, sp)
+	var paren: int = s.find("(")
+	if paren != -1:
+		s = s.substr(0, paren)
+	return s.strip_edges()
+
+static func get_installed_version() -> String:
+	if ResourceLoader.exists("res://version_info.json"):
+		var f := FileAccess.open("res://version_info.json", FileAccess.READ)
+		if f != null:
+			var txt := f.get_as_text()
+			var json = JSON.parse_string(txt)
+			if json is Dictionary and json.has("version"):
+				var v: String = clean_version_string(String(json["version"]))
+				if v != "":
+					return v
+	if ResourceLoader.exists("res://ui/menus.gd"):
+		var m_cls = load("res://ui/menus.gd")
+		if m_cls != null and "VERSION" in m_cls:
+			var v_str: String = clean_version_string(String(m_cls.VERSION))
+			if v_str != "":
+				return v_str
+	return "0.33.4.4"
+
 func _ready() -> void:
+	current_version = get_installed_version()
 	_http_check = HTTPRequest.new()
 	_http_check.name = "GitHubUpdateCheckRequest"
 	add_child(_http_check)
@@ -56,6 +84,8 @@ func _process(_delta: float) -> void:
 
 ## Запуск проверки обновлений через GitHub REST API
 func check_for_updates() -> void:
+	current_version = get_installed_version()
+	is_update_ready = false
 	if _http_check.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
 		_http_check.cancel_request()
 
@@ -90,7 +120,7 @@ func _on_check_request_completed(result: int, response_code: int, _headers: Pack
 		return
 
 	var data: Dictionary = test_json.data if test_json.data is Dictionary else {}
-	var tag: String = String(data.get("tag_name", "")).trim_prefix("v").strip_edges()
+	var tag: String = clean_version_string(String(data.get("tag_name", "")))
 	var changelog: String = String(data.get("body", ""))
 	var assets: Array = data.get("assets", [])
 
@@ -104,12 +134,16 @@ func _on_check_request_completed(result: int, response_code: int, _headers: Pack
 					var sub: String = aname.substr(v_start + 2)
 					var v_end: int = sub.find("_")
 					if v_end != -1:
-						tag = sub.substr(0, v_end).strip_edges()
+						tag = clean_version_string(sub.substr(0, v_end))
 						break
 
 	if tag == "" or tag.to_lower() == "latest":
 		check_failed.emit("Некорректный релиз на GitHub (отсутствует tag_name)")
 		return
+
+	current_version = get_installed_version()
+	latest_tag = tag
+	latest_changelog = changelog
 
 	if compare_versions(tag, current_version) > 0:
 		# Найдена более свежая версия
@@ -131,14 +165,13 @@ func _on_check_request_completed(result: int, response_code: int, _headers: Pack
 			target_url = "https://github.com/%s/%s/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [repo_owner, repo_name, tag, tag]
 			target_name = "DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % tag
 
-		latest_tag = tag
-		latest_changelog = changelog
 		latest_url = target_url
 		latest_asset_name = target_name
 		is_update_ready = true
 
 		update_available.emit(tag, changelog, target_url, target_name)
 	else:
+		is_update_ready = false
 		no_update_found.emit()
 
 ## Скачать файл обновления в папку пользовательских данных
@@ -191,8 +224,10 @@ func apply_and_restart(installer_path: String, silent: bool = false) -> void:
 ## Сравнение двух semver строк (например: "0.33.0" и "0.32.0")
 ## Возвращает: 1 если v1 > v2, -1 если v1 < v2, 0 если равны
 static func compare_versions(v1: String, v2: String) -> int:
-	var p1: PackedStringArray = v1.trim_prefix("v").split(".")
-	var p2: PackedStringArray = v2.trim_prefix("v").split(".")
+	var s1: String = clean_version_string(v1)
+	var s2: String = clean_version_string(v2)
+	var p1: PackedStringArray = s1.split(".")
+	var p2: PackedStringArray = s2.split(".")
 	var max_len: int = maxi(p1.size(), p2.size())
 
 	for i in max_len:

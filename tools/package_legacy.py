@@ -12,8 +12,8 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 LEGACY_DIR = ROOT_DIR / "legacy_build"
-STAGE_DIR = LEGACY_DIR / "DroneFlames_PC_Legacy_v0.33.4.3"
-ZIP_OUTPUT = LEGACY_DIR / "DroneFlames_PC_Legacy_v0.33.4.3.zip"
+STAGE_DIR = LEGACY_DIR / "DroneFlames_PC_Legacy_v0.33.4.4"
+ZIP_OUTPUT = LEGACY_DIR / "DroneFlames_PC_Legacy_v0.33.4.4.zip"
 
 FOLDERS = [
     "addons",
@@ -150,7 +150,7 @@ pause
 
     # Readme
     readme_txt = """===========================================================
-  DroneFlames PC Port - Legacy Edition (v0.33.4.3)
+  DroneFlames PC Port - Legacy Edition (v0.33.4.4)
   Специальная сборка для старых ПК и процессоров без SSE4.2
 ===========================================================
 
@@ -185,7 +185,7 @@ pause
         for file_path in STAGE_DIR.rglob("*"):
             if file_path.is_file():
                 arcname = file_path.relative_to(STAGE_DIR)
-                zf.write(file_path, arcname=f"DroneFlames_PC_Legacy_v0.33.4.3/{arcname}")
+                zf.write(file_path, arcname=f"DroneFlames_PC_Legacy_v0.33.4.4/{arcname}")
 
     zip_size_mb = ZIP_OUTPUT.stat().st_size / (1024 * 1024)
     print(f"\n[SUCCESS] Legacy ZIP ready: {ZIP_OUTPUT}")

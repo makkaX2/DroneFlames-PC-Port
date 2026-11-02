@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.4.3 (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.4.4 (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
+	"АВТООБНОВЛЕНИЕ v0.33.4.4: устранено ложное циклическое уведомление об обновлении при уже установленной последней версии",
 	"МУЛЬТИПЛЕЕР v0.33.4.3: сохранение партии у хоста по кнопке «СОХРАНИТЬ» в меню паузы (Esc)",
 	"МУЛЬТИПЛЕЕР v0.33.4.3: игроки сохраняются у хоста по никам и автоматически восстанавливают свои страны при входе",
 	"МУЛЬТИПЛЕЕР v0.33.4.3: приглашение друзей в уже созданное лобби/игру по IP или коду, автопоиск в локальной сети",
@@ -108,6 +109,11 @@ func _setup_updater() -> void:
 			up.update_available.connect(_on_updater_available)
 
 func _on_updater_available(tag: String, changelog: String, target_url: String, target_name: String) -> void:
+	var up: Node = get_node_or_null("/root/Updater")
+	var cur_v: String = String(up.get("current_version")).trim_prefix("v").strip_edges() if up != null else ""
+	if up != null and up.get_script() != null and up.get_script().has_method("compare_versions"):
+		if up.get_script().compare_versions(tag, cur_v) <= 0:
+			return # Already on latest version or newer
 	if not _update_dialog_shown:
 		_update_dialog_shown = true
 		show_update_dialog.call_deferred(tag, changelog, target_url, target_name)
@@ -1041,17 +1047,23 @@ func show_main() -> void :
 	if has_node("/root/Updater"):
 		var up: Node = get_node("/root/Updater")
 		if up != null and up.has_method("has_update") and bool(up.call("has_update")):
-			var up_pill: Button = UiKit.big("⚡ ОБНОВЛЕНИЕ v%s ДОСТУПНО!" % String(up.get("latest_tag")), "gold", "", 32.0, 10)
-			up_pill.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-			up_pill.grow_horizontal = Control.GROW_DIRECTION_BOTH
-			up_pill.grow_vertical = Control.GROW_DIRECTION_BEGIN
-			up_pill.offset_bottom = -50 - smb
-			up_pill.custom_minimum_size = Vector2(250, 32)
-			up_pill.pressed.connect(func() -> void:
-				UiKit.snd("ui_open")
-				show_update_dialog()
-			)
-			bg.add_child(up_pill)
+			var ltag: String = String(up.get("latest_tag")).trim_prefix("v").strip_edges()
+			var cur_v: String = String(up.get("current_version")).trim_prefix("v").strip_edges()
+			var is_newer: bool = true
+			if up.get_script() != null and up.get_script().has_method("compare_versions"):
+				is_newer = up.get_script().compare_versions(ltag, cur_v) > 0
+			if is_newer:
+				var up_pill: Button = UiKit.big("⚡ ОБНОВЛЕНИЕ v%s ДОСТУПНО!" % ltag, "gold", "", 32.0, 10)
+				up_pill.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+				up_pill.grow_horizontal = Control.GROW_DIRECTION_BOTH
+				up_pill.grow_vertical = Control.GROW_DIRECTION_BEGIN
+				up_pill.offset_bottom = -50 - smb
+				up_pill.custom_minimum_size = Vector2(250, 32)
+				up_pill.pressed.connect(func() -> void:
+					UiKit.snd("ui_open")
+					show_update_dialog()
+				)
+				bg.add_child(up_pill)
 
 	var ib: = HBoxContainer.new()
 	ib.add_theme_constant_override("separation", 4)
@@ -2548,7 +2560,7 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 	elif changelog == "" and up != null:
 		changelog = String(up.get("latest_changelog"))
 	if tag == "":
-		tag = "0.33.4.2"
+		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.4"
 	var direct_installer_url: String = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [tag, tag]
 	if dl_url == "" or dl_url.contains("/releases/tag/") or dl_url.contains("/releases/latest") or not dl_url.ends_with(".exe"):
 		dl_url = direct_installer_url
