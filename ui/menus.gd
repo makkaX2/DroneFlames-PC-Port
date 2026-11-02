@@ -6,10 +6,18 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.4.7 (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.4.8 (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
+	"ЧЁТКОСТЬ v0.33.4.8: исправлено размытие шрифтов и 2D-графики при масштабировании окна",
+	"СОХРАНЕНИЯ v0.33.4.8: постоянная папка данных и безопасное копирование сохранений из папок прошлых версий",
+	"МОД СООБЩЕСТВА v0.33.4.8: добавлен оверлей FPS и реального ping для сетевой партии",
 	"ХОТФИКС v0.33.4.7: устранена ошибка компиляции меню, вызывавшая серый экран после запуска",
+	"ГОРОДА v0.33.4.6: декоратор с деревьями, кустами, цветами, домами, магазинами и улицами",
+	"СОХРАНЕНИЯ v0.33.4.6: импорт и экспорт файлов сохранений из списка слотов",
+	"АВИАЦИЯ v0.33.4.6: мод добавляет подвес двух КАБ на истребители",
+	"ПРОИЗВОДИТЕЛЬНОСТЬ v0.33.4.6: локальные проверки целей и укреплений используют пространственные индексы войск",
+	"МОДЫ v0.33.4.6: повторная постройка и единый центр улучшений экономики и вооружения",
 	"ИНТЕРФЕЙС v0.33.4.6: автоматическое увеличение до 150% на 4K и до 200% на 5K+, масштаб можно выбрать вручную или вернуть на авто",
 	"НАСТРОЙКИ v0.33.4.5: выбор разрешения рендера с сохранением; список ограничен разрешением монитора",
 	"СИСТЕМА МОДОВ v0.33.4.5: исправлена загрузка скачанных модов с собственными типами и безопасная установка поверх старой версии",
@@ -2566,7 +2574,7 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 	elif changelog == "" and up != null:
 		changelog = String(up.get("latest_changelog"))
 	if tag == "":
-		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.7"
+		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.8"
 	var direct_installer_url: String = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [tag, tag]
 	if dl_url == "" or dl_url.contains("/releases/tag/") or dl_url.contains("/releases/latest") or not dl_url.ends_with(".exe"):
 		dl_url = direct_installer_url
@@ -2738,7 +2746,7 @@ func show_settings_sub(kind: String) -> void :
 		if not GameConfig.android:
 			var resolutions: Array[Vector2i] = Save.available_display_resolutions()
 			var resolution_labels: Array[String] = Save.display_resolution_labels(resolutions)
-			_selector(vb, "РАЗРЕШЕНИЕ РЕНДЕРА", resolution_labels,
+			_selector(vb, "РАЗРЕШЕНИЕ ИГРЫ", resolution_labels,
 				func() -> int: return Save.display_resolution_index(resolutions),
 				func(i: int) -> void:
 					var selected: Vector2i = resolutions[clampi(i, 0, resolutions.size() - 1)]
@@ -2747,7 +2755,7 @@ func show_settings_sub(kind: String) -> void :
 					Save.apply_display_resolution()
 					Save.apply_ui_scale()
 					Save.save_prefs(), 108.0)
-			_label(vb, "Меньший режим снижает нагрузку на видеокарту. Разрешения выше подключённого экрана не показываются.", 9, UiKit.MUTED)
+			_label(vb, "В оконном режиме меньший размер снижает нагрузку; полный экран рендерится в нативном разрешении для чёткости.", 9, UiKit.MUTED)
 		var uis: Array = ["АВТО"]
 		for k347: Variant in GameConfig.UI_SCALES:
 			uis.append("%d%%" % roundi(float(k347) * 100.0))
@@ -2848,6 +2856,7 @@ func show_pause() -> void :
 			info += Loc.t("\nЗахватите все столицы")
 		if GameConfig.victory != 1 and GameConfig.match_limit() > 0.0 and not RankedRules.active():
 			info += Loc.t(" · осталось %s") % Hud._mmss(gw.session.time_left())
+		info += Loc.t("\nВремя партии: %s") % Hud._mmss(gw.session.elapsed())
 		_label(vb, info, 12, UiKit.TEXT)
 	var online: bool = net != null and net.in_match
 	if online:

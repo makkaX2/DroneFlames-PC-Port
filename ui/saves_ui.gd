@@ -335,6 +335,29 @@ static func build(mn: Menus, vb: VBoxContainer, from_pause: bool) -> void :
 		else:
 			_slot_card(mn, vb, i, from_pause, n == live, n == cont and not from_pause)
 	var row: HBoxContainer = mn._bottom_row()
+	var exchange: Button = UiKit.big("ОБМЕН ФАЙЛОМ", "blue", "", 44.0, 12)
+	exchange.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	exchange.tooltip_text = "Импортировать файл можно в пустой слот. Экспорт копирует выбранное сохранение в отдельный файл."
+	exchange.pressed.connect(func() -> void:
+		var target: int = SS.first_empty_slot()
+		if target < 0:
+			mn._mp_toast("Для импорта освободите один слот сохранения")
+			return
+		var dialog: FileDialog = _file_dialog(mn, FileDialog.FILE_MODE_OPEN_FILE)
+		dialog.title = "Импорт сохранения в слот %d" % target
+		dialog.file_selected.connect(func(path: String) -> void:
+			var error: String = SS.import_file(path, target)
+			mn._mp_toast("Сохранение импортировано в слот %d" % target if error == "" else error)
+			if error == "":
+				_refresh(mn, from_pause))
+		dialog.popup_centered_ratio(0.75))
+	row.add_child(exchange)
+	var folder: Button = UiKit.big("ПАПКА", "stone", "", 44.0, 12)
+	folder.tooltip_text = "Открыть папку с файлами сохранений для отправки или копирования."
+	folder.pressed.connect(func() -> void:
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SS.DIR))
+		OS.shell_open(ProjectSettings.globalize_path(SS.DIR)))
+	row.add_child(folder)
 	var back: Button = UiKit.big("НАЗАД", "stone", "", 44.0, 14)
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back.pressed.connect( func() -> void :
@@ -541,6 +564,18 @@ static func _details(mn: Menus, col: VBoxContainer, i: Dictionary, from_pause: b
 				_refresh(mn, from_pause))
 	var act: HBoxContainer = _hbox(8)
 	col.add_child(act)
+	if st != "bad":
+		var export_btn: Button = UiKit.big("ЭКСПОРТ", "blue", "", 44.0, 11)
+		export_btn.tooltip_text = "Сохранить последнюю точку слота в отдельный файл для отправки."
+		export_btn.pressed.connect(func() -> void:
+			var dialog: FileDialog = _file_dialog(mn, FileDialog.FILE_MODE_SAVE_FILE)
+			dialog.title = "Экспорт слота %d" % n
+			dialog.current_file = "DroneFlames_slot_%d.dfsave" % n
+			dialog.file_selected.connect(func(path: String) -> void:
+				var error: String = SS.export_file(n, path)
+				mn._mp_toast("Сохранение экспортировано" if error == "" else error))
+			dialog.popup_centered_ratio(0.75))
+		act.add_child(export_btn)
 	var del: Button = UiKit.big("", "stone", "", 44.0, 12)
 	del.icon = icon_tex("bin")
 	del.expand_icon = false
@@ -569,6 +604,23 @@ static func _details(mn: Menus, col: VBoxContainer, i: Dictionary, from_pause: b
 		var ll: Label = _lbl(Loc.t("Откатиться некуда: автосохранение появится через минуту.") if key == "" else Loc.t("Это идущая партия — удалить её можно из главного меню."), 10, UiKit.MUTED, 1, 1)
 		ll.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		col.add_child(ll)
+
+
+static func _file_dialog(mn: Menus, file_mode: int) -> FileDialog:
+	var dialog: FileDialog = FileDialog.new()
+	dialog.file_mode = file_mode
+	dialog.access = FileDialog.ACCESS_FILESYSTEM
+	dialog.add_filter("*.dfsave", "DroneFlames save")
+	dialog.add_filter("*.save", "DroneFlames save")
+	dialog.current_dir = OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS)
+	if file_mode == FileDialog.FILE_MODE_SAVE_FILE:
+		dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
+	else:
+		dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	mn.add_child(dialog)
+	dialog.close_requested.connect(dialog.queue_free)
+	dialog.file_selected.connect(func(_path: String) -> void: dialog.queue_free(), CONNECT_ONE_SHOT)
+	return dialog
 
 
 

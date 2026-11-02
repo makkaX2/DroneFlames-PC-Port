@@ -679,12 +679,16 @@ func show_aircraft(a: Aircraft, air: Air, player: Country) -> void :
 		if a.state == Aircraft.State.PARKED:
 			acts.append(_act("2 КРЫЛАТЫЕ", "icon_m_cruise", "pylon_1", true, 1 if a.pylon == 1 else 0))
 			acts.append(_act("ГИПЕРЗВУК", "icon_m_hyper", "pylon_2", true, 1 if a.pylon == 2 else 0))
+			if air.arsenal_enabled:
+				acts.append(_act("2 КАБ", "icon_m_kab", "pylon_3", true, 1 if a.pylon == 3 else 0))
 		elif a.pylon == 1:
 			acts.append(_act("ПУСК КР", "icon_cr_launch", "air_cr", a.airborne() and a.pylon_n > 0, -1, "%d" % a.pylon_n))
 		elif a.pylon == 2:
 			acts.append(_act("ГИПЕРЗВУК", "icon_m_hyper", "air_hyp", a.airborne() and a.pylon_n > 0, -1, "%d" % a.pylon_n))
+		elif a.pylon == 3 and air.arsenal_enabled:
+			acts.append(_act("УДАР КАБ", "icon_m_kab", "air_kab", a.airborne() and a.pylon_n > 0, -1, "%d" % a.pylon_n))
 	ops_detail.visible = a.type == Aircraft.Type.FIGHTER and a.state == Aircraft.State.PARKED
-	ops_detail.text = "Подвес выбирается на стоянке: крылатые ракеты или гиперзвук (берутся со склада ракетного завода)."
+	ops_detail.text = "Подвес выбирается на стоянке: крылатые ракеты или гиперзвук (склад ракетного завода)." + (" Доступны также 2 КАБ для удара по земле." if air.arsenal_enabled else "")
 	_fill_acts("air%d" % a.id, acts)
 
 

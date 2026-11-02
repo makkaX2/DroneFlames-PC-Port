@@ -986,7 +986,7 @@ static func apply_display_resolution() -> void:
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
 	if tree == null or tree.root == null:
 		return
-	tree.root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
+	tree.root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	tree.root.content_scale_size = selected
 
 

@@ -90,6 +90,10 @@ func _on_match_tick(main: Node, world: Node, _delta: float) -> void:
 
 	if main == null or main.hud == null or world == null:
 		return
+	if world.player != null:
+		for city: City in world.cities:
+			if city != null and city.country_id == world.player.id:
+				_update_population(city, _delta)
 
 	var ops_k = String(main.hud._ops_key)
 	if ops_k.begins_with("city"):
@@ -127,6 +131,7 @@ func _enhance_city_card(c: City) -> void:
 		c.buildings,
 		c.radius
 	]
+	sub_info += Loc.t("\nЖИТЕЛИ: %d / %d") % [c.residents, c.housing_capacity]
 	h.ops_sub.visible = true
 	h.ops_sub.text = sub_info
 
@@ -152,6 +157,9 @@ func _execute_city_expand(c: City) -> void:
 		return
 
 	p.money -= cost
+	if c.housing_capacity <= 0:
+		c.housing_capacity = maxi(1200, c.buildings * 500)
+		c.residents = int(float(c.housing_capacity) * 0.6)
 
 	# 1. Повышение параметров города
 	c.level += 1
@@ -161,6 +169,8 @@ func _execute_city_expand(c: City) -> void:
 	c.garrison = c.garrison_max
 	c.claim_done = false
 	c.frontier = [Vector3i(c.center.x, c.center.y, 0)]
+	c.housing_capacity += (2 + mini(c.level, 3)) * 600
+	c.residents = mini(c.housing_capacity, c.residents + 250)
 
 	# 2. Запуск экспансии границ города через оригинальный алгоритм
 	if world_ref.has_method("_grow_initial"):
@@ -181,6 +191,17 @@ func _execute_city_expand(c: City) -> void:
 	if main_ref != null and main_ref.hud != null:
 		main_ref.hud.show_toast("Город %s расширен до ур. %d! Новые территории присоединены, гарнизон +150." % [c.name, c.level])
 		main_ref.hud.show_city(c)
+
+
+func _update_population(c: City, delta: float) -> void:
+	if c.housing_capacity <= 0:
+		c.housing_capacity = maxi(1200, c.buildings * 500)
+		c.residents = int(float(c.housing_capacity) * 0.6)
+	c.population_growth_clock += delta
+	if c.population_growth_clock >= 30.0:
+		var cycles: int = int(c.population_growth_clock / 30.0)
+		c.population_growth_clock = fmod(c.population_growth_clock, 30.0)
+		c.residents = mini(c.housing_capacity, c.residents + cycles * 10)
 
 func _execute_city_infra(c: City) -> void:
 	if world_ref == null or world_ref.player == null:

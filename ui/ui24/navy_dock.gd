@@ -349,6 +349,11 @@ func _build_head() -> void :
 		if on != selecting:
 			set_selecting(on))
 	head.add_child(sel_btn)
+	var close_btn: Button = UiKit.close_btn(44.0)
+	close_btn.name = "NavyClose"
+	close_btn.tooltip_text = Loc.t("Закрыть окно флота")
+	close_btn.pressed.connect(close)
+	head.add_child(close_btn)
 
 
 func _chip(text: String, sub: String, col: Variant, active: bool, cb: Callable, long_cb: Callable = Callable()) -> Button:

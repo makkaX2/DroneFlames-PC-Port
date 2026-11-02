@@ -10,7 +10,9 @@ config_version=5
 
 [application]
 
-config/name="DroneFlames v0.33.4.7 (PC Port by @good_boy_irl)"
+config/name="DroneFlames v0.33.4.8 (PC Port by @good_boy_irl)"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="DroneFlames-PC-Port_good_boy_irl"
 run/main_scene="res://game/main.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "Mobile")
@@ -23,6 +25,7 @@ config/windows_native_icon="res://app_icon.ico"
 
 [autoload]
 
+UserDataMigration="*res://core/user_data_migration.gd"
 Watermark="*res://watermark.gd"
 Updater="*res://net/github_updater.gd"
 ModManager="*res://core/mod_manager.gd"

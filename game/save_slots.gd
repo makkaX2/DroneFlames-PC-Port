@@ -201,6 +201,13 @@ static func default_pick() -> int:
 	return old
 
 
+static func first_empty_slot() -> int:
+	for n in range(1, N + 1):
+		if info(n)["state"] == "empty":
+			return n
+	return -1
+
+
 
 static func stamp(h: Dictionary) -> float:
 	return float(h.get("t_ms", int(h.get("date", 0)) * 1000))
@@ -253,6 +260,71 @@ static func delete(n: int) -> void :
 	if da.file_exists(path(n, "meta").get_file() + ".tmp"):
 		da.remove(path(n, "meta").get_file() + ".tmp")
 	_meta_c.erase(n)
+
+
+static func export_file(n: int, destination: String) -> String:
+	if n < 1 or n > N:
+		return "Некорректный слот"
+	Save._wait()
+	var available: Array = rows(n)
+	if available.is_empty():
+		return "В слоте нет сохранения"
+	var source: String = path(n, String((available[0] as Dictionary)["key"]))
+	var input: FileAccess = FileAccess.open(source, FileAccess.READ)
+	if input == null:
+		return "Не удалось прочитать сохранение"
+	var bytes: PackedByteArray = input.get_buffer(input.get_length())
+	input.close()
+	var output: FileAccess = FileAccess.open(destination, FileAccess.WRITE)
+	if output == null:
+		return "Не удалось создать файл"
+	output.store_buffer(bytes)
+	output.close()
+	return ""
+
+
+static func import_file(source: String, n: int) -> String:
+	if n < 1 or n > N:
+		return "Некорректный слот"
+	Save._wait()
+	if info(n)["state"] != "empty":
+		return "Импорт доступен только в пустой слот. Освободите слот и повторите попытку."
+	var imported: Dictionary = Save._read(source)
+	if imported.is_empty():
+		return "Формат сохранения не поддерживается"
+	var body: Variant = imported.get("body", {})
+	if not (body is Dictionary) or not Save._sound(body as Dictionary):
+		return "Сохранение повреждено или не поддерживается"
+	var header: Dictionary = (imported["header"] as Dictionary).duplicate(true)
+	var raw: PackedByteArray = var_to_bytes(body)
+	var compressed: PackedByteArray = raw.compress(FileAccess.COMPRESSION_ZSTD)
+	header["slot"] = n
+	header["seq"] = 1
+	header["t_ms"] = int(Time.get_unix_time_from_system() * 1000.0)
+	header["date"] = int(Time.get_unix_time_from_system())
+	header["date_text"] = Time.get_datetime_string_from_system(false, true)
+	header["bytes"] = compressed.size()
+	Save._wait()
+	var da: DirAccess = _dir()
+	if da == null:
+		return "Не удалось открыть папку сохранений"
+	for key: String in FILES + ["tmp", "meta", "png"]:
+		var leaf: String = path(n, key).get_file()
+		if da.file_exists(leaf):
+			da.remove(leaf)
+	var output: FileAccess = FileAccess.open(path(n, "main"), FileAccess.WRITE)
+	if output == null:
+		return "Не удалось записать слот"
+	output.store_32(Save.MAGIC)
+	output.store_var(header)
+	output.store_64(raw.size())
+	output.store_buffer(Save._md5(compressed))
+	output.store_64(compressed.size())
+	output.store_buffer(compressed)
+	output.close()
+	_write_meta(n, {"files": {"main": header}, "end": int(header.get("end", END_NONE)), "bad": false})
+	_meta_c.erase(n)
+	return ""
 
 
 static func thumb_tex(n: int) -> Texture2D:

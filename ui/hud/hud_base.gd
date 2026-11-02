@@ -181,7 +181,7 @@ const PAGE_DEFS: Array = [
 
 
 	["tabi_world", [["zoom_out", "icon_minus", false], ["zoom_in", "icon_plus", false], ["center", "icon_center", false], ["borders", "icon_border", true], ["map_modes", "icon_map_political", false], ["own_icons", "icon_map_mine", true], ["ores", "icon_map_ores", false]]], 
-	["tabi_city", [["capital", "icon_capital", true], ["town", "icon_city", true], ["farm", "icon_farm", true], ["civ", "icon_civ_factory", true], ["power", "icon_power", true], ["solar_farm", "icon_solar", true], ["npp", "icon_npp", true], ["mine", "icon_mine", true], ["sawmill", "icon_sawmill", true], ["oil_rig", "icon_oil_rig", true], ["refinery", "icon_refinery", true], ["rail_st", "icon_rail_station", true], ["rail_line", "u335_rail_line", true]]], 
+	["tabi_city", [["capital", "icon_capital", true], ["town", "icon_city", true], ["farm", "icon_farm", true], ["civ", "icon_civ_factory", true], ["power", "icon_power", true], ["solar_farm", "icon_solar", true], ["npp", "icon_npp", true], ["mine", "icon_mine", true], ["sawmill", "icon_sawmill", true], ["oil_rig", "icon_oil_rig", true], ["refinery", "icon_refinery", true], ["rail_st", "icon_rail_station", true], ["rail_line", "u335_rail_line", true], ["decor_tree", "icon_forest", true], ["decor_bush", "icon_farm", true], ["decor_flower", "icon_map_mine", true], ["decor_home", "icon_city", true], ["decor_shop", "icon_civ_factory", true], ["decor_road", "icon_rail_station", true], ["decor_erase", "icon_close", true]]],
 	["tabi_military", [["launch", "icon_launch", true], ["route", "icon_route", true], ["recon", "icon_recon_drone", true], ["factory", "icon_dronefactory", true], ["droneport", "icon_droneport", true], ["missile", "icon_target", true], ["tel", "icon_tel", true], ["mfactory", "icon_missile_factory", true], ["airfield", "icon_airfield_b", true]]], 
 	["icon_ad_sam", [["ad_mfg", "icon_ad_mfg", true], ["ad_spaag", "icon_ad_spaag", true], ["ad_sam", "icon_ad_sam", true], ["ad_patriot", "icon_ad_patriot", true], ["ad_int", "icon_int_drone", true], ["ad_radar", "icon_ad_radar", true], ["ad_ew", "icon_ad_ew", true], ["ad_rules", "u335_ad_rules", false]]], 
 	["icon_tank", [["barracks", "icon_barracks", true], ["armies", "icon_armies", true], ["command", "icon_op_operation", false], ["doctrine", "icon_doctrine", false], ["hold", "icon_infantry", false], ["defend", "icon_defend", true], ["trench", "icon_trench", true], ["teeth", "icon_teeth", true], ["dugout", "icon_dugout", true], ["battle_cam", "icon_battle_cam", false]]], 
@@ -233,6 +233,13 @@ const KEY_INFO: Dictionary = {
 	"open_stats": ["СТАТИСТ.", "Статистика", "Что приносит деньги, расходы, добыча в минуту"], 
 	"capital": ["СТОЛИЦА", "Основать столицу", "Тап по свободной земле: вырастет город и ТЭЦ"], 
 	"town": ["ГОРОД", "Новый город", "Свободная земля рядом с вашей страной"], 
+	"decor_tree": ["ДЕРЕВО", "Декоратор города", "ЛКМ по свободной клетке своего города: посадить дерево. Эстетический объект без влияния на экономику"],
+	"decor_bush": ["КУСТ", "Декоратор города", "ЛКМ по свободной клетке своего города: посадить куст"],
+	"decor_flower": ["ЦВЕТЫ", "Декоратор города", "ЛКМ по свободной клетке своего города: посадить цветы"],
+	"decor_home": ["ДОМ", "Декоратор города", "Поставить декоративный дом без жителей и экономики"],
+	"decor_shop": ["МАГАЗИН", "Декоратор города", "Поставить декоративный киоск без экономики"],
+	"decor_road": ["ДОРОГА", "Декоратор города", "Прокладывать визуальные улицы в своём городе"],
+	"decor_erase": ["УДАЛИТЬ", "Декоратор города", "Удалить декоративный объект или улицу выбранной клетки"],
 	"rail_st": ["ВОКЗАЛ", "Вокзал", "Станция на своей земле: поезда, грузы, эшелоны войск"], 
 	"rail_line": ["Ж/Д ПУТЬ", "Ж/Д путь", "Ведите от своего вокзала к точке: путь по своей земле, мосты дороже"], 
 	"trade": ["ТОРГОВЛЯ", "Торговля", "Грузовики возят излишки между странами"], 

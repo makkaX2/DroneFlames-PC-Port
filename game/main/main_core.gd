@@ -983,7 +983,8 @@ func _on_built(r: Variant, kind: int) -> void :
 		return
 	hud.show_toast(Loc.msg(Loc.mk("Построено: %s", [Loc.t(Military.title_of(kind))])))
 	UiKit.snd("ui_build")
-	_set_mode(Mode.NONE)
+	var keep_mode: int = mode if repeat_building and BUILD_KIND.has(mode) and int(BUILD_KIND[mode]) == kind else Mode.NONE
+	_set_mode(keep_mode)
 	if kind == Facility.Kind.DRONE_PORT or kind == Facility.Kind.MISSILE_FACTORY or kind == Facility.Kind.AIRFIELD or kind == Facility.Kind.BARRACKS or kind == Facility.Kind.PORT or kind == Facility.Kind.DRONE_FACTORY:
 		selected_fac = f
 		_auto_card = f

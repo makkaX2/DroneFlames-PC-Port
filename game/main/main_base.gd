@@ -22,6 +22,8 @@ var world: GameWorld
 var cam: MapCamera
 var hud: Hud
 var mode: int = Mode.NONE
+var decorator_sprite: String = ""
+var repeat_building: bool = false
 var settings: WorldSettings
 var _speed_i: int = 0
 var _paused: bool = false

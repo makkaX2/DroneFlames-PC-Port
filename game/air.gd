@@ -36,9 +36,9 @@ const GUN_CD: float = 0.6
 const GUN_HIT: int = 40
 const HELI_PATROL_R: float = 70.0
 const TITANIUM: Dictionary = {Aircraft.Type.BOMBER: 60, Aircraft.Type.FIGHTER: 20, Aircraft.Type.HELI: 10, Aircraft.Type.ATTACK: 30}
-const PYLON_N: Array = [0, 2, 1]
-const PYLON_MT: Array = [-1, 1, 4]
-const PYLON_NAMES: Array = ["ПУСТО", "2 КР", "ГИПЕРЗВУК"]
+const PYLON_N: Array = [0, 2, 1, 2]
+const PYLON_MT: Array = [-1, 1, 4, 3]
+const PYLON_NAMES: Array = ["ПУСТО", "2 КР", "ГИПЕРЗВУК", "2 КАБ"]
 const HYPER_RANGE: float = 5000.0
 
 
@@ -116,6 +116,7 @@ const AI_CR_GAP: float = 30.0
 var ai_cr_next: Dictionary = {}
 var ai_cr_stats: Dictionary = {}
 var auto_why: Dictionary = {}
+var arsenal_enabled: bool = false
 
 
 func _init(world: GameWorld, m: Military) -> void :
@@ -338,6 +339,8 @@ func set_pylon(a: Aircraft, p: int) -> String:
 		return Loc.t("Подвес - только у истребителя")
 	if a.state != Aircraft.State.PARKED:
 		return Loc.t("Смена подвеса только на аэродроме")
+	if p < 0 or p >= PYLON_N.size() or (p == 3 and not arsenal_enabled):
+		return Loc.t("Нет такого подвеса")
 	var c: Country = gw.country_by_id(a.country_id)
 	if a.pylon > 0 and a.pylon_n > 0:
 		c.missile_stock[int(PYLON_MT[a.pylon])] += a.pylon_n
@@ -950,7 +953,7 @@ func _launch_kab(a: Aircraft, target: Vector2, n: int, auto: bool) -> int:
 		if c != null and c.is_player and not auto:
 			gw.say(c, why)
 		return 0
-	var k: int = mini(n, a.kab)
+	var k: int = mini(n, _kab_payload(a))
 	a.kab_q.clear()
 	for i in k:
 		a.kab_q.append(target)
@@ -992,9 +995,9 @@ func _kab_why(a: Aircraft, target: Vector2, rel: Vector2) -> String:
 		return Loc.t("Самолёт потерян")
 	if gw.diplo != null and gw.diplo.strike_block_at(a.country_id, target, false) != "":
 		return Diplomacy.STRIKE_BLOCK_TXT
-	if a.type != Aircraft.Type.ATTACK:
-		return Loc.t("КАБ - только со штурмовика")
-	if a.kab <= 0:
+	if a.type != Aircraft.Type.ATTACK and not (a.type == Aircraft.Type.FIGHTER and a.pylon == 3 and arsenal_enabled):
+		return Loc.t("КАБ — нужен штурмовик или истребитель с подвесом КАБ")
+	if _kab_payload(a) <= 0:
 		return Loc.t("Нет КАБ: идёт снаряжение на аэродроме") if a.state == Aircraft.State.PARKED else Loc.t("КАБ кончились")
 	if a.state == Aircraft.State.LAND or (a.state == Aircraft.State.TAXI and a.after_land == 99):
 		return Loc.t("Штурмовик заходит на посадку")
@@ -1118,7 +1121,7 @@ func _sortie(a: Aircraft) -> void :
 		return
 	if gw.game_time < a.kab_rel_t:
 		return
-	if not a.kab_q.is_empty() and a.kab > 0:
+	if not a.kab_q.is_empty() and _kab_payload(a) > 0:
 		var t: Vector2 = a.kab_q[0]
 		if a.pos.distance_to(t) > KAB_RANGE + 10.0:
 			a.sortie = 1
@@ -1133,7 +1136,7 @@ func _sortie(a: Aircraft) -> void :
 		a.kab_q.remove_at(0)
 		a.kab_rel_t = gw.game_time + KAB_GAP
 		Sfx.play("jet_flyby", a.pos, -6.0)
-	if a.kab_q.is_empty() or a.kab <= 0:
+	if a.kab_q.is_empty() or _kab_payload(a) <= 0:
 		a.sortie = 0
 		a.kab_q.clear()
 		order_land(a)
@@ -1165,8 +1168,23 @@ func _release_kab(a: Aircraft, idx: int) -> void :
 	d.range_px = d.route_len + 60.0
 	d.update_frame()
 	kabs.append(d)
-	a.kab -= 1
+	_consume_kab(a)
 	_kab_stat(a.country_id, 0)
+
+
+func _kab_payload(a: Aircraft) -> int:
+	if a == null:
+		return 0
+	if a.type == Aircraft.Type.FIGHTER and a.pylon == 3 and arsenal_enabled:
+		return a.pylon_n
+	return a.kab if a.type == Aircraft.Type.ATTACK else 0
+
+
+func _consume_kab(a: Aircraft) -> void:
+	if a.type == Aircraft.Type.FIGHTER and a.pylon == 3 and arsenal_enabled:
+		a.pylon_n = maxi(0, a.pylon_n - 1)
+	else:
+		a.kab = maxi(0, a.kab - 1)
 
 
 
@@ -2346,20 +2364,24 @@ func kab_strike_why(country_id: int, a_id: int, targets: Array) -> String:
 	var a: Aircraft = _jet(country_id, a_id)
 	if a == null:
 		return Loc.t("Самолёт потерян")
-	if a.type != Aircraft.Type.ATTACK:
-		return Loc.t("КАБ - только со штурмовика")
-	if targets.is_empty() or targets.size() > ATTACK_KAB:
-		return Loc.t("Выберите от 1 до %d целей") % ATTACK_KAB
+	var fighter_kab: bool = a.type == Aircraft.Type.FIGHTER and a.pylon == 3 and arsenal_enabled
+	if a.type != Aircraft.Type.ATTACK and not fighter_kab:
+		return Loc.t("КАБ — нужен штурмовик или истребитель с подвесом КАБ")
+	var capacity: int = int(PYLON_N[3]) if fighter_kab else ATTACK_KAB
+	if targets.is_empty() or targets.size() > capacity:
+		return Loc.t("Выберите от 1 до %d целей") % capacity
 	for t: Variant in targets:
 		if not t is Vector2:
 			return Loc.t("Неверная цель")
 		if gw.diplo != null and gw.diplo.strike_block_at(country_id, t as Vector2, false) != "":
 			return Diplomacy.STRIKE_BLOCK_TXT
-	var have: int = a.kab
-	if a.state == Aircraft.State.PARKED:
+	var have: int = _kab_payload(a)
+	if a.state == Aircraft.State.PARKED and a.type == Aircraft.Type.ATTACK:
 		have = mini(ATTACK_KAB, a.kab + kab_stock(country_id))
 	if have <= 0:
 		return Loc.t("Нет КАБ: нужен ракетный завод (тип КАБ)")
+	if targets.size() > have:
+		return Loc.t("На борту только %d КАБ") % have
 	if a.state == Aircraft.State.LAND or (a.state == Aircraft.State.TAXI and a.after_land == 99):
 		return Loc.t("Штурмовик заходит на посадку")
 	if a.sortie == 2:
@@ -2384,9 +2406,9 @@ func kab_strike(country_id: int, a_id: int, targets: Array) -> String:
 			gw.say(c, why)
 		return why
 	var a: Aircraft = _jet(country_id, a_id)
-	if a.state == Aircraft.State.PARKED:
+	if a.state == Aircraft.State.PARKED and a.type == Aircraft.Type.ATTACK:
 		_rearm_attack(a, c)
-	var k: int = mini(targets.size(), a.kab)
+	var k: int = mini(targets.size(), _kab_payload(a))
 	a.kab_q.clear()
 	for i in k:
 		a.kab_q.append(targets[i])
@@ -2527,7 +2549,7 @@ func _cas_aim(a: Aircraft) -> Vector2:
 	var ahead: Vector2 = a.pos + Vector2.from_angle(a.heading) * 70.0
 	var best: Vector2 = a.cas_p
 	var bd: float = INF
-	for u: Unit in gw.army.units:
+	for u: Unit in gw.army._near(a.cas_p, CAS_R):
 		if not u.alive() or not mil.hostile(a.country_id, u.country_id) or u.pos.distance_to(a.cas_p) > CAS_R:
 			continue
 		var d: float = u.pos.distance_squared_to(ahead)
@@ -2541,7 +2563,7 @@ func _gun_target(a: Aircraft) -> Unit:
 	var fwd: Vector2 = Vector2.from_angle(a.heading)
 	var best: Unit = null
 	var bd: float = ATK_GUN_R * ATK_GUN_R
-	for u: Unit in gw.army.units:
+	for u: Unit in gw.army._near(a.pos, ATK_GUN_R):
 		if not u.alive() or not mil.hostile(a.country_id, u.country_id):
 			continue
 		var to: Vector2 = u.pos - a.pos
@@ -2572,7 +2594,7 @@ func _nar_impact(p: Vector2, by: int) -> void :
 	if gw._on_screen(p, 60.0):
 		gw.fx.debris_burst(p.round(), 2, false)
 	Sfx.play("expl_small", p, -6.0)
-	for u: Unit in gw.army.units:
+	for u: Unit in gw.army._near(p, NAR_R + 3.0):
 		if u.alive() and u.country_id != by and u.pos.distance_to(p) <= NAR_R + 3.0:
 			cas_stats[2] = int(cas_stats[2]) + 1
 			gw.army._damage(u, NAR_DMG if u.pos.distance_to(p) <= NAR_R * 0.6 else NAR_DMG * 0.5, by)

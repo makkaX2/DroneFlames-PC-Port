@@ -1513,7 +1513,7 @@ func _react(c: Country) -> void :
 		if threat == null:
 			continue
 		var sent: int = 0
-		for u: Unit in units:
+		for u: Unit in _near(cp, 1600.0):
 			if sent >= 6:
 				break
 			if u.country_id != c.id or not u.alive() or not u.ground() or u.post != null or u.target_city >= 0 or u.target != null or u.indirect() or u.op_on:
@@ -1694,7 +1694,7 @@ func _dig_in_builds() -> void :
 	for f: Facility in mil.facilities:
 		if f.kind != Facility.Kind.BARRACKS or f.army_build != "at" or not mil.alive(f):
 			continue
-		for t: Facility in mil.facilities:
+		for t: Facility in _near_fac(f.center_px(), 520.0):
 			if t.country_id != f.country_id or not is_trench(t.kind) or t.post_off or not mil.alive(t):
 				continue
 			if t.center_px().distance_squared_to(f.center_px()) > 520.0 * 520.0 or occupants(t).size() >= capacity(t):
@@ -1734,7 +1734,7 @@ func _update_grenades(dt: float) -> void :
 			gw.fx.spawn("grenade_burst" if gw.fx.atlas_of.has("grenade_burst") else "explosion_s", p.round(), 6)
 		Sfx.play("grenade", p)
 		var c: int = int(g["c"])
-		for o: Unit in units:
+		for o: Unit in _near(p, 10.0):
 			if o.alive() and o.ground() and _hostile(c, o.country_id):
 				var d: float = o.pos.distance_to(p)
 				if d <= 10.0:

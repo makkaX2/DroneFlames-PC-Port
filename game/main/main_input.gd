@@ -48,6 +48,52 @@ func _tap(pos: Vector2) -> void :
 			return
 	if not world.data.inside(cell.x, cell.y):
 		return
+	if decorator_sprite != "":
+		if world.player == null:
+			return
+		var data_cell: WorldData = world.data
+		if decorator_sprite == "__erase__":
+			if data_cell.get_owner_id(cell.x, cell.y) != world.player.id or not data_cell.has_flag(cell.x, cell.y, WorldData.F_CITY):
+				hud.show_toast("Редактировать можно только свой город")
+				return
+			var removed: bool = false
+			for obj_id: int in range(world.obj_spr.size()):
+				if world.obj_state[obj_id] == 0 and world.obj_x[obj_id] == cell.x and world.obj_y[obj_id] == cell.y and world.obj_kind[obj_id] == GameWorld.KIND_PROP:
+					world.remove_object(obj_id)
+					data_cell.clear_flag(cell.x, cell.y, WorldData.F_OCCUPIED)
+					removed = true
+					break
+			var removed_road: bool = false
+			if data_cell.has_flag(cell.x, cell.y, WorldData.F_ROAD):
+				data_cell.clear_flag(cell.x, cell.y, WorldData.F_ROAD)
+				removed = true
+				removed_road = true
+			if removed:
+				if removed_road:
+					data_cell.set_biome(cell.x, cell.y, Biome.GRASS)
+				world.objects.chunk_at_cell(cell.x, cell.y).mark()
+				UiKit.snd("ui_close")
+			else:
+				hud.show_toast("На этой клетке нет декора")
+			return
+		var blocked_flags: int = WorldData.F_OCCUPIED | WorldData.F_BRIDGE
+		if decorator_sprite != "__road__":
+			blocked_flags |= WorldData.F_ROAD
+		if data_cell.get_owner_id(cell.x, cell.y) != world.player.id or not data_cell.has_flag(cell.x, cell.y, WorldData.F_CITY) or data_cell.has_flag(cell.x, cell.y, blocked_flags) or Biome.is_water(data_cell.get_biome(cell.x, cell.y)):
+			hud.show_toast("Украшать можно только свободные клетки своего города")
+			return
+		if decorator_sprite == "__road__":
+			data_cell.set_biome(cell.x, cell.y, Biome.STREET)
+			data_cell.add_flag(cell.x, cell.y, WorldData.F_ROAD)
+			world.objects.chunk_at_cell(cell.x, cell.y).mark()
+			UiKit.snd("ui_build")
+			return
+		var decor_id: int = world.add_object(decorator_sprite, cell, GameWorld.KIND_PROP)
+		if decor_id >= 0:
+			data_cell.add_flag(cell.x, cell.y, WorldData.F_OCCUPIED)
+			world.objects.chunk_at_cell(cell.x, cell.y).mark()
+			UiKit.snd("ui_build")
+		return
 
 
 	if mode == Mode.NONE and _far_zoom() and world.player != null and follow == null and selected_fac == null:
@@ -862,6 +908,10 @@ func _kab_stock() -> int:
 func jet_kab_avail(a: Aircraft) -> int:
 	if a == null:
 		return 0
+	if a.type == Aircraft.Type.FIGHTER and a.pylon == 3 and world.mil.air.arsenal_enabled:
+		return a.pylon_n
+	if a.type != Aircraft.Type.ATTACK:
+		return 0
 	if a.state == Aircraft.State.PARKED:
 		return maxi(a.kab, mini(JET_MAX_PTS, a.kab + _kab_stock()))
 	return a.kab
@@ -881,7 +931,13 @@ func _jet_pick(kab: bool) -> Aircraft:
 	var best: Aircraft = null
 	var bs: float = -1000000000.0
 	var ref: Vector2 = cam.screen_to_world(cam.view_size() * 0.5)
-	for a: Aircraft in _jets_own():
+	var candidates: Array = _jets_own()
+	if kab and world != null and world.mil != null:
+		candidates = []
+		for candidate: Aircraft in world.mil.air.aircraft:
+			if candidate.country_id == world.player.id and candidate.state != Aircraft.State.DEAD and (candidate.type == Aircraft.Type.ATTACK or (candidate.type == Aircraft.Type.FIGHTER and candidate.pylon == 3 and world.mil.air.arsenal_enabled)):
+				candidates.append(candidate)
+	for a: Aircraft in candidates:
 		if a.state == Aircraft.State.DEAD:
 			continue
 		var s: float = (-500.0 if a.state == Aircraft.State.LAND or a.state == Aircraft.State.TAXI else 0.0) + (300.0 if a.airborne() and a.state != Aircraft.State.RTB else 0.0) - a.pos.distance_to(ref) * 0.05
@@ -900,7 +956,8 @@ func _jet_pick(kab: bool) -> Aircraft:
 func _jet_begin(a: Aircraft, m: int) -> void :
 	if a == null:
 		a = _jet_pick(m == Mode.JET_KAB)
-	if a == null or a.type != Aircraft.Type.ATTACK:
+	var kab_capable: bool = a != null and (a.type == Aircraft.Type.ATTACK or (a.type == Aircraft.Type.FIGHTER and a.pylon == 3 and world.mil.air.arsenal_enabled))
+	if a == null or (m == Mode.JET_KAB and not kab_capable) or (m == Mode.JET_CAS and a.type != Aircraft.Type.ATTACK):
 		hud.show_toast(Loc.msg(Loc.mk("Нет штурмовика: купите на аэродроме (%d)", [int(Air.SPEC[Aircraft.Type.ATTACK].get("cost", 5000))])) if Air.SPEC.has(Aircraft.Type.ATTACK) else "Нет штурмовика")
 		UiKit.snd("ui_error")
 		return
@@ -1003,6 +1060,6 @@ func _jet_card() -> void :
 	var a: Aircraft = jet316
 	if a == null or a.state == Aircraft.State.DEAD:
 		_set_mode(Mode.NONE)
-		hud.show_toast("Штурмовик потерян")
+		hud.show_toast("Самолёт потерян")
 		return
 	hud.show_jet_plan(a, mode == Mode.JET_CAS, jet_plan_state(), jet_kab_avail(a), _kab_stock())
