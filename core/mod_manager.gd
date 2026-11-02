@@ -668,6 +668,128 @@ func _scan_builtin_catalog() -> void:
 		item = da.get_next()
 	da.list_dir_end()
 
+func _valid_mod_id(mod_id: String) -> bool:
+	if mod_id.is_empty():
+		return false
+	var re := RegEx.new()
+	re.compile("^[A-Za-z0-9_-]+$")
+	return re.search(mod_id) != null
+
+func _validate_mod_stage(stage_path: String, expected_id: String) -> String:
+	var manifest_path: String = stage_path.path_join("mod.json")
+	if not FileAccess.file_exists(manifest_path):
+		return "В архиве отсутствует mod.json"
+	var manifest_file: FileAccess = FileAccess.open(manifest_path, FileAccess.READ)
+	if manifest_file == null:
+		return "Не удалось прочитать mod.json"
+	var manifest_parser := JSON.new()
+	var parse_error: Error = manifest_parser.parse(manifest_file.get_as_text())
+	manifest_file.close()
+	if parse_error != OK or not (manifest_parser.data is Dictionary):
+		return "Некорректный JSON в mod.json"
+	var manifest: Dictionary = manifest_parser.data
+	if String(manifest.get("id", "")).strip_edges() != expected_id:
+		return "ID мода в mod.json не совпадает с ID каталога"
+	var entry_file: String = String(manifest.get("entry", "mod.gd"))
+	if entry_file.is_empty() or entry_file.is_absolute_path() or entry_file.contains("..") or entry_file.get_extension().to_lower() != "gd":
+		return "Некорректный путь entry в mod.json"
+	var entry_path: String = stage_path.path_join(entry_file)
+	var source_file: FileAccess = FileAccess.open(entry_path, FileAccess.READ)
+	if source_file == null:
+		return "Не найден entry-файл: %s" % entry_file
+	var source_code: String = source_file.get_as_text()
+	source_file.close()
+	var class_name_line := RegEx.new()
+	class_name_line.compile("(?m)^class_name\\s+[A-Za-z_][A-Za-z0-9_]*\\s*\\r?\\n")
+	source_code = class_name_line.sub(source_code, "", true)
+	var script := GDScript.new()
+	script.source_code = source_code
+	var compile_error: Error = script.reload()
+	if compile_error != OK:
+		return "Ошибка компиляции %s: %s" % [entry_file, error_string(compile_error)]
+	return ""
+
+func _promote_mod_stage(stage_path: String, mod_id: String) -> Dictionary:
+	var target_path: String = USER_MODS_DIR.path_join(mod_id)
+	var backup_path: String = USER_MODS_DIR.path_join("downloads").path_join(mod_id + ".rollback")
+	var global_target: String = ProjectSettings.globalize_path(target_path)
+	var global_stage: String = ProjectSettings.globalize_path(stage_path)
+	var global_backup: String = ProjectSettings.globalize_path(backup_path)
+	if DirAccess.dir_exists_absolute(global_backup):
+		_delete_recursive_absolute(global_backup)
+	var has_old: bool = DirAccess.dir_exists_absolute(global_target)
+	if has_old:
+		var backup_error: Error = DirAccess.rename_absolute(global_target, global_backup)
+		if backup_error != OK:
+			return {"ok": false, "error": "Не удалось сохранить предыдущую версию мода: %s" % error_string(backup_error)}
+	var promote_error: Error = DirAccess.rename_absolute(global_stage, global_target)
+	if promote_error != OK:
+		if has_old:
+			DirAccess.rename_absolute(global_backup, global_target)
+		return {"ok": false, "error": "Не удалось установить пакет мода: %s" % error_string(promote_error)}
+	return {"ok": true, "backup": global_backup if has_old else ""}
+
+func _stage_mod_archive(zip_path: String, mod_id: String) -> Dictionary:
+	if not _valid_mod_id(mod_id):
+		return {"ok": false, "error": "Некорректный ID мода"}
+	var stage_path: String = USER_MODS_DIR.path_join("downloads").path_join(mod_id + ".installing")
+	var global_stage: String = ProjectSettings.globalize_path(stage_path)
+	if DirAccess.dir_exists_absolute(global_stage):
+		_delete_recursive_absolute(global_stage)
+	if not _extract_zip(zip_path, stage_path):
+		if DirAccess.dir_exists_absolute(global_stage):
+			_delete_recursive_absolute(global_stage)
+		return {"ok": false, "error": "Не удалось распаковать или проверить архив .dfmod"}
+	var validation_error: String = _validate_mod_stage(stage_path, mod_id)
+	if validation_error != "":
+		_delete_recursive_absolute(global_stage)
+		return {"ok": false, "error": validation_error}
+	var result: Dictionary = _promote_mod_stage(stage_path, mod_id)
+	if not bool(result.get("ok", false)) and DirAccess.dir_exists_absolute(global_stage):
+		_delete_recursive_absolute(global_stage)
+	return result
+
+func _stage_mod_folder(source_path: String, mod_id: String) -> Dictionary:
+	if not _valid_mod_id(mod_id):
+		return {"ok": false, "error": "Некорректный ID мода"}
+	var stage_path: String = USER_MODS_DIR.path_join("downloads").path_join(mod_id + ".installing")
+	var global_stage: String = ProjectSettings.globalize_path(stage_path)
+	if DirAccess.dir_exists_absolute(global_stage):
+		_delete_recursive_absolute(global_stage)
+	_copy_dir_recursive(source_path, stage_path)
+	var validation_error: String = _validate_mod_stage(stage_path, mod_id)
+	if validation_error != "":
+		if DirAccess.dir_exists_absolute(global_stage):
+			_delete_recursive_absolute(global_stage)
+		return {"ok": false, "error": validation_error}
+	var result: Dictionary = _promote_mod_stage(stage_path, mod_id)
+	if not bool(result.get("ok", false)) and DirAccess.dir_exists_absolute(global_stage):
+		_delete_recursive_absolute(global_stage)
+	return result
+
+func _activate_promoted_mod(mod_id: String, backup_path: String) -> bool:
+	uninstalled_mod_ids.erase(mod_id)
+	disabled_mod_ids.erase(mod_id)
+	if not enabled_mod_ids.has(mod_id):
+		enabled_mod_ids.append(mod_id)
+	_save_config()
+	scan_installed_mods()
+	if is_mod_loaded(mod_id):
+		if backup_path != "" and DirAccess.dir_exists_absolute(backup_path):
+			_delete_recursive_absolute(backup_path)
+		return true
+	if backup_path != "" and DirAccess.dir_exists_absolute(backup_path):
+		var global_target: String = ProjectSettings.globalize_path(USER_MODS_DIR.path_join(mod_id))
+		if DirAccess.dir_exists_absolute(global_target):
+			_delete_recursive_absolute(global_target)
+		DirAccess.rename_absolute(backup_path, global_target)
+		disabled_mod_ids.erase(mod_id)
+		if not enabled_mod_ids.has(mod_id):
+			enabled_mod_ids.append(mod_id)
+		_save_config()
+		scan_installed_mods()
+	return false
+
 func install_catalog_mod(cat_mod: Dictionary) -> void:
 	var mod_id: String = String(cat_mod.get("id", "")).strip_edges()
 	if mod_id == "":
@@ -686,38 +808,26 @@ func install_catalog_mod(cat_mod: Dictionary) -> void:
 	download_and_install_mod(cat_mod)
 
 func install_builtin_mod(mod_id: String) -> bool:
+	if not _valid_mod_id(mod_id):
+		return false
 	var src_folder: String = BUILTIN_MODS_DIR.path_join(mod_id)
 	var src_dfmod: String = BUILTIN_MODS_DIR.path_join(mod_id + ".dfmod")
-	var dst_folder: String = USER_MODS_DIR.path_join(mod_id)
-	var global_dst: String = ProjectSettings.globalize_path(dst_folder)
-
-	if DirAccess.dir_exists_absolute(global_dst):
-		_delete_directory_completely(global_dst)
-
-	var ok: bool = false
+	var install_result: Dictionary = {}
 	if FileAccess.file_exists(src_dfmod):
-		ok = _extract_zip(src_dfmod, dst_folder)
+		install_result = _stage_mod_archive(src_dfmod, mod_id)
 	elif DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(src_folder)):
-		_copy_dir_recursive(src_folder, dst_folder)
-		ok = true
-
-	if ok:
-		_try_register_mod_folder(dst_folder, false)
-		if not enabled_mod_ids.has(mod_id):
-			enabled_mod_ids.append(mod_id)
-		disabled_mod_ids.erase(mod_id)
-		uninstalled_mod_ids.erase(mod_id)
-		var loaded: bool = _load_mod(mod_id)
-		if not loaded:
-			enabled_mod_ids.erase(mod_id)
-			if not disabled_mod_ids.has(mod_id):
-				disabled_mod_ids.append(mod_id)
-		_save_config()
+		install_result = _stage_mod_folder(src_folder, mod_id)
+	if not bool(install_result.get("ok", false)):
+		var reason: String = String(install_result.get("error", "Не удалось скопировать встроенный мод"))
+		push_error("[ModManager] %s: %s" % [mod_id, reason])
+		return false
+	var backup_path: String = String(install_result.get("backup", ""))
+	var loaded: bool = _activate_promoted_mod(mod_id, backup_path)
+	if loaded:
 		mod_installed.emit(mod_id)
 		mods_updated.emit()
 		print("[ModManager] Installed and enabled mod from catalog: ", mod_id)
-		return loaded
-	return false
+	return loaded
 
 func fetch_catalog() -> void:
 	if _http_catalog.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
@@ -743,7 +853,14 @@ func _on_catalog_request_completed(result: int, response_code: int, _headers: Pa
 		return
 
 	var data: Dictionary = test_json.data
-	catalog_mods = data.get("mods", [])
+	var raw_mods: Variant = data.get("mods", [])
+	if not (raw_mods is Array):
+		catalog_failed.emit("В каталоге отсутствует корректный список модов")
+		return
+	catalog_mods.clear()
+	for raw_mod in raw_mods:
+		if raw_mod is Dictionary and _valid_mod_id(String(raw_mod.get("id", ""))):
+			catalog_mods.append(raw_mod)
 	
 	# Автоматически предзагружаем иконки каталога
 	for m in catalog_mods:
@@ -756,6 +873,8 @@ func _on_catalog_request_completed(result: int, response_code: int, _headers: Pa
 	print("[ModManager] Catalog loaded: %d mods available online" % catalog_mods.size())
 
 func _ensure_icon_cached(mod_id: String, icon_url: String) -> void:
+	if not _valid_mod_id(mod_id):
+		return
 	if cached_icons.has(mod_id):
 		return
 	var cache_file: String = "user://mods/cache/icons/%s.png" % mod_id
@@ -810,6 +929,8 @@ func _on_icon_request_completed(result: int, response_code: int, _headers: Packe
 	_process_next_icon_download()
 
 func get_mod_icon(mod_id: String, mod_data: Dictionary = {}) -> Texture2D:
+	if not _valid_mod_id(mod_id):
+		return null
 	if installed_mods.has(mod_id) and installed_mods[mod_id].get("_icon_tex") != null:
 		return installed_mods[mod_id]["_icon_tex"]
 	if cached_icons.has(mod_id):
@@ -830,9 +951,9 @@ func get_mod_icon(mod_id: String, mod_data: Dictionary = {}) -> Texture2D:
 func download_and_install_mod(cat_mod: Dictionary) -> void:
 	var mod_id: String = String(cat_mod.get("id", ""))
 	var dl_url: String = String(cat_mod.get("url", cat_mod.get("download_url", "")))
-	if mod_id == "" or dl_url == "":
+	if not _valid_mod_id(mod_id) or dl_url == "":
 		print("[ModManager] Error: No download URL for mod: ", mod_id, " data: ", cat_mod)
-		mod_download_failed.emit(mod_id, "Не указан URL для скачивания")
+		mod_download_failed.emit(mod_id, "Некорректный ID мода или не указан URL для скачивания")
 		return
 
 	if _is_downloading:
@@ -862,32 +983,22 @@ func _on_download_request_completed(result: int, response_code: int, _headers: P
 	_download_temp_path = ""
 
 	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+		var failed_temp: String = ProjectSettings.globalize_path(temp_path)
+		if FileAccess.file_exists(failed_temp):
+			DirAccess.remove_absolute(failed_temp)
 		mod_download_failed.emit(mod_id, "Ошибка загрузки файла (код %d)" % response_code)
 		return
-
-	var target_folder: String = USER_MODS_DIR.path_join(mod_id)
-	var global_target: String = ProjectSettings.globalize_path(target_folder)
-	
-	# Если старая версия мода есть, удаляем ее перед распаковкой обновления
-	if DirAccess.dir_exists_absolute(global_target):
-		_delete_directory_completely(global_target)
-
-	var extract_ok: bool = _extract_zip(temp_path, target_folder)
-	
-	# Удаляем временный архив
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(temp_path))
-
-	if not extract_ok:
-		mod_download_failed.emit(mod_id, "Ошибка распаковки .dfmod архива")
+	var stage_result: Dictionary = _stage_mod_archive(temp_path, mod_id)
+	var global_temp: String = ProjectSettings.globalize_path(temp_path)
+	if FileAccess.file_exists(global_temp):
+		DirAccess.remove_absolute(global_temp)
+	if not bool(stage_result.get("ok", false)):
+		mod_download_failed.emit(mod_id, String(stage_result.get("error", "Ошибка установки .dfmod архива")))
 		return
-
-	uninstalled_mod_ids.erase(mod_id)
-	_save_config()
-
-	# Пересканируем и включаем установленный мод
-	scan_installed_mods()
-	if installed_mods.has(mod_id):
-		toggle_mod(mod_id, true)
+	var backup_path: String = String(stage_result.get("backup", ""))
+	if not _activate_promoted_mod(mod_id, backup_path):
+		mod_download_failed.emit(mod_id, "Мод не загрузился; предшествующая версия восстановлена, если она была.")
+		return
 
 	mod_download_completed.emit(mod_id)
 	mod_installed.emit(mod_id)

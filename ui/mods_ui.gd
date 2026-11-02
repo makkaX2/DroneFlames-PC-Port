@@ -234,11 +234,22 @@ static func _build_catalog_tab(menus: Menus, parent: VBoxContainer, mm: Node) ->
 		no_match_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		list_container.add_child(no_match_lbl)
 
+static func _format_author(raw_author: String) -> String:
+	var author: String = raw_author.strip_edges()
+	if author.is_empty():
+		return "сообщество"
+	if author.begins_with("@"):
+		while author.begins_with("@"):
+			author = author.substr(1)
+		return "@" + author
+	return author if author.contains("@") else "@" + author
+
+
 static func _build_mod_card(menus: Menus, parent: VBoxContainer, data: Dictionary, mm: Node, is_installed_view: bool) -> void:
 	var mod_id: String = String(data.get("id", ""))
 	var mod_name: String = String(data.get("name", mod_id))
 	var mod_ver: String = String(data.get("version", "1.0.0"))
-	var mod_author: String = String(data.get("author", "сообщество"))
+	var mod_author: String = _format_author(String(data.get("author", "сообщество")))
 	var mod_desc: String = String(data.get("description", ""))
 	var mod_type: String = String(data.get("type", "map"))
 
@@ -315,7 +326,7 @@ static func _build_mod_card(menus: Menus, parent: VBoxContainer, data: Dictionar
 	info_col.add_child(desc_lbl)
 
 	# Автор
-	var author_lbl: Label = UiKit.lbl("Автор: @" + mod_author, 8, Color(0.6, 0.7, 0.9))
+	var author_lbl: Label = UiKit.lbl("Автор: " + mod_author, 8, Color(0.6, 0.7, 0.9))
 	author_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	info_col.add_child(author_lbl)
 	var load_error: String = String(data.get("_load_error", ""))
@@ -408,7 +419,7 @@ static func _open_detail_card(menus: Menus, data: Dictionary, _mm: Node) -> void
 	var mod_id: String = String(data.get("id", ""))
 	var mod_name: String = String(data.get("name", mod_id))
 	var mod_ver: String = String(data.get("version", "1.0.0"))
-	var mod_author: String = String(data.get("author", "сообщество"))
+	var mod_author: String = _format_author(String(data.get("author", "сообщество")))
 	var mod_details: String = String(data.get("details", data.get("description", "")))
 	var tags: Array = data.get("tags", [])
 
@@ -442,7 +453,7 @@ static func _open_detail_card(menus: Menus, data: Dictionary, _mm: Node) -> void
 
 	meta_row.add_child(UiKit.lbl("Версия: v" + mod_ver, 10, UiKit.GOLD))
 	meta_row.add_child(UiKit.lbl("•", 10, UiKit.MUTED))
-	meta_row.add_child(UiKit.lbl("Автор: @" + mod_author, 10, Color(0.6, 0.7, 0.9)))
+	meta_row.add_child(UiKit.lbl("Автор: " + mod_author, 10, Color(0.6, 0.7, 0.9)))
 
 	if not tags.is_empty():
 		var tag_str: String = "Теги: " + ", ".join(tags)
