@@ -2528,8 +2528,10 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 		changelog = String(up.get("latest_changelog"))
 		dl_url = String(up.get("latest_url"))
 		asset_name = String(up.get("latest_asset_name"))
+	elif changelog == "" and up != null:
+		changelog = String(up.get("latest_changelog"))
 	if tag == "":
-		tag = "0.33.0"
+		tag = "0.33.4"
 	if dl_url == "":
 		dl_url = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/latest"
 
@@ -2594,21 +2596,66 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 	cp.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 10, 6))
 	vb.add_child(cp)
 
-	var cl_vb: = VBoxContainer.new()
-	cl_vb.add_theme_constant_override("separation", 4)
-	cp.add_child(cl_vb)
+	var cp_vb: = VBoxContainer.new()
+	cp_vb.add_theme_constant_override("separation", 6)
+	cp.add_child(cp_vb)
 
 	var cl_title: Label = UiKit.lbl("В ЭТОМ ОБНОВЛЕНИИ:", 10, UiKit.GOLD, 2)
-	cl_vb.add_child(cl_title)
+	cp_vb.add_child(cl_title)
 
-	var notes: Array = [
-		"• Меню настройки управления: бинды клавиш и кнопок мыши",
-		"• Широкоформатный горизонтальный HUD 16:9 со стрелочками < и >",
-		"• Плавающие модальные окна по центру (Дипломатия, Экономика)",
-		"• Оригинальное интро, заставка и атмосфера DroneFlames"
-	]
+	var notes: Array = []
+	if changelog != "":
+		var raw_lines: PackedStringArray = changelog.split("\n")
+		var capturing_features: bool = false
+		for rline: String in raw_lines:
+			var s: String = rline.strip_edges()
+			if s.contains("Особенности") or s.contains("обновления") or s.to_lower().contains("changelog") or s.to_lower().contains("what's new"):
+				capturing_features = true
+				continue
+			if capturing_features and (s.begins_with("###") or s.begins_with("##")):
+				break
+			if s.begins_with("- ") or s.begins_with("* ") or s.begins_with("• "):
+				if s.contains(".exe") or s.contains(".zip") or s.contains(".apk") or s.contains("t.me/"):
+					continue
+				var clean: String = s.trim_prefix("- ").trim_prefix("* ").trim_prefix("• ").replace("**", "").replace("`", "").strip_edges()
+				if clean != "":
+					notes.append("• " + clean)
+
+		if notes.is_empty():
+			for rline: String in raw_lines:
+				var s: String = rline.strip_edges()
+				if s.begins_with("- ") or s.begins_with("* ") or s.begins_with("• "):
+					if s.contains(".exe") or s.contains(".zip") or s.contains(".apk") or s.contains("t.me/"):
+						continue
+					var clean: String = s.trim_prefix("- ").trim_prefix("* ").trim_prefix("• ").replace("**", "").replace("`", "").strip_edges()
+					if clean != "":
+						notes.append("• " + clean)
+
+	if notes.is_empty():
+		notes = [
+			"• Система модов и визуальный менеджер модов (.dfmod)",
+			"• Оптимизация рендеринга территорий и кэширование тумана",
+			"• ПК-оптимизации: троттлинг в фоне (15 FPS) и многопоточность",
+			"• Все 118 предметов косметики и 19 новых титулов разблокированы",
+			"• Меню настройки управления: бинды клавиш и кнопок мыши",
+			"• Широкоформатный горизонтальный HUD 16:9 со стрелочками < и >",
+			"• Плавающие модальные окна по центру (Дипломатия, Экономика)"
+		]
+
+	var scroll: = ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, mini(140, notes.size() * 24 + 10))
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	cp_vb.add_child(scroll)
+
+	var cl_vb: = VBoxContainer.new()
+	cl_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cl_vb.add_theme_constant_override("separation", 4)
+	scroll.add_child(cl_vb)
+
 	for note: String in notes:
 		var nl: Label = UiKit.lbl(Loc.t(note), 9, UiKit.TEXT, 1)
+		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cl_vb.add_child(nl)
 
