@@ -2729,6 +2729,18 @@ func show_settings_sub(kind: String) -> void :
 	current = "settings_" + kind
 	_sheet = kind != "gfx"
 	if kind == "gfx":
+		if not GameConfig.android:
+			var resolutions: Array[Vector2i] = Save.available_display_resolutions()
+			var resolution_labels: Array[String] = Save.display_resolution_labels(resolutions)
+			_selector(vb, "РАЗРЕШЕНИЕ РЕНДЕРА", resolution_labels,
+				func() -> int: return Save.display_resolution_index(resolutions),
+				func(i: int) -> void:
+					var selected: Vector2i = resolutions[clampi(i, 0, resolutions.size() - 1)]
+					GameConfig.resolution_w = selected.x
+					GameConfig.resolution_h = selected.y
+					Save.apply_display_resolution()
+					Save.save_prefs(), 108.0)
+			_label(vb, "Меньший режим снижает нагрузку на видеокарту. Разрешения выше подключённого экрана не показываются.", 9, UiKit.MUTED)
 		var uis: Array = []
 		for k347: Variant in GameConfig.UI_SCALES:
 			uis.append("%d%%" % roundi(float(k347) * 100.0))

@@ -1351,7 +1351,9 @@ func _toggle_fullscreen() -> void :
 	var cur: int = DisplayServer.window_get_mode()
 	if cur == DisplayServer.WINDOW_MODE_FULLSCREEN or cur == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		Save.apply_display_resolution()
 	else:
+		Save.apply_display_resolution()
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 func _pc_camera_process(delta: float) -> void :

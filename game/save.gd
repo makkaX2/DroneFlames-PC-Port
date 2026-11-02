@@ -39,7 +39,13 @@ const GENERIC: Array = ["defense", "diplo", "ai", "session"]
 const CFG: Array = ["bots", "difficulty", "aggression", "victory", "target_i", "time_i", "size_i", "tutorial", "fog", "ore_preset", "ore_custom", "creative", "expand_i", "reserves_i", "ai_autodig", "alliances", "limit_i"]
 
 
-const PREFS: Array = ["night", "hints", "econ_fx", "clouds", "fx_level", "ground_detail", "day_grade", "perf_hud", "confirm_actions", "dev_mode", "arch_i", "opening", "notif_mode", "plan_pos", "power_save", "my_name", "my_flag", "my_land", "cb_on", "cb_list", "my_money", "lang", "pseudo_loc", "fps_i", "ui_scale_i"]
+const PREFS: Array = ["night", "hints", "econ_fx", "clouds", "fx_level", "ground_detail", "day_grade", "perf_hud", "confirm_actions", "dev_mode", "arch_i", "opening", "notif_mode", "plan_pos", "power_save", "my_name", "my_flag", "my_land", "cb_on", "cb_list", "my_money", "lang", "pseudo_loc", "fps_i", "ui_scale_i", "resolution_w", "resolution_h"]
+const DISPLAY_RESOLUTIONS: Array[Vector2i] = [
+	Vector2i(3840, 2160), Vector2i(2560, 1600), Vector2i(2560, 1440),
+	Vector2i(1920, 1200), Vector2i(1920, 1080), Vector2i(1680, 1050),
+	Vector2i(1600, 900), Vector2i(1440, 900), Vector2i(1366, 768),
+	Vector2i(1280, 800), Vector2i(1280, 720), Vector2i(1024, 768), Vector2i(1024, 576)
+]
 static var prefs_path: String = "user://settings.cfg"
 
 const DELAY_OK: Array = ["_apply_strike", "_grow_initial"]
@@ -904,6 +910,7 @@ static func set_seen_version(v: String) -> void :
 static func load_prefs() -> void :
 	var cf: = ConfigFile.new()
 	if cf.load(prefs_path) != OK:
+		apply_display_resolution()
 		apply_power_save()
 		Loc.boot()
 		return
@@ -916,11 +923,70 @@ static func load_prefs() -> void :
 			(GameConfig as GDScript).set(n, v)
 	GameConfig.fx_level = clampi(GameConfig.fx_level, 0, 2)
 	GameConfig.notif_mode = clampi(GameConfig.notif_mode, 0, 2)
+	apply_display_resolution()
 	apply_power_save()
 	apply_ui_scale()
 	Loc.boot()
 	if cf.has_section_key("prefs", "news_on"):
 		Hud.news_on = bool(cf.get_value("prefs", "news_on", true))
+
+
+static func available_display_resolutions(max_size: Vector2i = Vector2i.ZERO) -> Array[Vector2i]:
+	var limit: Vector2i = max_size
+	if limit.x <= 0 or limit.y <= 0:
+		var screen: int = DisplayServer.window_get_current_screen()
+		if screen < 0:
+			screen = DisplayServer.SCREEN_PRIMARY
+		limit = DisplayServer.screen_get_size(screen)
+	if limit.x <= 0 or limit.y <= 0:
+		limit = Vector2i(1280, 720)
+	var result: Array[Vector2i] = []
+	for resolution: Vector2i in DISPLAY_RESOLUTIONS:
+		if resolution.x <= limit.x and resolution.y <= limit.y:
+			result.append(resolution)
+	if result.is_empty():
+		result.append(Vector2i(mini(1280, limit.x), mini(720, limit.y)))
+	return result
+
+
+static func display_resolution_labels(resolutions: Array[Vector2i]) -> Array[String]:
+	var result: Array[String] = []
+	for resolution: Vector2i in resolutions:
+		result.append("%d × %d" % [resolution.x, resolution.y])
+	return result
+
+
+static func display_resolution_index(resolutions: Array[Vector2i]) -> int:
+	for i in resolutions.size():
+		if resolutions[i] == Vector2i(GameConfig.resolution_w, GameConfig.resolution_h):
+			return i
+	return 0
+
+
+static func apply_display_resolution() -> void:
+	if GameConfig.android:
+		return
+	var resolutions: Array[Vector2i] = available_display_resolutions()
+	if resolutions.is_empty():
+		return
+	var selected: Vector2i = resolutions[display_resolution_index(resolutions)]
+	GameConfig.resolution_w = selected.x
+	GameConfig.resolution_h = selected.y
+	var screen: int = DisplayServer.window_get_current_screen()
+	if screen < 0:
+		screen = DisplayServer.SCREEN_PRIMARY
+	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_WINDOWED:
+		var screen_size: Vector2i = DisplayServer.screen_get_size(screen)
+		DisplayServer.window_set_size(selected)
+		if screen_size.x > 0 and screen_size.y > 0:
+			var screen_pos: Vector2i = DisplayServer.screen_get_position(screen)
+			var centered: Vector2i = screen_pos + Vector2i((screen_size.x - selected.x) / 2, (screen_size.y - selected.y) / 2)
+			DisplayServer.window_set_position(centered)
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return
+	tree.root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
+	tree.root.content_scale_size = selected
 
 
 
