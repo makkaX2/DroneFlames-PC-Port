@@ -6,13 +6,13 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.4.1 (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.4.2 (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
-	"ХОТФИКС v0.33.4.1: исправлена постройка зданий из модов (Танковые заводы, Ядерные шахты, Штабы ВДВ)",
-	"МОДЫ v0.33.4.1: автоматическое наполнение папки %APPDATA%/DroneFlames/mods исходниками модов и инструкцией",
-	"МОДЫ v0.33.4.1: все 8 модификаций включены по умолчанию; добавлена кнопка «Восстановить все»",
-	"ОБНОВЛЕНИЯ v0.33.4.1: мгновенное скачивание установщика в браузере по клику без зависаний",
+	"ХОТФИКС v0.33.4.2: чистое ванильное начало — моды устанавливаются игроком вручную из каталога",
+	"КАТАЛОГ МОДОВ v0.33.4.2: установка и удаление модов в 1 клик, карточки с описанием и статусом",
+	"ОБНОВЛЕНИЯ v0.33.4.2: мгновенный прямой старт скачивания файла установщика через браузер",
+	"ИСПРАВЛЕНИЯ МОДОВ: восстановлена установка всех построек (Танковый завод, Ядерная шахта, Штаб ВДВ)",
 	"ПК-ПОРТ: управление клавиатурой и мышью (WASD, зум колесом, F11 полный экран)",
 	"СИСТЕМА МОДИФИКАЦИЙ: поддержка модов (.dfmod), менеджер модов в главном меню, ВДВ десант",
 	"ОПТИМИЗАЦИЯ v0.33.4: быстрый расчёт дистанционного поля территорий и шейдеров границ",
@@ -2535,9 +2535,10 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 	elif changelog == "" and up != null:
 		changelog = String(up.get("latest_changelog"))
 	if tag == "":
-		tag = "0.33.4.1"
-	if dl_url == "":
-		dl_url = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/latest"
+		tag = "0.33.4.2"
+	var direct_installer_url: String = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [tag, tag]
+	if dl_url == "" or dl_url.contains("/releases/tag/") or dl_url.contains("/releases/latest") or not dl_url.ends_with(".exe"):
+		dl_url = direct_installer_url
 
 	var bg: = ColorRect.new()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -2663,11 +2664,13 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 		nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cl_vb.add_child(nl)
 
-	var dl_btn: Button = UiKit.big("СКАЧАТЬ ОБНОВЛЕНИЕ", "green", "", 44.0, 13)
+	var dl_btn: Button = UiKit.big("СКАЧАТЬ ОБНОВЛЕНИЕ (.EXE)", "green", "", 44.0, 13)
 	dl_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dl_btn.pressed.connect(func() -> void:
 		UiKit.snd("ui_click")
 		OS.shell_open(dl_url)
+		dl_btn.text = "✓ СКАЧИВАНИЕ ФАЙЛА НАЧАТО В БРАУЗЕРЕ"
+		dl_btn.disabled = true
 	)
 	vb.add_child(dl_btn)
 

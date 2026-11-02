@@ -68,12 +68,21 @@ func run(main: Node) -> void:
 		up.call("check_for_updates")
 		await tree.create_timer(1.5).timeout
 
-	# Test Mod Manager Screen
+	# Test Mod Manager Screen & Catalog
 	if main.has_node("/root/ModManager"):
 		var mm: Node = main.get_node("/root/ModManager")
 		print("[VERIFY] Testing ModManager...")
-		print("[VERIFY] Installed mods count: ", mm.get("installed_mods").size())
-		print("[VERIFY] Installed mods: ", mm.get("installed_mods").keys())
+		var full_cat: Array = mm.get_full_catalog()
+		print("[VERIFY] Full catalog count: ", full_cat.size())
+		print("[VERIFY] Initially installed mods count: ", mm.get("installed_mods").size())
+		# Install all builtin mods from catalog for gameplay testing
+		for cat_item in full_cat:
+			var mid: String = String(cat_item.get("id", ""))
+			if mid != "":
+				print("[VERIFY] Installing catalog mod: ", mid)
+				mm.install_builtin_mod(mid)
+		print("[VERIFY] Post-install installed mods count: ", mm.get("installed_mods").size())
+		print("[VERIFY] Post-install installed mods: ", mm.get("installed_mods").keys())
 		print("[VERIFY] Registered custom maps: ", mm.get("registered_map_types").keys())
 		if main.menus:
 			print("[VERIFY] Opening Mods menu...")

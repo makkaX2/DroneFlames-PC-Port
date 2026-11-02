@@ -93,7 +93,6 @@ func _ensure_directories() -> void:
 			da.make_dir("mods/cache/icons")
 
 	_create_mods_readme()
-	_seed_builtin_mods_to_user_dir()
 
 func _create_mods_readme() -> void:
 	var readme_path: String = USER_MODS_DIR.path_join("ИНСТРУКЦИЯ_ПО_МОДАМ.txt")
@@ -237,22 +236,16 @@ func _load_config() -> void:
 		var test_json: JSON = JSON.new()
 		if test_json.parse(json_str) == OK and test_json.data is Dictionary:
 			var data: Dictionary = test_json.data
+			if data.has("enabled_mods") and data["enabled_mods"] is Array:
+				for m in data["enabled_mods"]:
+					var sid: String = String(m).strip_edges()
+					if sid != "" and not enabled_mod_ids.has(sid):
+						enabled_mod_ids.append(sid)
 			if data.has("disabled_mods") and data["disabled_mods"] is Array:
 				for m in data["disabled_mods"]:
 					var sid: String = String(m).strip_edges()
 					if sid != "" and not disabled_mod_ids.has(sid):
 						disabled_mod_ids.append(sid)
-			elif data.has("enabled_mods") and data["enabled_mods"] is Array:
-				# Совместимость со старым форматом: если в старом конфиге мод не был включен,
-				# но только если старый список не был пустым
-				var old_enabled: Array = []
-				for m in data["enabled_mods"]:
-					old_enabled.append(String(m).strip_edges())
-				if not old_enabled.is_empty():
-					for mod_key in installed_mods.keys():
-						if not old_enabled.has(mod_key) and not disabled_mod_ids.has(mod_key):
-							disabled_mod_ids.append(mod_key)
-
 			var u_arr: Variant = data.get("uninstalled_mods", [])
 			if u_arr is Array:
 				for u in u_arr:
@@ -284,7 +277,7 @@ func scan_installed_mods() -> void:
 	installed_mods.clear()
 	_load_config()
 	
-	# 1. Сканируем user://mods/ (пользовательские моды) - высший приоритет
+	# 1. Сканируем ТОЛЬКО явно установленные пользователем моды в user://mods/
 	_unpack_pending_dfmods(USER_MODS_DIR)
 	_scan_dir(USER_MODS_DIR, false)
 
@@ -295,16 +288,9 @@ func scan_installed_mods() -> void:
 	if DirAccess.dir_exists_absolute(exe_mods) and exe_mods != user_mods_global and exe_mods != builtin_mods_global:
 		_scan_dir_absolute(exe_mods, false)
 
-	# 3. Сканируем res://mods/ (встроенные/исходные моды)
-	_scan_dir(BUILTIN_MODS_DIR, false)
-
-	# 4. Активируем моды: по умолчанию ВСЕ установленные моды активны, кроме отключенных пользователем!
-	enabled_mod_ids.clear()
+	# 3. Активируем ТОЛЬКО те моды, которые пользователь включил! (Ванильный режим по умолчанию)
 	for mod_id in installed_mods.keys():
-		var should_enable: bool = not disabled_mod_ids.has(mod_id)
-		if should_enable:
-			if not enabled_mod_ids.has(mod_id):
-				enabled_mod_ids.append(mod_id)
+		if enabled_mod_ids.has(mod_id):
 			_load_mod(mod_id)
 
 	_save_config()
@@ -416,7 +402,7 @@ func is_mod_installed(mod_id: String) -> bool:
 	return installed_mods.has(mod_id)
 
 func is_mod_enabled(mod_id: String) -> bool:
-	return not disabled_mod_ids.has(mod_id)
+	return installed_mods.has(mod_id) and enabled_mod_ids.has(mod_id)
 
 func is_mod_loaded(mod_id: String) -> bool:
 	if not installed_mods.has(mod_id):
@@ -539,8 +525,117 @@ func call_hook(hook_name: String, args: Array = []) -> Array:
 	return results
 
 # ==============================================================================
-# ОНЛАЙН КАТАЛОГ, СКАЧИВАНИЕ И ИКОНКИ
+# ОНЛАЙН И ВСТРОЕННЫЙ КАТАЛОГ, СКАЧИВАНИЕ И ИКОНКИ
 # ==============================================================================
+
+var _builtin_catalog_cache: Array = []
+
+func get_full_catalog() -> Array:
+	var result: Array = []
+	var seen_ids: Dictionary = {}
+
+	# 1. Встроенные моды из дистрибутива (res://mods)
+	if _builtin_catalog_cache.is_empty():
+		_scan_builtin_catalog()
+
+	for b in _builtin_catalog_cache:
+		var mid: String = String(b.get("id", ""))
+		result.append(b.duplicate(true))
+		seen_ids[mid] = true
+
+	# 2. Моды из онлайн каталога (makkaX2/DroneFlames-Mods)
+	for c in catalog_mods:
+		var cid: String = String(c.get("id", ""))
+		if not seen_ids.has(cid):
+			result.append(c.duplicate(true))
+			seen_ids[cid] = true
+		else:
+			# Если в онлайне версия новее встроенной, обновляем данные в каталоге
+			for i in range(result.size()):
+				if result[i].get("id") == cid:
+					if _is_version_greater(String(c.get("version", "")), String(result[i].get("version", ""))):
+						result[i] = c.duplicate(true)
+					break
+
+	return result
+
+func _scan_builtin_catalog() -> void:
+	_builtin_catalog_cache.clear()
+	var da: DirAccess = DirAccess.open(BUILTIN_MODS_DIR)
+	if not da:
+		return
+	da.list_dir_begin()
+	var item: String = da.get_next()
+	while item != "":
+		if da.current_is_dir() and not item.begins_with("."):
+			var m_path: String = BUILTIN_MODS_DIR.path_join(item).path_join("mod.json")
+			if FileAccess.file_exists(m_path):
+				var fa: FileAccess = FileAccess.open(m_path, FileAccess.READ)
+				if fa:
+					var parsed: JSON = JSON.new()
+					if parsed.parse(fa.get_as_text()) == OK and parsed.data is Dictionary:
+						var d: Dictionary = parsed.data
+						if not d.has("id") or String(d.get("id", "")) == "":
+							d["id"] = item
+						d["_is_builtin"] = true
+						var icon_file: String = BUILTIN_MODS_DIR.path_join(item).path_join(String(d.get("icon", "icon.png")))
+						if FileAccess.file_exists(icon_file):
+							var img: Image = Image.load_from_file(ProjectSettings.globalize_path(icon_file))
+							if img and not img.is_empty():
+								var tex: Texture2D = ImageTexture.create_from_image(img)
+								cached_icons[d["id"]] = tex
+								d["_icon_tex"] = tex
+						_builtin_catalog_cache.append(d)
+					fa.close()
+		item = da.get_next()
+	da.list_dir_end()
+
+func install_catalog_mod(cat_mod: Dictionary) -> void:
+	var mod_id: String = String(cat_mod.get("id", "")).strip_edges()
+	if mod_id == "":
+		return
+
+	# Если мод доступен локально во встроенных ресурсах (res://mods):
+	var src_folder: String = BUILTIN_MODS_DIR.path_join(mod_id)
+	var src_dfmod: String = BUILTIN_MODS_DIR.path_join(mod_id + ".dfmod")
+	var has_builtin: bool = FileAccess.file_exists(src_dfmod) or DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(src_folder))
+
+	if has_builtin:
+		install_builtin_mod(mod_id)
+		return
+
+	# Иначе скачиваем из сети
+	download_and_install_mod(cat_mod)
+
+func install_builtin_mod(mod_id: String) -> bool:
+	var src_folder: String = BUILTIN_MODS_DIR.path_join(mod_id)
+	var src_dfmod: String = BUILTIN_MODS_DIR.path_join(mod_id + ".dfmod")
+	var dst_folder: String = USER_MODS_DIR.path_join(mod_id)
+	var global_dst: String = ProjectSettings.globalize_path(dst_folder)
+
+	if DirAccess.dir_exists_absolute(global_dst):
+		_delete_directory_completely(global_dst)
+
+	var ok: bool = false
+	if FileAccess.file_exists(src_dfmod):
+		ok = _extract_zip(src_dfmod, dst_folder)
+	elif DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(src_folder)):
+		_copy_dir_recursive(src_folder, dst_folder)
+		ok = true
+
+	if ok:
+		_try_register_mod_folder(dst_folder, false)
+		if not enabled_mod_ids.has(mod_id):
+			enabled_mod_ids.append(mod_id)
+		disabled_mod_ids.erase(mod_id)
+		uninstalled_mod_ids.erase(mod_id)
+		_load_mod(mod_id)
+		_save_config()
+		mod_installed.emit(mod_id)
+		mods_updated.emit()
+		print("[ModManager] Installed and enabled mod from catalog: ", mod_id)
+		return true
+	return false
 
 func fetch_catalog() -> void:
 	if _http_catalog.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:

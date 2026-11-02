@@ -71,10 +71,12 @@ static func build(menus: Menus, parent: VBoxContainer) -> void:
 	)
 	top_tabs.add_child(btn_installed)
 
-	var btn_catalog: Button = UiKit.big("КАТАЛОГ ОНЛАЙН", "green" if cur_tab == 1 else "stone", "", 38.0, 11)
+	var btn_catalog: Button = UiKit.big("КАТАЛОГ МОДОВ", "green" if cur_tab == 1 else "stone", "", 38.0, 11)
 	btn_catalog.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_catalog.pressed.connect(func() -> void:
 		cur_tab = 1
+		if mm.has_method("get_full_catalog"):
+			mm.get_full_catalog()
 		if mm.catalog_mods.is_empty():
 			mm.fetch_catalog()
 		menus.show_mods(true)
@@ -128,16 +130,7 @@ static func build(menus: Menus, parent: VBoxContainer) -> void:
 	)
 	action_row.add_child(btn_folder)
 
-	var btn_restore: Button = UiKit.big("⚡ ВОССТАНОВИТЬ ВСЕ", "stone", "", 36.0, 10)
-	btn_restore.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_restore.tooltip_text = "Восстанавливает и активирует все базовые моды ПК-порта"
-	btn_restore.pressed.connect(func() -> void:
-		mm.restore_builtin_mods()
-		menus.show_mods(true)
-	)
-	action_row.add_child(btn_restore)
-
-	var btn_refresh: Button = UiKit.big("🔄 ОБНОВИТЬ", "stone", "", 36.0, 10)
+	var btn_refresh: Button = UiKit.big("🔄 ОБНОВИТЬ СПИСОК", "stone", "", 36.0, 10)
 	btn_refresh.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_refresh.pressed.connect(func() -> void:
 		mm.scan_installed_mods()
@@ -159,11 +152,22 @@ static func _build_installed_tab(menus: Menus, parent: VBoxContainer, mm: Node) 
 	var mods: Dictionary = mm.installed_mods
 	if mods.is_empty():
 		var empty_panel: PanelContainer = PanelContainer.new()
-		empty_panel.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 12, 10))
+		empty_panel.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 14, 12))
 		list_container.add_child(empty_panel)
-		var empty_lbl: Label = UiKit.lbl("Установленных модов пока нет.\nПерейдите в «КАТАЛОГ ОНЛАЙН» для выбора модификаций или поместите .dfmod в папку модов.", 10, UiKit.MUTED)
+		var vb_empty: VBoxContainer = VBoxContainer.new()
+		vb_empty.add_theme_constant_override("separation", 10)
+		empty_panel.add_child(vb_empty)
+
+		var empty_lbl: Label = UiKit.lbl("У вас пока нет установленных модов.\nПерейдите в «КАТАЛОГ МОДОВ», чтобы выбрать и установить нужные модификации.", 11, UiKit.MUTED)
 		empty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		empty_panel.add_child(empty_lbl)
+		vb_empty.add_child(empty_lbl)
+
+		var btn_go_cat: Button = UiKit.big("🛒 ПЕРЕЙТИ В КАТАЛОГ МОДОВ", "green", "", 34.0, 11)
+		btn_go_cat.pressed.connect(func() -> void:
+			cur_tab = 1
+			menus.show_mods(true)
+		)
+		vb_empty.add_child(btn_go_cat)
 		return
 
 	# Сортируем: сначала включенные, потом выключенные
@@ -196,7 +200,7 @@ static func _build_catalog_tab(menus: Menus, parent: VBoxContainer, mm: Node) ->
 	list_container.add_theme_constant_override("separation", 6)
 	parent.add_child(list_container)
 
-	var cat_mods: Array = mm.catalog_mods
+	var cat_mods: Array = mm.get_full_catalog() if mm.has_method("get_full_catalog") else mm.catalog_mods
 	if cat_mods.is_empty():
 		var loading_panel: PanelContainer = PanelContainer.new()
 		loading_panel.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 12, 10))
@@ -205,7 +209,7 @@ static func _build_catalog_tab(menus: Menus, parent: VBoxContainer, mm: Node) ->
 		l_col.add_theme_constant_override("separation", 8)
 		loading_panel.add_child(l_col)
 
-		var load_lbl: Label = UiKit.lbl("Загрузка каталога модов из GitHub (makkaX2/DroneFlames-Mods)...", 10, UiKit.GOLD)
+		var load_lbl: Label = UiKit.lbl("Загрузка каталога модов...", 10, UiKit.GOLD)
 		load_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l_col.add_child(load_lbl)
 
@@ -356,16 +360,19 @@ static func _build_mod_card(menus: Menus, parent: VBoxContainer, data: Dictionar
 		)
 		act_col.add_child(btn_tog)
 	else:
-		# Кнопка скачивания
+		# Кнопка установки
 		var is_this_downloading: bool = mm._is_downloading and mm._download_mod_id == mod_id
 		if is_this_downloading:
 			var btn_down: Button = UiKit.big("ЗАГРУЗКА...", "gold", "", 28.0, 9)
 			btn_down.disabled = true
 			act_col.add_child(btn_down)
 		else:
-			var btn_down: Button = UiKit.big("СКАЧАТЬ", "green", "", 28.0, 9)
+			var btn_down: Button = UiKit.big("УСТАНОВИТЬ", "green", "", 28.0, 9)
 			btn_down.pressed.connect(func() -> void:
-				mm.download_and_install_mod(data)
+				if mm.has_method("install_catalog_mod"):
+					mm.install_catalog_mod(data)
+				else:
+					mm.download_and_install_mod(data)
 			)
 			act_col.add_child(btn_down)
 

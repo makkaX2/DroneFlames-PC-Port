@@ -16,7 +16,7 @@ signal download_failed(reason: String)
 @export var enabled: bool = true ## Активировать проверку при старте
 @export var repo_owner: String = "makkaX2"
 @export var repo_name: String = "DroneFlames-PC-Port"
-@export var current_version: String = "0.33.4.1"
+@export var current_version: String = "0.33.4.2"
 
 var latest_tag: String = ""
 var latest_changelog: String = ""
@@ -113,7 +113,7 @@ func _on_check_request_completed(result: int, response_code: int, _headers: Pack
 
 	if compare_versions(tag, current_version) > 0:
 		# Найдена более свежая версия
-		var target_url: String = String(data.get("html_url", ""))
+		var target_url: String = ""
 		var target_name: String = ""
 
 		for asset_dict in assets:
@@ -121,11 +121,15 @@ func _on_check_request_completed(result: int, response_code: int, _headers: Pack
 				continue
 			var aname: String = String(asset_dict.get("name", ""))
 			var adl: String = String(asset_dict.get("browser_download_url", ""))
-			if aname.ends_with(".exe") or aname.ends_with(".zip"):
+			if aname.ends_with(".exe"):
 				target_url = adl
 				target_name = aname
 				if aname.to_lower().contains("setup"):
 					break # Нашли именно установщик
+
+		if target_url == "":
+			target_url = "https://github.com/%s/%s/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [repo_owner, repo_name, tag, tag]
+			target_name = "DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % tag
 
 		latest_tag = tag
 		latest_changelog = changelog
