@@ -8,15 +8,9 @@
 
 config_version=5
 
-[autoload]
-
-Watermark="*res://watermark.gd"
-Updater="*res://net/github_updater.gd"
-ModManager="*res://core/mod_manager.gd"
-
 [application]
 
-config/name="DroneFlames (PC Port by @good_boy_irl)"
+config/name="DroneFlames v0.33.4.3 (PC Port by @good_boy_irl)"
 run/main_scene="res://game/main.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "Mobile")
@@ -24,7 +18,14 @@ boot_splash/bg_color="#0f1c45"
 boot_splash/stretch_mode=4
 boot_splash/use_filter=false
 boot_splash/image="res://splash.png"
-config/icon="res://icon.svg"
+config/icon="res://icon.png"
+config/windows_native_icon="res://app_icon.ico"
+
+[autoload]
+
+Watermark="*res://watermark.gd"
+Updater="*res://net/github_updater.gd"
+ModManager="*res://core/mod_manager.gd"
 
 [display]
 
@@ -34,7 +35,6 @@ window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/handheld/orientation=0
 
 [editor_overrides]
 

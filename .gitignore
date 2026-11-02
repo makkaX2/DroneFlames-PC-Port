@@ -1,11 +1,16 @@
 # Godot editor cache & local state (keep global_script_class_cache.cfg & imported)
 .godot/editor/
 .godot/app_userdata/
+.godot/shader_cache/
+.godot/.gdignore
 *.translation
 
 # Build & packaging output
 build/
 dist/
+legacy_build/
+test_install/
+*.uid
 *.tmp
 *.log
 

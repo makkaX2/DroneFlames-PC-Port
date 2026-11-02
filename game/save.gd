@@ -264,8 +264,12 @@ static func load_slot(m: Node, n: int, key: String = "") -> bool:
 
 
 static func net_snapshot(m: Node) -> PackedByteArray:
+	if m == null or not is_instance_valid(m) or m.get("world") == null:
+		return PackedByteArray()
 	_wait()
 	var snap: Array = _snapshot(m)
+	if snap.size() < 2:
+		return PackedByteArray()
 	var raw: PackedByteArray = var_to_bytes(snap[1])
 	return var_to_bytes([raw.size(), raw.compress(FileAccess.COMPRESSION_ZSTD)])
 

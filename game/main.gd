@@ -93,6 +93,10 @@ func _ready() -> void :
 			var v: RefCounted = (load("res://dev/verify_game.gd") as GDScript).new()
 			set_meta("verify_game", v)
 			v.call("run", self)
+		elif a == "--create-nuke-save":
+			var cns: RefCounted = (load("res://dev/create_nuke_save.gd") as GDScript).new()
+			set_meta("create_nuke_save", cns)
+			cns.call("run", self)
 		elif a.begins_with("--airborne-demo"):
 			var ad: RefCounted = (load("res://dev/airborne_demo.gd") as GDScript).new()
 			set_meta("airborne_demo", ad)

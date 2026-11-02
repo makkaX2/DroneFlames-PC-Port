@@ -12,7 +12,7 @@ import zipfile
 import subprocess
 from pathlib import Path
 
-VERSION = "0.33.4.2"
+VERSION = "0.33.4.3"
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -46,6 +46,7 @@ ROOT_FILES = [
     "assets.sparsepck",
     "DroneFlames.exe",
     "DroneFlames_Debug.exe",
+    "icon.png",
     "icon.svg",
     "icon_ios.png",
     "project.godot",
@@ -54,6 +55,7 @@ ROOT_FILES = [
     "Start_DroneFlames.bat",
     "PORT_CREDITS_good_boy_irl.txt",
     "PORT_BY_GOOD_BOY_IRL.txt",
+    "version_info.json",
 ]
 
 def find_iscc() -> str | None:

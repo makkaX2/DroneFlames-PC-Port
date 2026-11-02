@@ -269,10 +269,12 @@ func setup(m: Node) -> void:
 				return
 			if why.ends_with("не найдена") or why.begins_with("Хост закрыл"):
 				_give_up("ХОСТ ЕЩЁ НЕ ПРОДОЛЖИЛ ПАРТИЮ" if _rc_card else "ХОСТ ВЫШЕЛ · ПАРТИЯ СОХРАНЕНА", true)  # NET 35: he may resume it
-			elif why.begins_with("Другая версия") or why == "Партия уже идёт":
+			elif why.begins_with("Другая версия"):
 				NetConfig.clear_rejoin()
 				_rejoin = {}
-				_give_up(why if why.begins_with("Другая") else "Хост закончил партию")
+				_give_up(why)
+			elif why == "Партия уже идёт":
+				_give_up("ХОСТ ЕЩЁ НЕ ПРОДОЛЖИЛ ПАРТИЮ" if _rc_card else "Партия уже идёт", true)
 			return
 		if in_match and not is_host and not _rejoin.is_empty() and (why.begins_with("Хост закрыл") or why.ends_with("не найдена")):
 			_rejoin["why"] = "left"  # the server saw the host go
@@ -341,6 +343,41 @@ func my_name() -> String:
 	if mode == Mode.ONLINE and Account.username() != "":
 		return NetConfig.clean_nick(Account.username())  # (critic) the same limit as the guests' names
 	return NetConfig.nick()
+
+
+func host_name() -> String:
+	if slots.size() > 0:
+		return String(slots[0].get("name", "Хост"))
+	return "Хост"
+
+
+static func get_lan_ips() -> Array[String]:
+	var out: Array[String] = []
+	var addrs = IP.get_local_addresses()
+	# 1. Prioritize VPN interfaces like Radmin (26.) or Hamachi (25.)
+	for a: String in addrs:
+		if a.count(".") == 3 and (a.begins_with("26.") or a.begins_with("25.")):
+			if not out.has(a):
+				out.append(a)
+	# 2. Local LAN (192.168., 10., 172.16-31)
+	for a: String in addrs:
+		if a.count(".") == 3:
+			if a.begins_with("192.168.") or a.begins_with("10.") or LanDiscovery._is_172_private(a):
+				if not out.has(a):
+					out.append(a)
+	# 3. Fallback
+	if out.is_empty():
+		for a: String in addrs:
+			if a.count(".") == 3 and a != "127.0.0.1":
+				out.append(a)
+	if out.is_empty():
+		out.append("127.0.0.1")
+	return out
+
+
+func _gen_tok() -> String:
+	return Crypto.new().generate_random_bytes(16).hex_encode()
+
 
 
 ## MPFLAG (docs/NET_ARCH.md): this person's own flag (ПРОФИЛЬ / «ВАША СТРАНА», GameConfig.my_flag), "" = none.
@@ -800,7 +837,7 @@ func leave(notify: bool = true, keep_status: bool = false, keep_rejoin: bool = f
 	rejoining = false
 	if not keep_rejoin:
 		_rejoin = {}
-		if not is_host:
+		if not is_host and not (was_match and not match_decided):
 			NetConfig.clear_rejoin()  # left on purpose: no way back (NET 35: never the host: on one PC it shares the guest's net.cfg)
 	if not own_place.is_empty():
 		NetConfig.save_rejoin(own_place)  # ROTATION: the old host may come back — as a guest of the new one («ВЕРНУТЬСЯ В ПАРТИЮ»)
@@ -1352,9 +1389,63 @@ func _hello(ver: String, nm: String, arch: int = 0, tok: String = "", cos: Dicti
 	elif in_match and _tok_slot(tok) >= 0 and (go or resume_wait):
 		_rejoin_slot(_tok_slot(tok), from)  # NET 32: the same person back into his seat
 		return
-	elif in_match and mode == Mode.ONLINE and rtc.peer_names.has(from) and _name_slot(String(rtc.peer_names[from])) >= 0 and _name_slot(String(rtc.peer_names[from])) != local_slot:
-		_rejoin_slot(_name_slot(String(rtc.peer_names[from])), from)  # BACKEND 3: after a host change: the server's name of the paired peer
-		return
+	elif in_match and (go or resume_wait):
+		var clean_nm: String = NetConfig.clean_nick(nm)
+		var s_name: int = _name_slot(clean_nm)
+		if s_name >= 0 and s_name != local_slot:
+			var slot_avail: bool = bool(slots[s_name].get("left", false)) or resume_wait or not multiplayer.get_peers().has(int(slots[s_name].get("peer", 0)))
+			if slot_avail:
+				var cur_tok: String = tok
+				if cur_tok == "":
+					cur_tok = String(_tokens.get(s_name, ""))
+				if cur_tok == "":
+					cur_tok = _gen_tok()
+				_tokens[s_name] = cur_tok
+				_rejoin_tok.rpc_id(from, cur_tok, my_name())
+				_rejoin_slot(s_name, from)
+				lan.update_info({"n": slots.size()})
+				return
+		elif mode == Mode.ONLINE and rtc.peer_names.has(from) and _name_slot(String(rtc.peer_names[from])) >= 0 and _name_slot(String(rtc.peer_names[from])) != local_slot:
+			_rejoin_slot(_name_slot(String(rtc.peer_names[from])), from)
+			return
+		# Check if there is an open / left / away slot to reclaim
+		var candidate_slot: int = -1
+		for i in range(1, slots.size()):
+			if bool(slots[i].get("left", false)) and (bool(slots[i].get("away", false)) or resume_wait):
+				candidate_slot = i
+				break
+		if candidate_slot >= 0:
+			slots[candidate_slot]["name"] = clean_nm if clean_nm != "" else "Player"
+			slots[candidate_slot]["flag"] = clean_flag(flag)
+			var cur_tok2: String = _gen_tok()
+			_tokens[candidate_slot] = cur_tok2
+			_rejoin_tok.rpc_id(from, cur_tok2, my_name())
+			_rejoin_slot(candidate_slot, from)
+			lan.update_info({"n": slots.size()})
+			return
+		# Or if there is an unassigned AI country in the game world
+		elif slots.size() < NetConfig.MAX_PLAYERS and gw != null and slots.size() < gw.countries.size():
+			var new_slot: int = slots.size()
+			var cid: int = new_slot + 1
+			var cc: Country = gw.country_by_id(cid)
+			if cc != null and not cc.is_player and not cc.eliminated:
+				cc.name = clean_nm if clean_nm != "" else "Player"
+				slots.append({
+					"peer": from,
+					"name": clean_nm if clean_nm != "" else "Player",
+					"ready": true,
+					"left": false,
+					"arch": cc.arch,
+					"seat": from,
+					"flag": clean_flag(flag)
+				})
+				var cur_tok3: String = _gen_tok()
+				_tokens[new_slot] = cur_tok3
+				_rejoin_tok.rpc_id(from, cur_tok3, my_name())
+				_rejoin_slot(new_slot, from)
+				lan.update_info({"n": slots.size()})
+				return
+		why = "full" if slots.size() >= NetConfig.MAX_PLAYERS else "running"
 	elif in_match:
 		why = "running"
 	elif slots.size() >= NetConfig.MAX_PLAYERS:
@@ -1589,12 +1680,14 @@ var _saved_turn: int = -1
 
 ## Host: the match into user://net_match.save (snapshot of the end of turn `n`, seats, tokens, rules,
 ## the room). Every MATCH_SAVE_TURNS turns, when the app goes to the background, when it is closed.
-func save_match(n: int = -1) -> void:
-	if not is_host or not in_match or not go or _restoring or resume_wait:
+func save_match(n: int = -1, force: bool = false) -> void:
+	if not is_host or not in_match or _restoring:
+		return
+	if not force and (not go or resume_wait):
 		return
 	if n < 0:
 		n = exec_turn - 1
-	if n == _saved_turn:
+	if not force and n == _saved_turn:
 		return  # NET 35 (critic): FOCUS_OUT + PAUSED come together
 	_saved_turn = n
 	var cfg: Dictionary = {}
@@ -1610,7 +1703,7 @@ func save_match(n: int = -1) -> void:
 	var t0: int = Time.get_ticks_msec()
 	NetConfig.save_match({"v": NetConfig.version(), "turn": n, "mode": "online" if mode == Mode.ONLINE else "lan",
 		"code": room_code, "pub": room_pub, "port": NetConfig.LAN_PORT, "host": my_name(), "slots": sl, "tokens": tk, "match": match_id,
-		"cfg": cfg, "gt": gw.game_time, "played": _played_s, "snap": Save.net_snapshot(main)})
+		"cfg": cfg, "gt": gw.game_time if gw != null else 0.0, "played": _played_s, "snap": Save.net_snapshot(main)})
 	print("[Net] match saved at turn %d (%d ms)" % [n, Time.get_ticks_msec() - t0])
 
 
@@ -1625,11 +1718,34 @@ func host_exit_saved() -> void:
 	if can_hand_over():
 		leave(false)  # ROTATION: the guests go on with a new host; this device may come back as a guest
 		return
-	if go:
-		save_match()
+	if go or resume_wait:
+		save_match(-1, true)
 	if multiplayer.multiplayer_peer != null and not (multiplayer.multiplayer_peer is OfflineMultiplayerPeer):
 		_host_gone.rpc()
 		for i in 8:  # the app is closing: give the message ~0.3 s to leave before the link goes (else they only see «lost»)
+			if multiplayer.multiplayer_peer is ENetMultiplayerPeer:
+				_flush_peer()
+			multiplayer.multiplayer_peer.poll()
+			OS.delay_msec(40)
+	leave(false, false, false, true)
+
+
+## Host manually clicks «СОХРАНИТЬ И ВЫЙТИ»: save match, tell guests host exited with match saved,
+## keep match in net_match.save, leave match and return to menu.
+func host_save_and_exit() -> void:
+	if not is_host or not in_match:
+		leave(false)
+		return
+	if match_decided:
+		leave(false)
+		return
+	if can_hand_over():
+		leave(false)
+		return
+	save_match(-1, true)
+	if multiplayer.multiplayer_peer != null and not (multiplayer.multiplayer_peer is OfflineMultiplayerPeer):
+		_host_gone.rpc()
+		for i in 8:
 			if multiplayer.multiplayer_peer is ENetMultiplayerPeer:
 				_flush_peer()
 			multiplayer.multiplayer_peer.poll()
@@ -1709,6 +1825,7 @@ func resume_host() -> String:
 			leave(false, false, true, true)
 			return "Порт %d занят (%s)" % [int(d.get("port", NetConfig.LAN_PORT)), error_string(err)]
 		multiplayer.multiplayer_peer = p
+		lan.announce({"name": NetConfig.nick(), "port": int(d.get("port", NetConfig.LAN_PORT)), "n": slots.size()})
 	if main != null and main.has_method("net_rejoin_wait"):
 		main.net_rejoin_wait()
 	_status("Восстанавливаем партию...")
@@ -1746,6 +1863,8 @@ func _resume_back(s: int, from: int) -> void:
 	_rejoin_ok.rpc_id(from, s, slots, cfg, host_active, speed, speed_why, speed_who, wants)
 	_resume_note()
 	var bytes: PackedByteArray = _resume.get("snap", PackedByteArray())  # NET 35 (critic): the very bytes the host restored (the world stands)
+	if bytes.is_empty() and main != null:
+		bytes = Save.net_snapshot(main)
 	var ch: int = NetConfig.SNAP_CHUNK
 	var parts: int = ceili(float(bytes.size()) / float(ch))
 	_snap_begin.rpc_id(from, int(_resume.get("turn", _host_turn - 1)), bytes.size(), parts)  # the world stands at the saved turn

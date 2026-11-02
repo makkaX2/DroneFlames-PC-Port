@@ -6,9 +6,13 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.4.2 (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.4.3 (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
+	"МУЛЬТИПЛЕЕР v0.33.4.3: сохранение партии у хоста по кнопке «СОХРАНИТЬ» в меню паузы (Esc)",
+	"МУЛЬТИПЛЕЕР v0.33.4.3: игроки сохраняются у хоста по никам и автоматически восстанавливают свои страны при входе",
+	"МУЛЬТИПЛЕЕР v0.33.4.3: приглашение друзей в уже созданное лобби/игру по IP или коду, автопоиск в локальной сети",
+	"МУЛЬТИПЛЕЕР v0.33.4.3: кнопка «СОХРАНИТЬ И ВЫЙТИ» для безопасного сохранения сетевой партии",
 	"ХОТФИКС v0.33.4.2: чистое ванильное начало — моды устанавливаются игроком вручную из каталога",
 	"КАТАЛОГ МОДОВ v0.33.4.2: установка и удаление модов в 1 клик, карточки с описанием и статусом",
 	"ОБНОВЛЕНИЯ v0.33.4.2: мгновенный прямой старт скачивания файла установщика через браузер",
@@ -2298,8 +2302,17 @@ func show_lobby(msg: String = "") -> void :
 		lr.alignment = BoxContainer.ALIGNMENT_CENTER
 		vb.add_child(lr)
 		lr.add_child(MpKit.icon("net_lan"))
-		lr.add_child(UiKit.lbl("КОМНАТА В ВАШЕЙ WI-FI", 12, UiKit.GOLD, 2, 2))
-		_label(vb, "ДРУЗЬЯ В ЭТОЙ СЕТИ НАЙДУТ ЕЁ САМИ", 10, UiKit.MUTED)
+		lr.add_child(UiKit.lbl("КОМНАТА В ВАШЕЙ WI-FI / СЕТИ", 12, UiKit.GOLD, 2, 2))
+		if net.is_host:
+			var lan_ips: Array[String] = NetSession.get_lan_ips()
+			var my_ip: String = lan_ips[0] if not lan_ips.is_empty() else "127.0.0.1"
+			MpKit.code_block(vb, my_ip, func() -> void :
+				DisplayServer.clipboard_set(my_ip)
+				UiKit.snd("ui_select")
+				_mp_toast("IP скопирован в буфер обмена!"))
+			_label(vb, "ОТПРАВЬТЕ IP ДРУЗЬЯМ ИЛИ ОНИ НАЙДУТ СЕРВЕР В СПИСКЕ", 10, UiKit.MUTED)
+		else:
+			_label(vb, "ДРУЗЬЯ В ЭТОЙ СЕТИ НАЙДУТ ЕЁ САМИ", 10, UiKit.MUTED)
 	MpKit.section(vb, "ИГРОКИ %d/%d" % [net.slots.size(), NetConfig.MAX_PLAYERS])
 	var seats: = VBoxContainer.new()
 	seats.add_theme_constant_override("separation", 4)
@@ -2803,6 +2816,8 @@ func show_pause() -> void :
 	_button(vb, Loc.t("В ИГРУ") if online else Loc.t("ПРОДОЛЖИТЬ"), "green", "resume", true, 50.0)
 	if not online:
 		SavesUI.pause_row(self, vb)
+	else:
+		_mp_pause_row(vb)
 	var grid: = GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 8)
@@ -2830,11 +2845,83 @@ func show_pause() -> void :
 		gap.custom_minimum_size.y = 12
 		vb.add_child(gap)
 	if online:
-		_leave_button(vb)
+		if net != null and net.is_host:
+			var be: Button = _button(vb, "СОХРАНИТЬ И ВЫЙТИ", "green", "")
+			be.icon = SavesUI.icon_tex("disk")
+			be.expand_icon = false
+			be.pressed.connect(func() -> void :
+				net.host_save_and_exit()
+				request.emit("main_menu"))
+			_leave_button(vb)
+		else:
+			var bg: Button = _button(vb, "ВЫЙТИ В МЕНЮ", "stone", "")
+			bg.pressed.connect(func() -> void :
+				if net != null:
+					net.leave(true, true, true)
+				request.emit("main_menu"))
 	elif GameConfig.no_save:
 		SavesUI.quit_button(self, vb)
 	else:
 		_button(vb, "ГЛАВНОЕ МЕНЮ", "red", "main_menu")
+
+
+func _mp_pause_row(vb: VBoxContainer) -> void :
+	if net == null or not net.in_match:
+		return
+	if net.is_host:
+		var row: = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		vb.add_child(row)
+		var sv: Button = UiKit.big("СОХРАНИТЬ", "stone", "", 44.0, 12)
+		sv.icon = SavesUI.icon_tex("disk")
+		sv.expand_icon = false
+		sv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(sv)
+
+		var inv: Button = UiKit.big("ПРИГЛАСИТЬ", "stone", "", 44.0, 12)
+		inv.icon = MpKit.icon("net_players", false).texture
+		inv.expand_icon = false
+		inv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(inv)
+
+		var st: Label = _label(vb, _mp_pause_status(), 10, UiKit.MUTED)
+
+		sv.pressed.connect(func() -> void :
+			net.save_match(-1, true)
+			UiKit.snd("ui_select")
+			sv.text = Loc.t("СОХРАНЕНО")
+			sv.add_theme_color_override("font_color", UiKit.GREEN)
+			st.text = Loc.t("Партия сохранена у хоста · игроки сохраняются по никнеймам")
+			var sref: WeakRef = weakref(sv)
+			sv.get_tree().create_timer(1.6).timeout.connect(func() -> void :
+				var s2: Button = sref.get_ref() as Button
+				if s2 != null:
+					s2.text = Loc.t("СОХРАНИТЬ")
+					s2.remove_theme_color_override("font_color")))
+
+		inv.pressed.connect(func() -> void :
+			if net.mode == NetSession.Mode.ONLINE:
+				var code: String = net.room_code
+				DisplayServer.clipboard_set(code)
+				UiKit.snd("ui_select")
+				_mp_toast("Код комнаты скопирован: %s" % code)
+				st.text = Loc.t("Код %s скопирован в буфер обмена") % code
+			else:
+				var ips: Array[String] = NetSession.get_lan_ips()
+				var primary_ip: String = ips[0] if not ips.is_empty() else "127.0.0.1"
+				DisplayServer.clipboard_set(primary_ip)
+				UiKit.snd("ui_select")
+				_mp_toast("IP хоста скопирован: %s" % primary_ip)
+				st.text = Loc.t("IP %s скопирован в буфер обмена") % primary_ip)
+	else:
+		_label(vb, Loc.t("Хост: %s · прогресс сохраняется у хоста") % net.host_name(), 10, UiKit.MUTED)
+
+
+func _mp_pause_status() -> String:
+	var d: Dictionary = NetConfig.load_match()
+	if d.is_empty():
+		return Loc.t("Сетевая партия ещё не сохранялась")
+	return Loc.t("Сетевая партия · сохранено %s") % NetConfig.ago_text(int(d.get("t", 0))).to_lower()
 
 
 

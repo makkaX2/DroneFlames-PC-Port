@@ -130,7 +130,8 @@ static func load_rejoin() -> Dictionary:
 		d[k] = cf.get_value("rejoin", k)
 	var keep: int = MATCH_KEEP_S if bool(d.get("gone", false)) else REJOIN_KEEP_S
 
-	var no_tok: bool = String(d.get("tok", "")) == "" and String(d.get("why", "")) != "handover"
+	var is_lan: bool = String(d.get("mode", "")) == "lan" or String(d.get("ip", "")) != ""
+	var no_tok: bool = String(d.get("tok", "")) == "" and String(d.get("why", "")) != "handover" and not is_lan
 	if no_tok or int(Time.get_unix_time_from_system()) - int(d.get("t", 0)) > keep:
 		return {}
 	return d

@@ -2,13 +2,55 @@ extends Node
 ## Watermark and PC Port Branding by @good_boy_irl
 ## Keeps subtle, clean branding: window title, menu version string, and F11 fullscreen.
 
-const WINDOW_TITLE: String = "DroneFlames — PC Port by @good_boy_irl"
+var _base_title: String = ""
+var _last_title_check: int = 0
+var _last_fullscreen_toggle: int = 0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_init_title_string()
+	_setup_app_icon()
 	_update_title()
+	call_deferred("_update_title")
 	get_tree().node_added.connect(_on_node_added)
 	_setup_updater()
+	var t := get_tree().create_timer(0.4)
+	t.timeout.connect(func() -> void:
+		_update_title()
+		_setup_app_icon())
+
+func _init_title_string() -> void:
+	var ver: String = _get_game_version()
+	_base_title = "DroneFlames " + ver + " — PC Port by @good_boy_irl"
+
+func _get_game_version() -> String:
+	if ResourceLoader.exists("res://version_info.json"):
+		var f := FileAccess.open("res://version_info.json", FileAccess.READ)
+		if f != null:
+			var txt := f.get_as_text()
+			var json = JSON.parse_string(txt)
+			if json is Dictionary and json.has("version"):
+				return "v" + String(json["version"])
+	return "v0.33.4.3"
+
+func _setup_app_icon() -> void:
+	# 1. Native Windows .ico for taskbar and window frame
+	if ResourceLoader.exists("res://app_icon.ico"):
+		DisplayServer.set_native_icon("res://app_icon.ico")
+		var abs_ico := ProjectSettings.globalize_path("res://app_icon.ico")
+		if FileAccess.file_exists(abs_ico):
+			DisplayServer.set_native_icon(abs_ico)
+	
+	# 2. Window icon from high-res image
+	var icon_path := "res://icon.png" if ResourceLoader.exists("res://icon.png") else "res://icon_ios.png"
+	if ResourceLoader.exists(icon_path):
+		var abs_png := ProjectSettings.globalize_path(icon_path)
+		var img := Image.load_from_file(abs_png)
+		if img != null and not img.is_empty():
+			DisplayServer.set_icon(img)
+			var win := get_window()
+			var win_id: int = win.get_window_id() if win != null else DisplayServer.MAIN_WINDOW_ID
+			DisplayServer.window_set_icon(img, win_id)
 
 func _setup_updater() -> void:
 	if has_node("/root/Updater"):
@@ -17,16 +59,14 @@ func _setup_updater() -> void:
 
 func _on_update_available(new_version: String, _changelog: String, _dl_url: String, _asset_name: String) -> void:
 	print("[PC Port] New version available on GitHub: v" + new_version)
-	var win := get_window()
-	if win:
-		win.title = WINDOW_TITLE + " (Обновление v" + new_version + " доступно!)"
+	_base_title = "DroneFlames " + _get_game_version() + " — PC Port by @good_boy_irl (Обновление v" + new_version + " доступно!)"
+	_update_title()
 
 func _process(_delta: float) -> void:
-	var win := get_window()
-	if win and not win.title.begins_with("DroneFlames"):
+	var now := Time.get_ticks_msec()
+	if now - _last_title_check > 500:
+		_last_title_check = now
 		_update_title()
-
-var _last_fullscreen_toggle: int = 0
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -41,6 +81,8 @@ func _input(event: InputEvent) -> void:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 			else:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+			call_deferred("_update_title")
+			call_deferred("_setup_app_icon")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
@@ -52,15 +94,17 @@ func _notification(what: int) -> void:
 			var save_cls = load("res://game/save.gd")
 			if save_cls != null and save_cls.has_method("apply_power_save"):
 				save_cls.apply_power_save()
+		_update_title()
+		_setup_app_icon()
 
 func _update_title() -> void:
+	if _base_title.is_empty():
+		_init_title_string()
 	var win := get_window()
-	if win:
-		win.title = WINDOW_TITLE
-	DisplayServer.window_set_title(WINDOW_TITLE)
+	var win_id: int = win.get_window_id() if win != null else DisplayServer.MAIN_WINDOW_ID
+	DisplayServer.window_set_title(_base_title, win_id)
 
 func _on_node_added(node: Node) -> void:
 	if node is Label:
 		if node.text.begins_with("v0.") and not node.text.contains("@good_boy_irl"):
 			node.text = node.text + " · PC Port by @good_boy_irl"
-
