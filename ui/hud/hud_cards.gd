@@ -163,7 +163,12 @@ func _fac_icon(kind: int) -> String:
 
 
 func show_facility(f: Facility, mil: Military, player: Country) -> void :
-	if f != null and f.get_meta("is_airborne_base", false):
+	# Mod hooks draw their custom cards after the normal HUD update. Skip the
+	# vanilla card for their facilities, otherwise it is replaced every frame:
+	# buttons never stay under the pointer and the card-open sound repeats.
+	if f != null and (f.get_meta("is_airborne_base", false) or f.get_meta("is_tank_factory", false)
+		or f.get_meta("is_vdv_hq", false) or f.get_meta("is_nuclear_silo", false)
+		or f.get_meta("mod_facility", false)):
 		return
 	var alive: bool = mil.alive(f)
 	_card("fac%d" % f.id, _fac_icon(f.kind), (Loc.t("Казармы армии №%d") % f.army_no) if f.kind == Facility.Kind.BARRACKS and f.army_no > 0 else Loc.t(Military.title_of(f.kind)), "" if f.kind == Facility.Kind.BARRACKS else _sentence(String(Military.PURPOSE.get(f.kind, ""))), false, 

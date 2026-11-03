@@ -587,6 +587,13 @@ static func _assign(o: Object, n: String, v: Variant) -> void :
 
 static func _ent_fields(o: Object) -> Dictionary:
 	var d: Dictionary = dump(o, ["fx"] if o is Facility else (["visited"] if o is City else []))
+	# Mods store custom facility/unit state in Object metadata. Preserve it beside
+	# normal script properties so modded entities retain identity and progress.
+	var meta: Dictionary = {}
+	for key: StringName in o.get_meta_list():
+		meta[String(key)] = o.get_meta(key)
+	if not meta.is_empty():
+		d["$meta"] = enc(meta)
 	if o is City:
 		d["visited"] = {SET: PackedInt32Array((o as City).visited.keys())}
 		var fl: Variant = (o as City).flag_node
@@ -1120,6 +1127,14 @@ static func _load_core(gw: GameWorld, body: Dictionary) -> void :
 	for i in ents.size():
 		if _dec[i] != null:
 			fill(_dec[i], ents[i][1])
+	for i_meta in ents.size():
+		var meta_obj: Object = _dec[i_meta]
+		var ent_fields: Dictionary = ents[i_meta][1]
+		if meta_obj != null and ent_fields.has("$meta"):
+			var meta_data: Variant = dec(ent_fields["$meta"])
+			if meta_data is Dictionary:
+				for meta_key: Variant in meta_data:
+					meta_obj.set_meta(StringName(meta_key), meta_data[meta_key])
 	for i9 in ents.size():
 		if _dec[i9] is Country and (_dec[i9] as Country).flag_spec != "":
 			gw.apply_flag(_dec[i9] as Country, (_dec[i9] as Country).flag_spec, false)

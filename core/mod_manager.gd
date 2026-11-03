@@ -209,6 +209,29 @@ func _copy_dir_recursive(src: String, dst: String) -> void:
 func get_mods_disk_path() -> String:
 	return ProjectSettings.globalize_path(USER_MODS_DIR)
 
+## Builds a privacy-conscious report players can copy into a bug report.
+func build_diagnostics_report() -> String:
+	var lines: PackedStringArray = PackedStringArray()
+	lines.append("DroneFlames PC Port %s" % String(ProjectSettings.get_setting("application/config/version", "unknown")))
+	lines.append("Godot %s · %s" % [Engine.get_version_info().get("string", "unknown"), OS.get_name()])
+	lines.append("Mods: %d installed · %d enabled" % [installed_mods.size(), enabled_mod_ids.size()])
+	var ids: Array = installed_mods.keys()
+	ids.sort()
+	for id_value: Variant in ids:
+		var mod_id: String = String(id_value)
+		var mod: Dictionary = installed_mods[mod_id]
+		var source: String = String(mod.get("_folder_path", ""))
+		var source_kind: String = "portable" if not source.begins_with("user://") else "user"
+		if bool(mod.get("_is_builtin", false)):
+			source_kind = "built-in"
+		var state: String = "loaded" if is_mod_loaded(mod_id) else ("enabled" if is_mod_enabled(mod_id) else "disabled")
+		var line: String = "- %s v%s · %s · %s" % [mod_id, String(mod.get("version", "?")), state, source_kind]
+		var load_error: String = String(mod.get("_load_error", ""))
+		if load_error != "":
+			line += " · ERROR: " + load_error
+		lines.append(line)
+	return "\n".join(lines)
+
 ## Открывает папку модов в Проводнике Windows
 func open_mods_folder_in_os() -> void:
 	var path: String = get_mods_disk_path()

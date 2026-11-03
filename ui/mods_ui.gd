@@ -139,6 +139,15 @@ static func build(menus: Menus, parent: VBoxContainer) -> void:
 	)
 	action_row.add_child(btn_refresh)
 
+	var btn_diagnostics: Button = UiKit.big("📋 ДИАГНОСТИКА", "stone", "Скопировать версии и состояние установленных модов", 36.0, 10)
+	btn_diagnostics.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_diagnostics.pressed.connect(func() -> void:
+		if mm.has_method("build_diagnostics_report"):
+			DisplayServer.clipboard_set(String(mm.call("build_diagnostics_report")))
+			menus._mp_toast("Отчёт о модах скопирован. Пришлите его вместе с жалобой.")
+	)
+	action_row.add_child(btn_diagnostics)
+
 	# Кнопка НАЗАД внизу
 	var bot_row: HBoxContainer = menus._bottom_row()
 	var back_btn: Button = menus._button(bot_row, "НАЗАД", "stone", "main")
@@ -285,10 +294,14 @@ static func _build_mod_card(menus: Menus, parent: VBoxContainer, data: Dictionar
 		icon_box.texture = icon_tex
 	else:
 		var def_icon_name: String = "map_t_normal"
-		match mod_type:
-			"textures": def_icon_name = "icon_flag_paint"
-			"ui": def_icon_name = "icon_settings"
-			"gameplay": def_icon_name = "icon_stance_attack"
+		match mod_id:
+			"city_expansion": def_icon_name = "icon_city"
+			"nuclear_strike": def_icon_name = "icon_m_ballistic"
+			_:
+				match mod_type:
+					"textures": def_icon_name = "icon_flag_paint"
+					"ui": def_icon_name = "icon_settings"
+					"gameplay": def_icon_name = "icon_stance_attack"
 		icon_box.texture = UiKit.tex(def_icon_name)
 	row.add_child(icon_box)
 
