@@ -8,7 +8,7 @@ func _init() -> void:
 	# 1. Verify project.godot settings
 	var app_name: String = ProjectSettings.get_setting("application/config/name")
 	print("application/config/name: ", app_name)
-	assert(app_name.contains("v0.33.4.8"), "config/name must contain v0.33.4.8!")
+	assert(app_name.contains("v0.33.4.9"), "config/name must contain v0.33.4.9!")
 	assert(not app_name.to_lower().contains("debug"), "config/name must NOT contain debug!")
 
 	var icon_setting: String = ProjectSettings.get_setting("application/config/icon")
@@ -24,11 +24,11 @@ func _init() -> void:
 	var wm = wm_script.new()
 	var ver: String = wm._get_game_version()
 	print("Game version from watermark: ", ver)
-	assert(ver == "v0.33.4.8", "Game version must be v0.33.4.8!")
+	assert(ver == "v0.33.4.9", "Game version must be v0.33.4.9!")
 
 	wm._init_title_string()
 	print("Generated base title: ", wm._base_title)
-	assert(wm._base_title == "DroneFlames v0.33.4.8 — PC Port by @good_boy_irl", "Title string must match expected format!")
+	assert(wm._base_title == "DroneFlames v0.33.4.9 — PC Port by @good_boy_irl", "Title string must match expected format!")
 	assert(not wm._base_title.to_lower().contains("debug"), "Base title must not contain debug!")
 
 	# 3. Verify icon files exist and load

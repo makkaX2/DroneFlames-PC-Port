@@ -46,6 +46,8 @@ var _bye: bool = false
 var _ra_try: int = 0
 var _ra_wait: float = -1.0
 var _sealed: bool = false
+var late_join: bool = false
+var _auth_tok_h: String = ""
 var _gen: int = 0
 const PING_S: float = 25.0
 const SEND_PER_S: float = 45.0
@@ -56,20 +58,35 @@ var _refreshed: bool = false
 
 
 static func available() -> bool:
-	return ClassDB.class_exists("WebRTCPeerConnectionExtension") or OS.has_feature("web")
+	return relay_only() or ClassDB.class_exists("WebRTCPeerConnectionExtension") or OS.has_feature("web")
+
+
+## MultiplayerPeer packets use the WSS room relay when this build selects relay transport.
+static func relay_only() -> bool:
+	return OS.has_feature("mp_relay")
+
+
+func room_sealed() -> bool:
+	return _sealed
 
 
 
 static func open_socket(ws: WebSocketPeer) -> int:
 	NetConfig.load_cfg()
-	ws.handshake_headers = PackedStringArray(["Authorization: Bearer " + Account.access, "User-Agent: " + Api.user_agent()])
+	var headers := PackedStringArray()
+	if relay_only():
+		headers.append("User-Agent: DroneFlames/" + NetConfig.version())
+	else:
+		headers.append("Authorization: Bearer " + Account.access)
+		headers.append("User-Agent: " + Api.user_agent())
+	ws.handshake_headers = headers
 	return ws.connect_to_url(NetConfig.signal_url, NetTls.for_url(NetConfig.signal_url))
 
 
 
 
 func host(pub: bool = false, code: String = "") -> void :
-	_start({"t": "host", "v": NetConfig.version(), "pub": pub, "code": code})
+	_start({"t": "host", "v": NetConfig.version(), "pub": pub, "code": code, "name": NetConfig.nick() if relay_only() else Account.username()})
 
 
 
@@ -77,8 +94,17 @@ func set_pub(pub: bool) -> void :
 	_send({"t": "set_pub", "pub": pub})
 
 
-func join(room: String) -> void :
-	_start({"t": "join", "code": NetConfig.clean_code(room), "v": NetConfig.version()})
+func join(room: String, tok: String = "") -> void :
+	var msg: Dictionary = {"t": "join", "code": NetConfig.clean_code(room), "v": NetConfig.version(), "late": true}
+	if tok != "":
+		msg["rejoin"] = true
+		msg["tok_h"] = tok.sha256_text()
+	_start(msg)
+
+
+func reserve(tok: String) -> void:
+	if tok != "":
+		_send({"t": "reserve", "tok_h": tok.sha256_text()})
 
 
 
@@ -162,6 +188,8 @@ func close() -> void :
 	my_id = 0
 	match_id = ""
 	_sealed = false
+	late_join = false
+	_auth_tok_h = ""
 
 
 
@@ -187,19 +215,22 @@ func _start(msg: Dictionary, keep_peer: bool = false) -> void :
 	if NetConfig.signal_url == "":
 		failed.emit("Сервер не настроен: net/net.cfg → signal_url")
 		return
-	if not Account.signed_in():
+	_tokens = 4.0 if relay_only() else SEND_BURST
+	if not Account.signed_in() and not relay_only():
 		failed.emit("Войдите в аккаунт")
 		return
 	_want = msg
+	_auth_tok_h = String(msg.get("tok_h", ""))
 	_connect()
 
 
 func _connect() -> void :
 	var g: int = _gen
-	await Account.ensure_fresh()
+	if not relay_only():
+		await Account.ensure_fresh()
 	if g != _gen:
 		return
-	if not Account.signed_in():
+	if not Account.signed_in() and not relay_only():
 		failed.emit("Сессия закончилась. Войдите снова")
 		return
 	_bye = false
@@ -220,7 +251,7 @@ func _process(delta: float) -> void :
 	if _ra_wait >= 0.0:
 		_ra_wait -= delta
 		if _ra_wait < 0.0:
-			_want = {"t": "reattach", "code": code, "id": my_id}
+			_want = {"t": "reattach", "code": code, "id": my_id, "tok_h": _auth_tok_h}
 			_connect()
 		return
 	if _ws == null:
@@ -237,7 +268,9 @@ func _process(delta: float) -> void :
 		if _ping_t <= 0.0:
 			_ping_t = PING_S
 			_send({"t": "ping"})
-		_tokens = minf(SEND_BURST, _tokens + delta * SEND_PER_S)
+		var send_burst: float = 4.0 if relay_only() else SEND_BURST
+		var send_rate: float = 20.0 if relay_only() else SEND_PER_S
+		_tokens = minf(send_burst, _tokens + delta * send_rate)
 		while not _out.is_empty() and _tokens >= 1.0:
 			_tokens -= 1.0
 			_ws.send_text(JSON.stringify(_out.pop_front()))
@@ -280,9 +313,9 @@ func _closed(c: int, reason: String) -> void :
 	if c == 1013 and not _bye:
 		failed.emit("Слишком много подключений. Попробуйте позже")
 		return
-	if _bye or (_sealed and not _p2p):
+	if _bye or (_sealed and not _p2p and not relay_only()):
 		return
-	if _p2p:
+	if _p2p and not relay_only():
 		return
 	if not was_open and String(_want.get("t", "")) == "reattach" and _ra_try < REATTACH_S.size():
 		_out = pending
@@ -344,7 +377,7 @@ func wait_turn(max_s: float = 3.0) -> void :
 
 
 func lobby() -> bool:
-	return String(_want.get("t", "")) in ["host", "join", "reattach", "queue"]
+	return String(_want.get("t", "")) in ["host", "join", "reattach", "queue"] and (not late_join or relay_only())
 
 
 
@@ -393,6 +426,10 @@ func _on_msg(d: Dictionary) -> void :
 			_conns.clear()
 			my_id = int(d["id"])
 			code = String(d.get("code", ""))
+			late_join = bool(d.get("sealed", false))
+			if late_join:
+				match_id = String(d.get("match", ""))
+				_sealed = true
 			_ice = d.get("ice", [])
 			if d.get("ranked") is Dictionary:
 				ranked = d["ranked"]
@@ -406,6 +443,9 @@ func _on_msg(d: Dictionary) -> void :
 			var c: WebRTCPeerConnection = _conn(1)
 			c.create_offer()
 			joined_room.emit()
+			if late_join:
+				_p2p = true
+				p2p_started.emit()
 		"resumed":
 			my_id = 1
 			match_id = String(d.get("match", match_id))
@@ -441,7 +481,8 @@ func _on_msg(d: Dictionary) -> void :
 			_ice = d.get("ice", _ice)
 			match_started.emit(match_id)
 			if tunnel != null and peer == null:
-				_start_p2p()
+				if not relay_only():
+					_start_p2p()
 			else:
 				close_socket()
 		"peer":

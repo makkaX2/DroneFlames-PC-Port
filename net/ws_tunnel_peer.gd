@@ -8,6 +8,8 @@ extends MultiplayerPeerExtension
 
 
 const PART: int = 6000
+const EARLY_MAX_PEERS: int = 8
+const EARLY_MAX_PACKETS: int = 64
 
 var _rtc: RtcLink
 var _id: int = 0
@@ -15,6 +17,7 @@ var _server: bool = false
 var _peers: Dictionary = {}
 var _in: Array = []
 var _cur: Array = []
+var _early: Dictionary = {}  # packets can reach the relay peer before the server's peer notification
 var _target: int = 0
 var _status: int = MultiplayerPeer.CONNECTION_CONNECTED
 var _parts: Dictionary = {}
@@ -32,11 +35,19 @@ func add(id: int) -> void :
 	if not _peers.has(id):
 		_peers[id] = true
 		peer_connected.emit(id)
+		var pending: Array = _early.get(id, [])
+		_early.erase(id)
+		for d: Dictionary in pending:
+			_receive_known(id, d)
 
 
 func remove(id: int) -> void :
 	if _peers.erase(id):
 		peer_disconnected.emit(id)
+	_early.erase(id)
+	for key: Variant in _parts.keys():
+		if String(key).begins_with("%d:" % id):
+			_parts.erase(key)
 
 
 func peer_ids() -> Array:
@@ -46,7 +57,17 @@ func peer_ids() -> Array:
 
 func receive(from: int, d: Dictionary) -> void :
 	if not _peers.has(from):
+		if from < 1 or from > 64 or (not _early.has(from) and _early.size() >= EARLY_MAX_PEERS):
+			return
+		var pending: Array = _early.get(from, [])
+		if pending.size() < EARLY_MAX_PACKETS:
+			pending.append(d.duplicate(true))
+			_early[from] = pending
 		return
+	_receive_known(from, d)
+
+
+func _receive_known(from: int, d: Dictionary) -> void:
 	var b64: String = String(d.get("p", ""))
 	var n: int = int(d.get("n", 1))
 	if n > 1:
@@ -141,6 +162,8 @@ func _close() -> void :
 	_status = MultiplayerPeer.CONNECTION_DISCONNECTED
 	_peers.clear()
 	_in.clear()
+	_early.clear()
+	_parts.clear()
 
 
 func _disconnect_peer(p_peer: int, _p_force: bool) -> void :

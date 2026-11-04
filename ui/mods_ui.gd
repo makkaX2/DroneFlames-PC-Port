@@ -316,8 +316,7 @@ static func _build_mod_card(menus: Menus, parent: VBoxContainer, data: Dictionar
 	title_row.add_theme_constant_override("separation", 6)
 	info_col.add_child(title_row)
 
-	var title_lbl: Label = UiKit.lbl(mod_name, 11, UiKit.TEXT)
-	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	var title_lbl: Control = MpKit.title_label("tt_dev_rgb", 10, mod_name.to_upper())
 	title_row.add_child(title_lbl)
 
 	var display_ver: String = installed_ver if (is_installed_view and installed_ver != "") else mod_ver
@@ -457,7 +456,7 @@ static func _open_detail_card(menus: Menus, data: Dictionary, _mm: Node) -> void
 	panel.add_child(vb)
 
 	# Шапка
-	var title_lbl: Label = UiKit.title(mod_name.to_upper(), 18)
+	var title_lbl: Control = MpKit.title_label("tt_dev_rgb", 14, mod_name.to_upper())
 	vb.add_child(title_lbl)
 
 	var meta_row: HBoxContainer = HBoxContainer.new()

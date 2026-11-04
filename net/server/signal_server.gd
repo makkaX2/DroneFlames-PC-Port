@@ -18,18 +18,18 @@ extends SceneTree
 
 
 const ALPHABET: String = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
-const MAX_PEERS: int = 4
+const MAX_PEERS: int = 8
 
 
 const TURN_TTL: int = 4 * 3600
-const MAX_CONN_PER_IP: int = 8
+const MAX_CONN_PER_IP: int = 12
 const MAX_ROOMS_PER_IP: int = 3
 const MAX_MSG_PER_S: int = 30
 const MAX_JOINS_PER_MIN: int = 10
 const IDLE_NO_ROOM_S: float = 60.0
 const IDLE_IN_ROOM_S: float = 70.0
-const MAX_CLIENTS: int = 5000
-const MAX_ROOMS: int = 2000
+const MAX_CLIENTS: int = 64
+const MAX_ROOMS: int = 24
 const LIST_MAX: int = 30
 const NAME_MAX: int = 16
 
@@ -223,6 +223,29 @@ func _on_msg(ck: int, d: Dictionary) -> void :
 			cl["id"] = 1
 			_with_ice(ck, 1, func(ice: Array) -> void : _send(ck, {"t": "room", "code": code, "ice": ice}))
 			print("[Signal] room %s opened (%d rooms)" % [code, _rooms.size()])
+		"reattach":
+			var re_code: String = String(d.get("code", "")).to_upper()
+			var re_room: Dictionary = _rooms.get(re_code, {})
+			var re_id: int = int(d.get("id", 0))
+			if re_room.is_empty() or not (re_room["peers"] as Dictionary).has(1):
+				_send(ck, {"t": "error", "why": "Комната %s не найдена" % re_code})
+				return
+			if re_id < 2 or re_id > MAX_PEERS:
+				_send(ck, {"t": "error", "why": "Неверное место игрока"})
+				return
+			if not (re_room.get("toks", []) as Array).has(String(d.get("tok_h", ""))):
+				_send(ck, {"t": "error", "why": "Нет доступа к месту игрока"})
+				return
+			var re_peers: Dictionary = re_room["peers"]
+			var old_ck: int = int(re_peers.get(re_id, 0))
+			if old_ck > 0 and old_ck != ck and _clients.has(old_ck):
+				_drop(old_ck)
+			re_peers[re_id] = ck
+			cl["room"] = re_code
+			cl["id"] = re_id
+			_with_ice(ck, re_id, func(ice: Array) -> void :
+				_send(ck, {"t": "reattached", "id": re_id, "match": String(re_room.get("match", "")), "ice": ice}))
+			_send(int(re_peers[1]), {"t": "peer", "id": re_id})
 		"join":
 			var minute: int = Time.get_ticks_msec() / 60000
 			if int(cl["join_m"]) != minute:
@@ -235,26 +258,37 @@ func _on_msg(ck: int, d: Dictionary) -> void :
 			var code2: String = String(d.get("code", "")).to_upper()
 			var r: Dictionary = _rooms.get(code2, {})
 			var why: String = ""
+			var sealed_join: bool = not r.is_empty() and bool(r.get("sealed", false))
+			var token_ok: bool = sealed_join and (r.get("toks", []) as Array).has(String(d.get("tok_h", "")))
 			if r.is_empty():
 				why = "Комната %s не найдена" % code2
 			elif String(r["v"]) != String(d.get("v", "")):
 				why = "Другая версия игры у хоста: обновите игру"
-			elif bool(r["sealed"]) and not bool(d.get("rejoin", false)):
+			elif sealed_join and not bool(d.get("late", false)) and not (bool(d.get("rejoin", false)) and token_ok):
 				why = "Партия уже идёт"
-			elif bool(r["sealed"]) and not (r.get("toks", []) as Array).has(String(d.get("tok_h", ""))):
-				why = "Партия уже идёт"
-			elif (r["peers"] as Dictionary).size() >= MAX_PEERS and not bool(r["sealed"]):
+			elif (r["peers"] as Dictionary).size() >= MAX_PEERS:
 				why = "Комната заполнена"
 			if why != "":
+				print("[Signal] join rejected for %s: %s" % [code2, why])
 				_send(ck, {"t": "error", "why": why})
 				return
-			var id: int = int(r["next"])
-			r["next"] = id + 1
-			(r["peers"] as Dictionary)[id] = ck
+			var peer_list: Dictionary = r["peers"]
+			var id: int = 2
+			while peer_list.has(id) and id <= MAX_PEERS:
+				id += 1
+			if id > MAX_PEERS:
+				_send(ck, {"t": "error", "why": "Комната заполнена"})
+				return
+			peer_list[id] = ck
 			cl["room"] = code2
 			cl["id"] = id
-			_with_ice(ck, id, func(ice: Array) -> void : _send(ck, {"t": "joined", "id": id, "code": code2, "ice": ice}))
+			_with_ice(ck, id, func(ice: Array) -> void :
+				var joined: Dictionary = {"t": "joined", "id": id, "code": code2, "ice": ice, "sealed": sealed_join}
+				if sealed_join:
+					joined["match"] = String(r.get("match", ""))
+				_send(ck, joined))
 			_send(int(r["peers"][1]), {"t": "peer", "id": id})
+			print("[Signal] peer %d joined room %s" % [id, code2])
 		"seal":
 			var r2: Dictionary = _rooms.get(String(cl["room"]), {})
 			if not r2.is_empty() and int(cl["id"]) == 1:
@@ -264,6 +298,37 @@ func _on_msg(ck: int, d: Dictionary) -> void :
 					if h is String and String(h).length() == 64:
 						th.append(String(h))
 				r2["toks"] = th.slice(0, MAX_PEERS)
+				if not r2.has("match"):
+					r2["match"] = Crypto.new().generate_random_bytes(12).hex_encode()
+				var started: Dictionary = {"t": "turn", "match": String(r2["match"]), "ice": []}
+				for peer_id: int in (r2["peers"] as Dictionary):
+					_send(int((r2["peers"] as Dictionary)[peer_id]), started)
+		"reserve":
+			var reserve_room: Dictionary = _rooms.get(String(cl["room"]), {})
+			var token_hash: String = String(d.get("tok_h", ""))
+			if not reserve_room.is_empty() and int(cl["id"]) == 1 and bool(reserve_room.get("sealed", false)) \
+					and token_hash.length() == 64:
+				var saved_tokens: Array = reserve_room.get("toks", [])
+				if not saved_tokens.has(token_hash):
+					saved_tokens.append(token_hash)
+					if saved_tokens.size() > MAX_PEERS:
+						saved_tokens.pop_front()
+					reserve_room["toks"] = saved_tokens
+		"rpc":
+			var r5: Dictionary = _rooms.get(String(cl["room"]), {})
+			var data: Variant = d.get("d", {})
+			if r5.is_empty() or not (data is Dictionary):
+				return
+			var peer_list: Dictionary = r5["peers"]
+			var from_id: int = int(cl["id"])
+			var to_id: int = int(d.get("to", 0))
+			var packet: Dictionary = {"t": "rpc", "from": from_id, "d": data}
+			if to_id == 0:
+				for peer_id2: int in peer_list:
+					if peer_id2 != from_id:
+						_send(int(peer_list[peer_id2]), packet)
+			elif peer_list.has(to_id) and to_id != from_id:
+				_send(int(peer_list[to_id]), packet)
 		"set_pub":
 			var r4: Dictionary = _rooms.get(String(cl["room"]), {})
 			if not r4.is_empty() and int(cl["id"]) == 1:

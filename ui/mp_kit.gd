@@ -685,10 +685,11 @@ static func banner_bg(parent: Control, banner_code: Variant) -> void :
 
 
 
-static func title_label(code: String, size: int = 11) -> Control:
+static func title_label(code: String, size: int = 11, display_name: String = "") -> Control:
 	var col: Color = Cosmetics.rarity_color(code)
 	var it: Dictionary = Cosmetics.item(code)
-	var l: Control = rgb_label(Cosmetics.name_of(code), size) if String(it.get("fx", "")) == "rgb" else UiKit.lbl(Cosmetics.name_of(code), size, col, 3, 2)
+	var title_text: String = display_name if display_name != "" else Cosmetics.name_of(code)
+	var l: Control = rgb_label(title_text, size) if String(it.get("fx", "")) == "rgb" else UiKit.lbl(title_text, size, col, 3, 2)
 	if String(it.get("rarity", "")) != "legendary":
 		return l
 	var p: = PanelContainer.new()

@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.4.8 (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.4.9 (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
+	"МУЛЬТИПЛЕЕР v0.33.4.9: позднее подключение к партии, возврат за свою страну и управление свободной страной ИИ",
 	"ЧЁТКОСТЬ v0.33.4.8: исправлено размытие шрифтов и 2D-графики при масштабировании окна",
 	"ПВО v0.33.4.8: окно целей и кнопки по размеру панели, без обрезания на широком экране",
 	"СОХРАНЕНИЯ v0.33.4.8: постоянная папка данных и безопасное копирование сохранений из папок прошлых версий",
@@ -841,7 +842,7 @@ func _input(event: InputEvent) -> void :
 
 
 static func mp_locked() -> bool:
-	return OS.has_feature("android") or (OS.is_debug_build() and OS.get_environment("DF_FAKE_ANDROID") != "")
+	return (OS.has_feature("android") and not RtcLink.relay_only()) or (OS.is_debug_build() and OS.get_environment("DF_FAKE_ANDROID") != "")
 
 
 
@@ -1467,15 +1468,30 @@ func show_setup() -> void :
 	_sep(vb, 4)
 	_section(vb, "ПРАВИЛА")
 	if mp_host:
-
-		_selector(vb, "БОТЫ", ["НЕТ", 1, 2, 3, 4, 5, 6], func() -> int: return clampi(GameConfig.bots, 0, 6), func(i: int) -> void :
-			var was_none: bool = GameConfig.bots == 0
-			GameConfig.bots = i
-			if was_none != (i == 0):
-				show_setup.call_deferred()
-			else:
-				_pv_texts(), 100.0, "si_bots")
-		_label(vb, Loc.t("ИГРОКОВ: %d%s") % [net.slots.size(), Loc.t(" · БЕЗ БОТОВ") if GameConfig.bots == 0 else ""], 10, UiKit.MUTED)
+		var mp_bot_room: int = maxi(0, 8 - net.slots.size())
+		_selector(vb, "КАСТОМНЫЕ БОТЫ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.cb_on else 1, func(i: int) -> void :
+			GameConfig.cb_on = i == 0
+			if GameConfig.cb_on:
+				CustomBots.seed_list()
+				CustomBots.sync_count()
+			Save.save_prefs()
+			show_setup.call_deferred(), 100.0, "si_bots")
+		if GameConfig.cb_on:
+			CustomBots.sanitize()
+			CustomBots.card(vb, show_custom_bots, true)
+			_label(vb, Loc.t("УЧАСТНИКОВ: %d · БОТОВ В МАТЧЕ: %d ИЗ %d") % [net.slots.size(), mini(GameConfig.cb_list.size(), mp_bot_room), GameConfig.cb_list.size()], 10, UiKit.MUTED)
+		else:
+			var bot_opts: Array = ["НЕТ"]
+			for bot_n in mini(6, mp_bot_room):
+				bot_opts.append(bot_n + 1)
+			_selector(vb, "БОТЫ", bot_opts, func() -> int: return clampi(GameConfig.bots, 0, bot_opts.size() - 1), func(i: int) -> void :
+				var was_none: bool = GameConfig.bots == 0
+				GameConfig.bots = i
+				if was_none != (i == 0):
+					show_setup.call_deferred()
+				else:
+					_pv_texts(), 100.0, "si_bots")
+			_label(vb, Loc.t("УЧАСТНИКОВ: %d ИЗ 8") % [net.slots.size() + GameConfig.bots], 10, UiKit.MUTED)
 
 		var sp_hint: Label = null
 		_selector(vb, "УСКОРЕНИЕ", NetConfig.SPEED_ORDER.map( func(k: int) -> String: return String(NetConfig.SPEED_WORDS[k])), 
@@ -1609,7 +1625,8 @@ func show_custom_bots(keep: bool = false) -> void :
 	var ks: int = _scroll.scroll_vertical if keep and _scroll != null and is_instance_valid(_scroll) else 0
 	var vb: VBoxContainer = _screen("Кастомные враги", 0.45, not keep)
 	current = "cbots"
-	CustomBots.build_list(self, vb)
+	var multiplayer: bool = net != null and net.is_host and net.active() and not net.in_match
+	CustomBots.build_list(self, vb, multiplayer)
 	if keep:
 		_scroll.set_deferred("scroll_vertical", ks + 64)
 
@@ -1758,23 +1775,28 @@ func show_mp(msg: String = "", sev: String = "") -> void :
 				_mp_fill_list())
 	var rs: bool = _mp_resume_card(vb)
 	var rj: bool = _mp_rejoin_card(vb)
-	MpKit.tabs(vb, [["net_lan", "WI-FI"], ["net_globe", "ОНЛАЙН", online_ok and ( not Account.signed_in() or Account.mp_ok())]], _mp_tab, func(i: int) -> void :
+	var relay_mode: bool = RtcLink.relay_only()
+	MpKit.tabs(vb, [["net_lan", "WI-FI"], ["net_globe", "ОНЛАЙН", online_ok and (relay_mode or not Account.signed_in() or Account.mp_ok())]], _mp_tab, func(i: int) -> void :
 		if i == _mp_tab:
 			return
 		_mp_tab = i
 		show_mp())
 	_acc_sig = _account_sig()
-	if _mp_tab == 0:
+	if _mp_tab == 0 or relay_mode:
 		_mp_nick_row(vb)
 	_label(vb, "БЕЗ ИНТЕРНЕТА, В ОДНОЙ СЕТИ" if _mp_tab == 0 else "ЧЕРЕЗ ИНТЕРНЕТ, ДО %d ИГРОКОВ" % NetConfig.MAX_PLAYERS, 10, UiKit.MUTED)
 	var signed: bool = Account.signed_in()
-	var open_ok: bool = online_ok and signed and Account.mp_open()
+	var open_ok: bool = online_ok and (relay_mode or (signed and Account.mp_open()))
 	if _mp_tab == 1:
 		if not online_ok:
 			MpKit.placeholder(vb, "net_warn", "ОНЛАЙН НЕДОСТУПЕН В ЭТОЙ ВЕРСИИ", "ИГРАЙТЕ ПО WI-FI: ВКЛАДКА СЛЕВА", false, 96.0)
-		elif not signed:
+		elif not signed and not relay_mode:
 			net.browser.stop()
 			_mp_signin_block(vb)
+		elif relay_mode:
+			MpKit.placeholder(vb, "net_globe", "СЕТЕВАЯ ИГРА", "СОЗДАЙТЕ КОМНАТУ И ПЕРЕДАЙТЕ КОД ДРУЗЬЯМ", false, 82.0)
+			net.browser.start()
+			MpKit.section(vb, "ОТКРЫТЫЕ КОМНАТЫ", "net_refresh", net.browser.busy and net.browser.state == RoomBrowser.STATE_OK, func() -> void : net.browser.refresh())
 		else:
 			_mp_account_card(vb)
 			if Account.mp_open():
@@ -1870,11 +1892,12 @@ func _mp_status_and_buttons(msg: String, sev: String, online_ok: bool, signed: b
 		request.emit("main"))
 	var mk: Button = _ibutton(br, "СОЗДАТЬ", "green", "", "net_lan" if _mp_tab == 0 else "net_globe", 48.0)
 	mk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mk.disabled = _mp_tab == 1 and ( not online_ok or (signed and not Account.mp_open()) or ( not signed and Account.device_check_missing()))
-	if _mp_tab == 1 and online_ok and not signed:
+	var relay_mode: bool = RtcLink.relay_only()
+	mk.disabled = _mp_tab == 1 and not relay_mode and ( not online_ok or (signed and not Account.mp_open()) or ( not signed and Account.device_check_missing()))
+	if _mp_tab == 1 and online_ok and not signed and not relay_mode:
 		mk.modulate.a = 0.6
 	mk.pressed.connect( func() -> void :
-		if _mp_tab == 1 and not Account.signed_in():
+		if _mp_tab == 1 and not relay_mode and not Account.signed_in():
 			show_auth(0, "create")
 			return
 		if not NetConfig.load_match().is_empty() and not _mp_new_ok:
@@ -2223,17 +2246,22 @@ func _mp_fill_list() -> void :
 func show_mp_create(msg: String = "") -> void :
 	if _mp_gate():
 		return
+	if RtcLink.relay_only():
+		_mp_pub = true
 	var vb: VBoxContainer = _screen("Новая комната", 0.45, current != "mp_create")
 	current = "mp_create"
 	_sheet = true
-	_label(vb, "КТО СМОЖЕТ ВОЙТИ?", 11, UiKit.GOLD)
-	MpKit.choice_card(vb, "net_public", "ПУБЛИЧНАЯ", "ВИДНА ВСЕМ В СПИСКЕ КОМНАТ", _mp_pub, func() -> void :
-		_mp_pub = true
-		show_mp_create())
-	MpKit.choice_card(vb, "net_lock", "ТОЛЬКО ПО КОДУ", "ВОЙДУТ ТЕ, КОМУ ВЫ ДАДИТЕ КОД", not _mp_pub, func() -> void :
-		_mp_pub = false
-		show_mp_create())
-	_label(vb, "ТИП МОЖНО СМЕНИТЬ И В КОМНАТЕ", 10, UiKit.MUTED)
+	if RtcLink.relay_only():
+		MpKit.placeholder(vb, "net_public", "ОТКРЫТАЯ КОМНАТА", "ПОЯВИТСЯ В СПИСКЕ · ВОЙТИ МОЖНО И ПО КОДУ", false, 70.0)
+	else:
+		_label(vb, "КТО СМОЖЕТ ВОЙТИ?", 11, UiKit.GOLD)
+		MpKit.choice_card(vb, "net_public", "ПУБЛИЧНАЯ", "ВИДНА ВСЕМ В СПИСКЕ КОМНАТ", _mp_pub, func() -> void :
+			_mp_pub = true
+			show_mp_create())
+		MpKit.choice_card(vb, "net_lock", "ТОЛЬКО ПО КОДУ", "ВОЙДУТ ТЕ, КОМУ ВЫ ДАДИТЕ КОД", not _mp_pub, func() -> void :
+			_mp_pub = false
+			show_mp_create())
+		_label(vb, "ТИП МОЖНО СМЕНИТЬ И В КОМНАТЕ", 10, UiKit.MUTED)
 	if msg != "":
 		MpKit.status_bar(vb, msg)
 	var br: HBoxContainer = _bottom_row()
@@ -2575,7 +2603,7 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 	elif changelog == "" and up != null:
 		changelog = String(up.get("latest_changelog"))
 	if tag == "":
-		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.8"
+		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.9"
 	var direct_installer_url: String = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [tag, tag]
 	if dl_url == "" or dl_url.contains("/releases/tag/") or dl_url.contains("/releases/latest") or not dl_url.ends_with(".exe"):
 		dl_url = direct_installer_url

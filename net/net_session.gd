@@ -25,7 +25,7 @@ signal player_back(nick: String)  # NET 32: a person came back into the running 
 enum Mode { OFF, LAN, ONLINE }
 
 ## GameConfig fields the host sends with the start (match rules = the single-player setup screen).
-const CFG_KEYS: Array = ["ranked", "bots", "difficulty", "aggression", "victory", "target_i", "time_i", "size_i", "fog",
+const CFG_KEYS: Array = ["ranked", "bots", "cb_on", "cb_list", "difficulty", "aggression", "victory", "target_i", "time_i", "size_i", "fog",
 	"ore_preset", "ore_custom", "creative", "night", "map_type", "rivers_i", "lakes_i", "expand_i", "reserves_i", "ai_autodig", "mp_speed", "alliances", "limit_i"]  # expand_i: NET 29 (bot growth was the guest's own setting); reserves_i / ai_autodig: v0.29b
 ## The only simulation calls a peer may send ("path.method" -> index of the argument that must be
 ## the issuer's country id, -1 = none). Every entity argument must belong to the issuer as well
@@ -144,6 +144,7 @@ var _own_fog: bool = false  # NET 35: the host restores its own saved match (its
 var _rc_limit: float = 0.0  # NET 35: this reconnect gives up after this long (a short try while the host is away)
 var _leaving: bool = false  # NET 35: inside leave()
 var _rc_card: bool = false  # NET 35: the reconnect came from «ВЕРНУТЬСЯ В ПАРТИЮ» (not from a lost link)
+var _relay_hello_sent: bool = false
 var match_id: String = ""  # BACKEND 1: the server's id of the running online match («turn»): the way back, /end
 var _rc_wait_host: bool = false  # BACKEND 1: the resume socket waits for the host (no new tries meanwhile)
 var _rc_resume: bool = false  # BACKEND 1: this try is a «resume» (its socket says «done» once connected)
@@ -176,6 +177,7 @@ var _last_snap: int = -1  # host: turn of the last snapshot; hash reports from b
 var _restoring: bool = false
 var _ready_peers: Dictionary = {}
 var _cap_done: bool = false
+var _late_cap_deadlines: Dictionary = {}
 # NET 31 game speed: the host sets it (consensus: the lowest wish of the people; auto: faster while
 # the people are quiet), a lag guard caps it; every turn carries it, so every device paces the same.
 var speed: int = 1
@@ -230,6 +232,9 @@ func setup(m: Node) -> void:
 		_rc_wait_host = true
 		_status("Ждём хоста: вернётся — подключим сами"))
 	rtc.reattaching.connect(func(why: String) -> void:
+		if why == "" and in_match and not is_host and RtcLink.relay_only():
+			_relay_hello_sent = false
+			_send_relay_hello()
 		_status(why if why != "" else "Связь восстановлена"))
 	rtc.failed.connect(func(why: String) -> void:
 		if in_match and is_host and not resume_wait:
@@ -340,7 +345,7 @@ func join_lan(ip: String, port: int = -1) -> String:
 
 ## BACKEND 1: the name of this person in a room: the account's username online, the local nick on Wi-Fi.
 func my_name() -> String:
-	if mode == Mode.ONLINE and Account.username() != "":
+	if mode == Mode.ONLINE and not RtcLink.relay_only() and Account.username() != "":
 		return NetConfig.clean_nick(Account.username())  # (critic) the same limit as the guests' names
 	return NetConfig.nick()
 
@@ -420,6 +425,10 @@ func _on_match_started(mid: String) -> void:
 		NetConfig.save_rejoin(_rejoin)
 	if mid == "":
 		print("[Net] the server gave no match id: no way back into this match")
+	if RtcLink.relay_only() and is_host and not _ranked_go.is_empty():
+		var go2: Array = _ranked_go
+		_ranked_go = []
+		_online_go(go2[0], go2[1])
 
 
 ## Host: a guest is gone without its bye: open a resume socket (the server pairs him with us again).
@@ -462,7 +471,7 @@ func drop_saved_match() -> void:
 ## ROTATION (docs/NET_ARCH.md «Ротация хоста»): an online casual match outlives its host. The host who leaves hands
 ## the match over (the server makes the most advanced guest the host at once) — when somebody else is still in it.
 func can_hand_over() -> bool:
-	if not is_host or not in_match or mode != Mode.ONLINE or match_id == "" or not GameConfig.ranked.is_empty() or match_decided:
+	if RtcLink.relay_only() or not is_host or not in_match or mode != Mode.ONLINE or match_id == "" or not GameConfig.ranked.is_empty() or match_decided:
 		return false
 	for i in slots.size():
 		if i != local_slot and _live(i) and multiplayer.get_peers().has(int(slots[i].get("peer", 0))):
@@ -521,6 +530,8 @@ var _handing_over: bool = false
 
 
 func _end_match(mid: String, played: float = -1.0) -> void:
+	if RtcLink.relay_only():
+		return
 	if played < 0.0:
 		played = _played_s if _played_mid == mid else 0.0  # read now: leave() goes on to reset the session
 	var r: Dictionary = await Api.i().call_api("POST", "/mp/match/%s/end" % mid, {"played_s": snappedf(played, 0.1)})
@@ -676,9 +687,9 @@ func host_online(pub: bool = false) -> String:
 	browser.stop()  # BACKEND 1: the server allows 2 sockets per account
 	mode = Mode.ONLINE
 	is_host = true
-	room_pub = pub
+	room_pub = pub or RtcLink.relay_only()
 	_status("Создаём комнату на сервере...")
-	rtc.host(pub)
+	rtc.host(room_pub)
 	return ""
 
 
@@ -785,6 +796,9 @@ func _on_rtc_joined() -> void:
 	multiplayer.multiplayer_peer = rtc.tunnel if rtc.lobby() else rtc.peer  # BACKEND 3: the lobby over the socket
 	room_code = rtc.code
 	_status("Соединяемся с хостом...")
+	if RtcLink.relay_only():
+		_relay_hello_sent = false
+		call_deferred("_send_relay_hello")
 
 
 func _make_host_slot() -> void:
@@ -911,14 +925,17 @@ func _reset_lockstep() -> void:
 	_ready_peers.clear()
 	_start_t = -1.0
 	_cap_done = false
+	_late_cap_deadlines.clear()
 	resyncs = 0
 	desyncs = 0
 
 
 func _on_connected() -> void:
+	if RtcLink.relay_only():
+		_send_relay_hello()
+		return
 	if _p2p_wait >= 0.0:
 		_p2p_wait = -1.0  # BACKEND 3: the host reached directly: the socket goes; the host's _start follows
-		rtc.p2p_done()
 		_status("Соединено с хостом · загружаем партию")
 		get_tree().create_timer(15.0).timeout.connect(func() -> void:
 			if not in_match and mode == Mode.ONLINE and not is_host:
@@ -935,9 +952,17 @@ func _on_connected() -> void:
 		# its queue for _rejoin_ok). Was: the short «ВЕРНУТЬСЯ» limit (15 s) ran on and gave «ХОСТ ЕЩЁ НЕ ПРОДОЛЖИЛ
 		# ПАРТИЮ», and after 12 s a new try dropped this live link (critic) — a loop burning the hour's resumes.
 		_rc_reached_at = rc_t
-	if _rc_resume and rtc.socket_open():
-		rtc.done()  # BACKEND 1: connected to the host: the way-back socket is not needed
 	_rc_resume = false
+	_status("Подключено, ждём хост")
+
+
+## The WebSocket relay peer already has its transport; it does not raise ENet/WebRTC's connected_to_server callback
+## consistently on Android, so send the host's lobby hello explicitly after the relay peer is installed.
+func _send_relay_hello() -> void:
+	if _relay_hello_sent or is_host or mode != Mode.ONLINE or multiplayer.multiplayer_peer != rtc.tunnel or rtc.tunnel == null:
+		return
+	_relay_hello_sent = true
+	_hello.rpc_id(1, NetConfig.version(), my_name(), clampi(GameConfig.arch_i, 0, 3), String(_rejoin.get("tok", "")) if reconnecting else "", my_cos(), my_flag())
 	_status("Подключено, ждём хост")
 
 
@@ -1051,13 +1076,13 @@ func _reconnect_tick(delta: float) -> void:
 			rtc.joined_room.connect(_on_rtc_joined, CONNECT_ONE_SHOT)
 		browser.stop()
 		_rc_wait_host = false
-		_rc_resume = String(_rejoin.get("match", "")) != "" and not _rc_code_once
+		_rc_resume = String(_rejoin.get("match", "")) != "" and not RtcLink.relay_only() and not _rc_code_once
 		_rc_code_once = false
 		if _rc_resume:
 			rtc.snap = exec_turn  # BACKEND 3: the freshest world wins the host's seat (ranked)
 			rtc.resume(String(_rejoin["match"]), String(_rejoin.get("tok", "")))  # BACKEND 1: the server checks the seat
 		else:
-			rtc.join(String(_rejoin.get("code", "")))  # the match is gone on the server: the host's room by its code
+			rtc.join(String(_rejoin.get("code", "")), String(_rejoin.get("tok", "")))
 	else:
 		mode = Mode.LAN
 		var p := ENetMultiplayerPeer.new()
@@ -1116,17 +1141,19 @@ func _rejoin_slot(s: int, from: int) -> void:
 	var cfg: Dictionary = {}
 	for n: String in CFG_KEYS:
 		cfg[n] = (GameConfig as GDScript).get(n)
-	_rejoin_ok.rpc_id(from, s, slots, cfg, host_active, speed, speed_why, speed_who, wants)
-	_pending.append({"k": "human", "c": s + 1, "s": -1, "q": 0, "back": was_left})  # the snapshot follows that turn (sent after he is connected)
+	if mode == Mode.ONLINE and RtcLink.relay_only() and rtc.socket_open():
+		rtc.reserve(String(_tokens.get(s, "")))
+	_roster.rpc(slots)
+	_rejoin_ok.rpc_id(from, s, slots, cfg, host_active, speed, speed_why, speed_who, wants, _late_cap_deadlines)
+	_pending.append({"k": "human", "c": s + 1, "s": -1, "q": 0, "back": was_left,
+		"name": String(slots[s].get("name", "Player")), "flag": clean_flag(slots[s].get("flag", "")), "arch": slot_arch(s)})
 	if not was_left:
 		print("[Net] (the old link of slot %d was still open)" % s)
-	print("[Net] %s came back (slot %d)" % [String(slots[s]["name"]), s])
-	if mode == Mode.ONLINE and rtc.socket_open() and not _guest_missing():
-		rtc.done()  # BACKEND 1: everybody is back: the way-back socket closes
+	print("[Net] %s rejoined (slot %d)" % [String(slots[s]["name"]), s])
 
 
 @rpc("authority", "call_remote", "reliable")
-func _rejoin_ok(s: int, sl: Array, cfg: Dictionary, ha: bool, spd: int, why: String, who: String, ws: Array) -> void:
+func _rejoin_ok(s: int, sl: Array, cfg: Dictionary, ha: bool, spd: int, why: String, who: String, ws: Array, late_caps: Dictionary) -> void:
 	for n: String in cfg:
 		if CFG_KEYS.has(n):
 			(GameConfig as GDScript).set(n, cfg[n])
@@ -1147,6 +1174,7 @@ func _rejoin_ok(s: int, sl: Array, cfg: Dictionary, ha: bool, spd: int, why: Str
 	speed_why = why
 	speed_who = who
 	wants = ws
+	_late_cap_deadlines = late_caps.duplicate(true)
 	my_want = int(ws[s]) if s < ws.size() else 1  # the host still counts the old wish
 	_rj_t = 0.0
 	gw.net_driven = true
@@ -1389,6 +1417,8 @@ func _hello(ver: String, nm: String, arch: int = 0, tok: String = "", cos: Dicti
 	elif in_match and _tok_slot(tok) >= 0 and (go or resume_wait):
 		_rejoin_slot(_tok_slot(tok), from)  # NET 32: the same person back into his seat
 		return
+	elif in_match and (go or resume_wait) and not rtc.ranked.is_empty():
+		why = "running"
 	elif in_match and (go or resume_wait):
 		var clean_nm: String = NetConfig.clean_nick(nm)
 		var s_name: int = _name_slot(clean_nm)
@@ -1408,28 +1438,30 @@ func _hello(ver: String, nm: String, arch: int = 0, tok: String = "", cos: Dicti
 		elif mode == Mode.ONLINE and rtc.peer_names.has(from) and _name_slot(String(rtc.peer_names[from])) >= 0 and _name_slot(String(rtc.peer_names[from])) != local_slot:
 			_rejoin_slot(_name_slot(String(rtc.peer_names[from])), from)
 			return
-		# Check if there is an open / left / away slot to reclaim
+		# Reclaim a disconnected seat after checking its saved token and name.
 		var candidate_slot: int = -1
 		for i in range(1, slots.size()):
-			if bool(slots[i].get("left", false)) and (bool(slots[i].get("away", false)) or resume_wait):
+			if bool(slots[i].get("left", false)) and not multiplayer.get_peers().has(int(slots[i].get("peer", 0))):
 				candidate_slot = i
 				break
 		if candidate_slot >= 0:
 			slots[candidate_slot]["name"] = clean_nm if clean_nm != "" else "Player"
 			slots[candidate_slot]["flag"] = clean_flag(flag)
+			slots[candidate_slot]["cos"] = _clean_cos(cos)
+			slots[candidate_slot].erase("away")
+			slots[candidate_slot].erase("bye")
 			var cur_tok2: String = _gen_tok()
 			_tokens[candidate_slot] = cur_tok2
 			_rejoin_tok.rpc_id(from, cur_tok2, my_name())
 			_rejoin_slot(candidate_slot, from)
 			lan.update_info({"n": slots.size()})
 			return
-		# Or if there is an unassigned AI country in the game world
+		# An unassigned AI seat keeps its developed country and becomes human controlled.
 		elif slots.size() < NetConfig.MAX_PLAYERS and gw != null and slots.size() < gw.countries.size():
 			var new_slot: int = slots.size()
 			var cid: int = new_slot + 1
 			var cc: Country = gw.country_by_id(cid)
 			if cc != null and not cc.is_player and not cc.eliminated:
-				cc.name = clean_nm if clean_nm != "" else "Player"
 				slots.append({
 					"peer": from,
 					"name": clean_nm if clean_nm != "" else "Player",
@@ -1437,6 +1469,7 @@ func _hello(ver: String, nm: String, arch: int = 0, tok: String = "", cos: Dicti
 					"left": false,
 					"arch": cc.arch,
 					"seat": from,
+					"cos": _clean_cos(cos),
 					"flag": clean_flag(flag)
 				})
 				var cur_tok3: String = _gen_tok()
@@ -1445,6 +1478,22 @@ func _hello(ver: String, nm: String, arch: int = 0, tok: String = "", cos: Dicti
 				_rejoin_slot(new_slot, from)
 				lan.update_info({"n": slots.size()})
 				return
+		# With no remaining AI country, append a fresh country if the world still has a slot.
+		if slots.size() < NetConfig.MAX_PLAYERS and gw != null and gw.countries.size() == slots.size() and gw.countries.size() < NetConfig.MAX_PLAYERS:
+			var fresh_slot: int = slots.size()
+			var new_name: String = clean_nm if clean_nm != "" else "Player"
+			var new_flag: String = clean_flag(flag)
+			var capital_deadline: float = gw.game_time + NetConfig.CAPITAL_TIMEOUT_S
+			slots.append({"peer": from, "name": new_name, "ready": true, "left": false, "arch": clampi(arch, 0, 3),
+				"seat": from, "cos": _clean_cos(cos), "flag": new_flag})
+			_tokens[fresh_slot] = _gen_tok()
+			_late_cap_deadlines[fresh_slot + 1] = capital_deadline
+			_rejoin_tok.rpc_id(from, String(_tokens[fresh_slot]), my_name())
+			_pending.append({"k": "new", "s": -1, "q": 0, "peer": from, "name": new_name, "flag": new_flag,
+				"arch": clampi(arch, 0, 3), "capital_deadline": capital_deadline})
+			_rejoin_slot(fresh_slot, from)
+			lan.update_info({"n": slots.size()})
+			return
 		why = "full" if slots.size() >= NetConfig.MAX_PLAYERS else "running"
 	elif in_match:
 		why = "running"
@@ -1477,7 +1526,7 @@ func _roster(list: Array) -> void:
 	if not rtc.ranked.is_empty() and not is_host and not _ranked_ready_sent and local_slot >= 0:
 		_ranked_ready_sent = true
 		rtc.ready()  # BACKEND 2: reached the host (its tunnel): the server waits for everybody's «ready»
-	_status("В комнате: %d · ждём, пока хост начнёт" % slots.size())
+	_status("Игрок присоединился · %d в комнате" % slots.size() if in_match else "В комнате: %d · ждём, пока хост начнёт" % slots.size())
 
 
 ## R333 I18N: the kick reason in this player's language; a host older than R333 sends the Russian words (shown as is).
@@ -1511,6 +1560,14 @@ func host_start() -> String:
 		return "Начать может только хост"
 	if slots.size() < 2:
 		return "Нужен хотя бы один игрок в комнате"
+	# Eight countries fit the map palette and simulation limit. Keep AI slots within that cap.
+	var bot_slots: int = maxi(0, 8 - slots.size())
+	if GameConfig.cb_on:
+		CustomBots.sanitize()
+		GameConfig.cb_list = GameConfig.cb_list.slice(0, mini(bot_slots, GameConfig.CB_MAX))
+		GameConfig.bots = GameConfig.cb_list.size()
+	else:
+		GameConfig.bots = clampi(GameConfig.bots, 0, mini(6, bot_slots))
 	var s := WorldSettings.new()
 	s.world_seed = randi() % 100000000
 	s.size = int(GameConfig.SIZES[GameConfig.size_i])
@@ -1547,11 +1604,16 @@ func _send_start(s: WorldSettings, cfg: Dictionary) -> void:
 ## BACKEND 3 host: after «seal» the server answers «turn» (TURN for the match); the guests connect directly
 ## (their offers through the socket); whoever is not reached in P2P_HOST_S starts as «left» (the AI plays him).
 func _online_go(s: WorldSettings, cfg: Dictionary) -> void:
-	_status("Партия создана · соединяем игроков напрямую...")
+	var relay: bool = RtcLink.relay_only()
+	_status("Партия создана · соединяем игроков через сервер..." if relay else "Партия создана · соединяем игроков напрямую...")
 	lobby_changed.emit()
 	var t0: int = Time.get_ticks_msec()
 	while mode == Mode.ONLINE and not in_match and Time.get_ticks_msec() - t0 < int(P2P_HOST_S * 1000.0):
-		var all: bool = rtc.peer != null and multiplayer.multiplayer_peer == rtc.peer
+		var all: bool = false
+		if relay:
+			all = rtc.room_sealed() and rtc.tunnel != null and multiplayer.multiplayer_peer == rtc.tunnel
+		else:
+			all = rtc.peer != null and multiplayer.multiplayer_peer == rtc.peer
 		for i in range(1, slots.size()):
 			if all and not multiplayer.get_peers().has(int(slots[i]["peer"])):
 				all = false
@@ -1560,7 +1622,12 @@ func _online_go(s: WorldSettings, cfg: Dictionary) -> void:
 		await get_tree().process_frame
 	if mode != Mode.ONLINE or in_match or not is_host:
 		return  # left meanwhile
-	if rtc.peer == null or multiplayer.multiplayer_peer != rtc.peer:
+	var transport_ready: bool = false
+	if relay:
+		transport_ready = rtc.tunnel != null and multiplayer.multiplayer_peer == rtc.tunnel and rtc.room_sealed()
+	else:
+		transport_ready = rtc.peer != null and multiplayer.multiplayer_peer == rtc.peer
+	if not transport_ready:
 		leave(false, true)
 		_status("Сервер не начал партию. Попробуйте ещё раз")
 		return
@@ -1568,7 +1635,6 @@ func _online_go(s: WorldSettings, cfg: Dictionary) -> void:
 	for i in range(1, slots.size()):
 		if not multiplayer.get_peers().has(int(slots[i]["peer"])):
 			lost.append(i)
-	rtc.p2p_done()
 	_send_start(s, cfg)
 	for i3: int in lost:  # not reached directly: his country is the AI's from the first turn
 		slots[i3]["left"] = true
@@ -1703,7 +1769,8 @@ func save_match(n: int = -1, force: bool = false) -> void:
 	var t0: int = Time.get_ticks_msec()
 	NetConfig.save_match({"v": NetConfig.version(), "turn": n, "mode": "online" if mode == Mode.ONLINE else "lan",
 		"code": room_code, "pub": room_pub, "port": NetConfig.LAN_PORT, "host": my_name(), "slots": sl, "tokens": tk, "match": match_id,
-		"cfg": cfg, "gt": gw.game_time if gw != null else 0.0, "played": _played_s, "snap": Save.net_snapshot(main)})
+		"cfg": cfg, "gt": gw.game_time if gw != null else 0.0, "played": _played_s,
+		"late_caps": _late_cap_deadlines, "snap": Save.net_snapshot(main)})
 	print("[Net] match saved at turn %d (%d ms)" % [n, Time.get_ticks_msec() - t0])
 
 
@@ -1784,6 +1851,7 @@ func resume_host() -> String:
 			(GameConfig as GDScript).set(k, cfg[k])
 	GameConfig.tutorial = false
 	_reset_lockstep()
+	_late_cap_deadlines = (d.get("late_caps", {}) as Dictionary).duplicate(true)
 	is_host = true
 	local_slot = 0
 	slots = []
@@ -1857,10 +1925,11 @@ func _resume_back(s: int, from: int) -> void:
 	slots[s]["left"] = false
 	slots[s].erase("rot")
 	_ready_peers[from] = true
+	_roster.rpc(slots)
 	var cfg: Dictionary = {}
 	for n: String in CFG_KEYS:
 		cfg[n] = (GameConfig as GDScript).get(n)
-	_rejoin_ok.rpc_id(from, s, slots, cfg, host_active, speed, speed_why, speed_who, wants)
+	_rejoin_ok.rpc_id(from, s, slots, cfg, host_active, speed, speed_why, speed_who, wants, _late_cap_deadlines)
 	_resume_note()
 	var bytes: PackedByteArray = _resume.get("snap", PackedByteArray())  # NET 35 (critic): the very bytes the host restored (the world stands)
 	if bytes.is_empty() and main != null:
@@ -1941,8 +2010,6 @@ func resume_go(by_time: bool = false) -> void:
 	if mode == Mode.ONLINE and rtc.socket_open():
 		if rtc.my_id == 1 and rtc.match_id == "" and rtc.code != "":
 			rtc.seal(_tokens.values().map(func(t: String) -> String: return t.sha256_text()))  # BACKEND 1 path b: a new match id
-		elif missing == 0:
-			rtc.done()
 	if main != null and main.has_method("net_toast"):
 		main.net_toast("ВСЕ ВЕРНУЛИСЬ · ИГРА ПРОДОЛЖАЕТСЯ" if missing == 0 else ("СТРАНЫ ОТСУТСТВУЮЩИХ ВЕДЁТ ИИ" if by_time else "ИГРА ПРОДОЛЖАЕТСЯ · СТРАНЫ ОТСУТСТВУЮЩИХ ВЕДЁТ ИИ"))
 	print("[Net] the resumed match goes on (%d not back)" % missing)
@@ -2067,16 +2134,45 @@ func _exec(cmd: Dictionary) -> void:
 			if cc != null and cc.capital_id < 0:  # v0.29 STYLE: chosen style (host timeout: seeded), same on every peer
 				cc.arch = clampi(int(cmd.get("arch", ArchStyle.seeded(gw, cid))), 0, 3)
 			res = gw.mp_place_capital(cid, cmd.get("cell", Vector2i(-1, -1)))
+			if res != null:
+				_late_cap_deadlines.erase(cid)
 		"town":
 			if issuer != null and issuer.is_player:
 				res = gw.player_found_town(cmd.get("cell", Vector2i(-1, -1)), issuer)
 		"human":
 			var ch: int = int(cmd.get("c", -1))
+			var human_country: Country = gw.country_by_id(ch)
+			if human_country != null:
+				if cmd.has("name"):
+					human_country.name = NetConfig.clean_nick(String(cmd.get("name", human_country.name)))
+				if cmd.has("arch"):
+					human_country.arch = clampi(int(cmd.get("arch", human_country.arch)), 0, 3)
+				var human_flag: String = clean_flag(cmd.get("flag", ""))
+				if human_flag != "":
+					gw.apply_flag(human_country, human_flag, false)
 			gw.mp_to_human(ch)
 			if bool(cmd.get("back", true)) and ch - 1 != local_slot and ch - 1 >= 0 and ch - 1 < slots.size():
 				player_back.emit(String((slots[ch - 1] as Dictionary).get("name", "Игрок")))
 			if is_host and ch - 1 >= 0 and ch - 1 < slots.size() and bool(cmd.get("snap", true)):
 				_resync_q.append(int(slots[ch - 1]["peer"]))  # the snapshot at the end of this turn carries him back
+		"new":
+			if gw.countries.size() >= NetConfig.MAX_PLAYERS or gw.countries.size() + 1 != slots.size():
+				done = false
+			else:
+				var new_country: Country = gw.create_country(false)
+				if new_country == null:
+					done = false
+				else:
+					new_country.is_player = true
+					new_country.arch = clampi(int(cmd.get("arch", 0)), 0, 3)
+					new_country.name = NetConfig.clean_nick(String(cmd.get("name", "Player")))
+					var new_flag: String = clean_flag(cmd.get("flag", ""))
+					if new_flag != "":
+						gw.apply_flag(new_country, new_flag, false)
+					_late_cap_deadlines[new_country.id] = float(cmd.get("capital_deadline", gw.game_time + NetConfig.CAPITAL_TIMEOUT_S))
+					_cap_done = false
+					if is_host:
+						_resync_q.append(int(cmd.get("peer", 0)))
 		"ai":
 			var ci: int = int(cmd.get("c", -1))
 			gw.mp_to_ai(ci)
@@ -2688,7 +2784,8 @@ func _creative() -> void:
 func capital_left() -> float:
 	if not in_match or not go or gw.player == null or gw.player.capital_id >= 0 or _cap_done:
 		return -1.0
-	return maxf(0.0, NetConfig.CAPITAL_TIMEOUT_S - gw.game_time)
+	var deadline: float = float(_late_cap_deadlines.get(gw.player.id, NetConfig.CAPITAL_TIMEOUT_S))
+	return maxf(0.0, deadline - gw.game_time)
 
 
 func _capital_timeout() -> void:
@@ -2697,12 +2794,11 @@ func _capital_timeout() -> void:
 	if gw.mp_all_capitals():  # (bots, if any, come in the same tick; a match may have none)
 		_cap_done = true
 		return
-	if gw.game_time < NetConfig.CAPITAL_TIMEOUT_S:
-		return
-	_cap_done = true
 	for i in slots.size():
 		var c: Country = gw.country_by_id(i + 1)
-		if c != null and c.capital_id < 0:
+		var deadline: float = float(_late_cap_deadlines.get(i + 1, NetConfig.CAPITAL_TIMEOUT_S))
+		if c != null and c.capital_id < 0 and gw.game_time >= deadline:
+			_late_cap_deadlines[i + 1] = gw.game_time + NetConfig.CAPITAL_TIMEOUT_S
 			_pending.append({"k": "cap", "c": i + 1, "s": -1, "q": 0, "cell": Vector2i(-1, -1), "arch": slot_arch(i)})  # NET 30: the style picked in the room
 
 

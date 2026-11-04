@@ -36,7 +36,7 @@ func create_country(is_player: bool, legacy_flag: bool = false) -> Country:
 
 func spawn_ai_countries(count: int) -> void :
 
-	var cb: Array = GameConfig.cb_list.slice(0, GameConfig.CB_MAX) if GameConfig.cb_active() and not net_driven else []
+	var cb: Array = GameConfig.cb_list.slice(0, GameConfig.CB_MAX) if GameConfig.cb_active() else []
 	var lands: Array = cb_lands() if not cb.is_empty() else []
 	if not cb.is_empty():
 		count = cb.size()
@@ -418,7 +418,7 @@ func mp_place_capital(cid: int, cell: Vector2i) -> City:
 		return null
 	mil.capital_plant(c, cap)
 	if mp_all_capitals() and session != null and not session.started:
-		spawn_ai_countries(GameConfig.bots)
+		spawn_ai_countries(mini(GameConfig.bots, maxi(0, 8 - countries.size())))
 		session.start()
 		if _xb_want():
 			_delay(3.0, _extra_river_links)

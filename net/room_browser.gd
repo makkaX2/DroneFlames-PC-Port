@@ -36,7 +36,7 @@ func start() -> void :
 	if _ws != null:
 		refresh()
 		return
-	if NetConfig.signal_url == "" or not RtcLink.available() or not Account.signed_in():
+	if NetConfig.signal_url == "" or not RtcLink.available() or (not Account.signed_in() and not RtcLink.relay_only()):
 		_set_state(STATE_FAIL)
 		return
 	fail_why = ""

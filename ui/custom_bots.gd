@@ -131,7 +131,7 @@ static func crowded(n: int) -> bool:
 
 
 
-static func card(parent: Control, open: Callable) -> Button:
+static func card(parent: Control, open: Callable, multiplayer: bool = false) -> Button:
 	var b: = Button.new()
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(0, 72)
@@ -187,7 +187,10 @@ static func card(parent: Control, open: Callable) -> Button:
 			lo = mini(lo, int(e["m"]))
 			hi = maxi(hi, int(e["m"]))
 		var mt: String = money_text(lo) if lo == hi else "%s–%s" % [money_text(lo), money_text(hi)]
-		col.add_child(UiKit.lbl(Loc.t("ВЫ %s · ВРАГИ %s") % [money_text(GameConfig.my_money), mt], 10, UiKit.MUTED, 1, 1))
+		if multiplayer:
+			col.add_child(UiKit.lbl(Loc.t("%d КАСТОМНЫХ БОТОВ") % n, 10, UiKit.MUTED, 1, 1))
+		else:
+			col.add_child(UiKit.lbl(Loc.t("ВЫ %s · ВРАГИ %s") % [money_text(GameConfig.my_money), mt], 10, UiKit.MUTED, 1, 1))
 	UiKit.press_fx(b)
 	b.pressed.connect(open)
 	parent.add_child(b)
@@ -214,19 +217,20 @@ static func _mini_flag(code: String, land: int) -> VBoxContainer:
 
 
 
-static func build_list(mn: Menus, vb: VBoxContainer) -> void :
+static func build_list(mn: Menus, vb: VBoxContainer, multiplayer: bool = false) -> void :
 	sanitize()
 	vb.add_theme_constant_override("separation", 6)
-	mn._section(vb, Loc.t("ВЫ · %s") % Loc.name(GameConfig.my_name).to_upper())
-	if GameConfig.creative:
-		mn._label(vb, "Творческий режим: у вас деньги без лимита", 10, UiKit.MUTED)
-	else:
-		mn._selector(vb, "СТАРТОВЫЙ КАПИТАЛ", GameConfig.MONEY_STEPS.map( func(v: int) -> String: return money_text(v)), 
-			func() -> int: return money_i(GameConfig.my_money), func(i: int) -> void :
-				GameConfig.my_money = int(GameConfig.MONEY_STEPS[i])
-				Save.save_prefs(), 100.0, "")
+	if not multiplayer:
+		mn._section(vb, Loc.t("ВЫ · %s") % Loc.name(GameConfig.my_name).to_upper())
+		if GameConfig.creative:
+			mn._label(vb, "Творческий режим: у вас деньги без лимита", 10, UiKit.MUTED)
+		else:
+			mn._selector(vb, "СТАРТОВЫЙ КАПИТАЛ", GameConfig.MONEY_STEPS.map( func(v: int) -> String: return money_text(v)),
+				func() -> int: return money_i(GameConfig.my_money), func(i: int) -> void :
+					GameConfig.my_money = int(GameConfig.MONEY_STEPS[i])
+					Save.save_prefs(), 100.0, "")
 	var n: int = GameConfig.cb_list.size()
-	mn._section(vb, Loc.t("ВРАГИ · %d ИЗ %d") % [n, GameConfig.CB_MAX])
+	mn._section(vb, Loc.t("КАСТОМНЫЕ БОТЫ · %d ИЗ %d") % [n, GameConfig.CB_MAX] if multiplayer else Loc.t("ВРАГИ · %d ИЗ %d") % [n, GameConfig.CB_MAX])
 	if n == 0:
 		var em: = PanelContainer.new()
 		em.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 8, 10))

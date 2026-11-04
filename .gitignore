@@ -1,6 +1,7 @@
 # Godot editor cache & local state (keep global_script_class_cache.cfg & imported)
 .godot/editor/
 .godot/app_userdata/
+.godot/exported/
 .godot/shader_cache/
 .godot/.gdignore
 *.translation
