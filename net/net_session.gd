@@ -174,6 +174,8 @@ var _resync_q: Array = []
 var _snap: Dictionary = {}
 var _snap_next: Array = []  # [bytes, turn] that arrived while a restore was running (newest only)
 var _last_snap: int = -1  # host: turn of the last snapshot; hash reports from before it are stale
+var _last_snap_ms: int = 0  # host: timestamp (msec) when snapshot was last sent (cooldown)
+var _sync_wait: Dictionary = {}  # host: peer_id -> {"turn": int, "started_ms": int} holds turns until acknowledged
 var _restoring: bool = false
 var _ready_peers: Dictionary = {}
 var _cap_done: bool = false
@@ -912,6 +914,8 @@ func _reset_lockstep() -> void:
 	_snap = {}
 	_snap_next = []
 	_last_snap = -1
+	_last_snap_ms = 0
+	_sync_wait.clear()
 	_restoring = false
 	speed = 1
 	speed_why = "start"
@@ -1947,10 +1951,12 @@ func _resume_back(s: int, from: int) -> void:
 		bytes = Save.net_snapshot(main)
 	var ch: int = NetConfig.SNAP_CHUNK
 	var parts: int = ceili(float(bytes.size()) / float(ch))
-	_snap_begin.rpc_id(from, int(_resume.get("turn", _host_turn - 1)), bytes.size(), parts)  # the world stands at the saved turn
+	var snap_turn: int = int(_resume.get("turn", _host_turn - 1))
+	_sync_wait[from] = {"turn": snap_turn, "started_ms": Time.get_ticks_msec()}
+	_snap_begin.rpc_id(from, snap_turn, bytes.size(), parts)  # the world stands at the saved turn
 	for i in parts:
 		_snap_part.rpc_id(from, i, bytes.slice(i * ch, mini((i + 1) * ch, bytes.size())))
-	print("[Net] %s is back in the resumed match (slot %d)" % [String(slots[s]["name"]), s])
+	print("[Net] %s is back in the resumed match (slot %d, waiting for snap ack)" % [String(slots[s]["name"]), s])
 	lobby_changed.emit()
 	if _resume_counts()[0] >= _resume_counts()[1]:
 		resume_go(false)
@@ -2297,14 +2303,14 @@ func _process(delta: float) -> void:
 
 
 ## NET 37: the worst backlog of the host itself and the live guests (their reports of the last 2 s,
-## sent every LAG_NOW_S); a guest HOLD_MAX+ behind is catching up and counts 0. -> [turns, slot].
+## sent every LAG_NOW_S). -> [turns, slot].
 func _worst_backlog() -> Array:
 	var w: int = maxi(0, last_turn - exec_turn)
 	var ws: int = local_slot
 	var now: int = Time.get_ticks_msec()
 	for s: int in _lag_now:
 		var e: Array = _lag_now[s]
-		if s != local_slot and _live(s) and now - int(e[1]) <= 2000 and int(e[0]) < NetConfig.HOLD_MAX and int(e[0]) > w:
+		if s != local_slot and _live(s) and now - int(e[1]) <= 2000 and int(e[0]) > w:
 			w = int(e[0])
 			ws = s
 	return [w, ws]
@@ -2335,6 +2341,17 @@ func _lag_now_rq(backlog: int) -> void:
 
 func _host_turns(delta: float) -> void:
 	if not host_active or _restoring:
+		_host_acc = 0.0
+		return
+	if not _sync_wait.is_empty():
+		var now_ms: int = Time.get_ticks_msec()
+		var live_peers: PackedInt32Array = multiplayer.get_peers()
+		for pid in _sync_wait.keys():
+			var info: Dictionary = _sync_wait[pid]
+			if not live_peers.has(pid) or (now_ms - int(info.get("started_ms", 0)) > 25000):
+				print("[Net] dropping peer %d from _sync_wait (disconnected or timed out)" % pid)
+				_sync_wait.erase(pid)
+	if not _sync_wait.is_empty():
 		_host_acc = 0.0
 		return
 	var turn_s: float = NetConfig.SIM_DT * NetConfig.TICKS_PER_TURN
@@ -2419,8 +2436,8 @@ func _run(delta: float, real: float = -1.0) -> void:
 func stall_text() -> String:
 	if not in_match:
 		return ""
-	if _restoring or not _snap.is_empty():
-		return "СИНХРОНИЗАЦИЯ С ХОСТОМ..."
+	if _restoring or not _snap.is_empty() or not _sync_wait.is_empty():
+		return "СИНХРОНИЗАЦИЯ С ИГРОКОМ..." if is_host else "СИНХРОНИЗАЦИЯ С ХОСТОМ..."
 	if not go:
 		return "ЖДЁМ ИГРОКОВ..."
 	if stall_t < (NetConfig.HOST_IDLE_S if not host_active else 1.0):
@@ -2441,7 +2458,7 @@ func plate() -> Dictionary:
 			"timer": _mmss(maxf(0.0, NetConfig.RECONNECT_S - rc_t))}
 	if rejoining:
 		return {"key": "rj", "sev": "info", "icon": "net_sync", "spin": true, "title": "ВОЗВРАЩАЕМСЯ В ПАРТИЮ", "sub": "ПОЛУЧАЕМ МИР ОТ ХОСТА..."}
-	if _restoring or not _snap.is_empty():
+	if _restoring or not _snap.is_empty() or not _sync_wait.is_empty():
 		return {"key": "sync", "sev": "info", "icon": "net_sync", "spin": true, "title": "СИНХРОНИЗАЦИЯ",
 			"sub": "ВЫРАВНИВАЕМ МИР У ВСЕХ ИГРОКОВ" if is_host else "ПОЛУЧАЕМ МИР ОТ ХОСТА..."}
 	if resume_wait and not _restoring and _snap.is_empty():
@@ -2876,6 +2893,12 @@ func _hash_rq(n: int, h: String, parts_json: String = "") -> void:
 func _queue_resync(peer: int, n: int) -> void:
 	if n <= _last_snap or _restoring:
 		return  # a report from before the last snapshot: that peer is being fixed already
+	if _sync_wait.has(peer):
+		return  # peer is currently restoring a snapshot
+	var now_ms: int = Time.get_ticks_msec()
+	if now_ms - _last_snap_ms < 15000:
+		print("[Net] resync cooldown active (%d ms since last snap), skipping turn %d with peer %d" % [now_ms - _last_snap_ms, n, peer])
+		return
 	desyncs += 1
 	var dp: String = _diff_parts(n, peer)
 	print("[Net] desync at turn %d with peer %d (%d so far): sending a snapshot; differs: %s" % [n, peer, desyncs, dp])
@@ -3089,6 +3112,7 @@ func _diff_parts(n: int, peer: int) -> String:
 func _send_snapshot(n: int) -> void:
 	var t0: int = Time.get_ticks_usec()
 	_last_snap = n
+	_last_snap_ms = Time.get_ticks_msec()
 	var targets: Array[int] = []
 	for p: Variant in _resync_q:
 		var pid: int = int(p)
@@ -3105,11 +3129,12 @@ func _send_snapshot(n: int) -> void:
 	var ch: int = NetConfig.SNAP_CHUNK
 	var parts: int = ceili(float(bytes.size()) / float(ch))
 	for pid: int in targets:
+		_sync_wait[pid] = {"turn": n, "started_ms": Time.get_ticks_msec()}
 		_snap_begin.rpc_id(pid, n, bytes.size(), parts)
 		for i in parts:
 			_snap_part.rpc_id(pid, i, bytes.slice(i * ch, mini((i + 1) * ch, bytes.size())))
 	resyncs += 1
-	print("[Net] snapshot of turn %d sent to peers %s: %d KiB in %d parts, %.1f ms" % [n, str(targets), bytes.size() / 1024, parts, (Time.get_ticks_usec() - t0) / 1000.0])
+	print("[Net] snapshot of turn %d sent to peers %s: %d KiB in %d parts, %.1f ms (pausing turns until ack)" % [n, str(targets), bytes.size() / 1024, parts, (Time.get_ticks_usec() - t0) / 1000.0])
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -3169,6 +3194,8 @@ func _restore_from(buf: PackedByteArray, n: int) -> void:
 	if main.has_method("net_after_restore"):
 		main.net_after_restore()
 	_restoring = false
+	if not is_host:
+		_snap_ack.rpc_id(1, n)
 	if rejoining:  # NET 32: back in the match
 		rejoining = false
 		go = true
@@ -3179,6 +3206,21 @@ func _restore_from(buf: PackedByteArray, n: int) -> void:
 		_snap_next = []
 		if int(nx[1]) > n:
 			_restore_from(nx[0], int(nx[1]))
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _snap_ack(n: int) -> void:
+	if not is_host:
+		return
+	var from: int = multiplayer.get_remote_sender_id()
+	if _sync_wait.has(from):
+		var elapsed: int = Time.get_ticks_msec() - int((_sync_wait[from] as Dictionary).get("started_ms", 0))
+		print("[Net] peer %d acknowledged snapshot of turn %d (%d ms taken)" % [from, n, elapsed])
+		_sync_wait.erase(from)
+		var s: int = _slot_of(from)
+		if s >= 0:
+			_lag.erase(s)
+			_lag_now.erase(s)
 
 
 ## R332 crash fix (TestFlight 0.30.26, ENetConnection::flush on a null host): leave() runs from the

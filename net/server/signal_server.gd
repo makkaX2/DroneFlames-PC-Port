@@ -131,6 +131,9 @@ func _process(delta: float) -> bool:
 					_pending.remove_at(i)
 					continue
 			var ws: = WebSocketPeer.new()
+			ws.inbound_buffer_size = 1048576
+			ws.outbound_buffer_size = 1048576
+			ws.max_queued_packets = 2048
 			ws.accept_stream(p[0])
 			p[1] = ws
 		var w: WebSocketPeer = p[1]
