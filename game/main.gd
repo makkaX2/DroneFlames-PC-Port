@@ -405,6 +405,8 @@ func _on_match_end(winner: int) -> void :
 		Save.match_over(world.player != null and winner == world.player.id)
 	else:
 		net.match_decided = true
+		if net.is_host:
+			net.notify_match_finished()
 		NetConfig.clear_rejoin()
 		if net.is_host:
 			NetConfig.clear_match()

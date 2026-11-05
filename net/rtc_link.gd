@@ -95,7 +95,8 @@ func set_pub(pub: bool) -> void :
 
 
 func join(room: String, tok: String = "") -> void :
-	var msg: Dictionary = {"t": "join", "code": NetConfig.clean_code(room), "v": NetConfig.version(), "late": true}
+	var msg: Dictionary = {"t": "join", "code": NetConfig.clean_code(room), "v": NetConfig.version(), "late": true,
+		"name": NetConfig.nick() if relay_only() else Account.username()}
 	if tok != "":
 		msg["rejoin"] = true
 		msg["tok_h"] = tok.sha256_text()
@@ -105,6 +106,13 @@ func join(room: String, tok: String = "") -> void :
 func reserve(tok: String) -> void:
 	if tok != "":
 		_send({"t": "reserve", "tok_h": tok.sha256_text()})
+
+
+func match_end(match_key: String, reason: String, played_s: float) -> void:
+	if _ws == null or _ws.get_ready_state() != WebSocketPeer.STATE_OPEN or my_id != 1:
+		return
+	_ws.send_text(JSON.stringify({"t": "match_end", "match": match_key, "reason": reason, "played_s": snappedf(played_s, 1.0)}))
+	_ws.poll()
 
 
 
@@ -251,7 +259,8 @@ func _process(delta: float) -> void :
 	if _ra_wait >= 0.0:
 		_ra_wait -= delta
 		if _ra_wait < 0.0:
-			_want = {"t": "reattach", "code": code, "id": my_id, "tok_h": _auth_tok_h}
+			_want = {"t": "reattach", "code": code, "id": my_id, "tok_h": _auth_tok_h,
+				"v": NetConfig.version(), "name": NetConfig.nick() if relay_only() else Account.username()}
 			_connect()
 		return
 	if _ws == null:

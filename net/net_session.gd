@@ -531,6 +531,9 @@ var _handing_over: bool = false
 
 func _end_match(mid: String, played: float = -1.0) -> void:
 	if RtcLink.relay_only():
+		if is_host:
+			var played_time: float = _played_s if played < 0.0 else played
+			rtc.match_end(mid, "completed" if match_decided else "host_left", played_time)
 		return
 	if played < 0.0:
 		played = _played_s if _played_mid == mid else 0.0  # read now: leave() goes on to reset the session
@@ -544,6 +547,11 @@ func _end_match(mid: String, played: float = -1.0) -> void:
 		Account.fetch_info()
 	else:
 		print("[Net] match %s end: %d" % [mid, int(r["code"])])
+
+
+func notify_match_finished() -> void:
+	if is_host and in_match and RtcLink.relay_only():
+		rtc.match_end(match_id, "completed", _played_s)
 
 
 # ------------------------------------------------------------------ BACKEND 2: ranked (docs/RANKED.md)

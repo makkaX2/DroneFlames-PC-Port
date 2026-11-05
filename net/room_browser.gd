@@ -80,7 +80,8 @@ func peek(code: String) -> void :
 
 func _send_peek() -> void :
 	if _peek_q != "" and _ws != null and _open:
-		_ws.send_text(JSON.stringify({"t": "peek", "code": _peek_q}))
+		_ws.send_text(JSON.stringify({"t": "peek", "code": _peek_q, "v": NetConfig.version(),
+			"name": NetConfig.nick() if RtcLink.relay_only() else Account.username()}))
 		_peek_q = ""
 
 
@@ -93,7 +94,8 @@ func refresh() -> void :
 		busy = true
 		_wait = 0.0
 		_t = REFRESH_S
-		_ws.send_text(JSON.stringify({"t": "list"}))
+		_ws.send_text(JSON.stringify({"t": "list", "v": NetConfig.version(),
+			"name": NetConfig.nick() if RtcLink.relay_only() else Account.username()}))
 		rooms_changed.emit()
 
 
