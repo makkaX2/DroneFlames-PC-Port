@@ -1185,12 +1185,16 @@ func _rejoin_ok(s: int, sl: Array, cfg: Dictionary, ha: bool, spd: int, why: Str
 	match_decided = false  # (critic) a match to come back into is still going
 	rejoining = true  # the turns wait for the snapshot (_restore_from)
 	host_active = ha
+	var old_spd: int = speed
 	speed = spd
 	speed_why = why
 	speed_who = who
 	wants = ws
 	_late_cap_deadlines = late_caps.duplicate(true)
 	my_want = int(ws[s]) if s < ws.size() else 1  # the host still counts the old wish
+	speed_changed.emit(old_spd, speed)
+	if main != null and main.has_method("_apply_speed"):
+		main._apply_speed()
 	_rj_t = 0.0
 	gw.net_driven = true
 	if _rejoin.has("gone"):
@@ -2310,7 +2314,7 @@ func _worst_backlog() -> Array:
 	var now: int = Time.get_ticks_msec()
 	for s: int in _lag_now:
 		var e: Array = _lag_now[s]
-		if s != local_slot and _live(s) and now - int(e[1]) <= 2000 and int(e[0]) > w:
+		if s != local_slot and _live(s) and now - int(e[1]) <= 6000 and int(e[0]) > w:
 			w = int(e[0])
 			ws = s
 	return [w, ws]
@@ -2378,7 +2382,12 @@ func _host_turns(delta: float) -> void:
 @rpc("authority", "call_local", "reliable")
 func _turn(n: int, cmds: Array, spd: int = 1) -> void:
 	turns[n] = cmds
+	var old_spd: int = speed
 	speed = clampi(spd, 1, int(NetConfig.MP_SPEEDS[NetConfig.MP_SPEEDS.size() - 1]))  # NET 31: pace like the host
+	if speed != old_spd:
+		speed_changed.emit(old_spd, speed)
+		if main != null and main.has_method("_apply_speed"):
+			main._apply_speed()
 	last_turn = maxi(last_turn, n)
 	turns.erase(n - TURN_KEEP)
 
@@ -2570,6 +2579,8 @@ func _speed_state(spd: int, why: String, who: String, ws: Array) -> void:
 	speed_who = who
 	wants = ws
 	speed_changed.emit(old, spd)
+	if main != null and main.has_method("_apply_speed"):
+		main._apply_speed()
 
 
 ## A person still in the match (not left, not eliminated): his wish and his device count.
@@ -2599,8 +2610,24 @@ func _speed_tick(dt: float) -> void:
 			why = "off"  # NET 33: the host turned the speed-up off: always x1
 		elif GameConfig.mp_speed == 1:
 			tgt = _auto_speed(step)
-			why = "auto" if tgt > 1 else "auto:" + _auto_why_s
-			who = _auto_who_s if tgt == 1 else ""
+			var min_w: int = int(NetConfig.MP_SPEEDS[NetConfig.MP_SPEEDS.size() - 1])
+			var holders: PackedStringArray = []
+			for i in slots.size():
+				if not _live(i):
+					continue
+				var w: int = int(wants[i])
+				if w < min_w:
+					min_w = w
+					holders = []
+				if w == min_w:
+					holders.append(String((slots[i] as Dictionary).get("name", "?")))
+			if min_w < tgt:
+				tgt = min_w
+				why = "want"
+				who = holders[0] + (" +%d" % (holders.size() - 1) if holders.size() > 1 else "") if not holders.is_empty() else ""
+			else:
+				why = "auto" if tgt > 1 else "auto:" + _auto_why_s
+				who = _auto_who_s if tgt == 1 else ""
 		else:
 			tgt = int(NetConfig.MP_SPEEDS[NetConfig.MP_SPEEDS.size() - 1])
 			var holders: PackedStringArray = []
@@ -2636,7 +2663,7 @@ func _lag_guard(now: int, step: float) -> String:
 	var worst_s: int = -1
 	for s: int in _lag:
 		var e: Array = _lag[s]
-		if not _live(s) or now - int(e[1]) > 2000:
+		if not _live(s) or now - int(e[1]) > 10000:
 			continue
 		if int(e[0]) > worst:
 			worst = int(e[0])

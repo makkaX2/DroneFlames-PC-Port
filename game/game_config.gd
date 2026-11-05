@@ -76,7 +76,7 @@ static func diff_of(c: Country) -> int:
 	if c != null and c.ai_diff >= 0:
 		return clampi(c.ai_diff, 0, 2)
 	return clampi(difficulty, 0, 2)
-static var mp_speed: int = 1
+static var mp_speed: int = 0
 static var tutorial: bool = false
 static var night: bool = true
 static var hints: bool = true

@@ -193,18 +193,21 @@ func _open_net(ns: Object, animate: bool = true) -> void :
 			MpKit.status_bar(vb, "ТИХО — УСКОРЯЕМСЯ", "ok", "net_sync", true, false)
 		else:
 			MpKit.status_bar(vb, "ТИХО — СКОРО x2", "ok", "net_sync", true, false)
-		var lad: = HBoxContainer.new()
-		lad.add_theme_constant_override("separation", 10)
-		lad.alignment = BoxContainer.ALIGNMENT_CENTER
-		vb.add_child(lad)
-		for k: int in 3:
-			var cv: = VBoxContainer.new()
-			cv.add_theme_constant_override("separation", 1)
-			lad.add_child(cv)
-			cv.add_child(_chip(k + 1, 32.0, k + 1 == spd, false))
-			var cap: Label = UiKit.lbl([Loc.t("СЕЙЧАС") if spd == 1 else "", "20 С", "60 С"][k], 10, UiKit.MUTED, 1, 1)
-			cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			cv.add_child(cap)
+		_note(vb, "ВАШ ЛИМИТ СКОРОСТИ", UiKit.MUTED)
+		var row: = HBoxContainer.new()
+		row.add_theme_constant_override("separation", int(GAP) + 3)
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		vb.add_child(row)
+		for s2: int in NetConfig.MP_SPEEDS:
+			var b: Button = _chip(s2, CHIP, s2 == int(ns.my_want), s2 == spd)
+			var w: int = s2
+			b.pressed.connect( func() -> void :
+				UiKit.snd("ui_select")
+				ns.set_want(w)
+				if w > int(ns.speed) and main.has_method("net_toast"):
+					main.net_toast("ЛИМИТ x%d · ИДЁТ x%d%s" % [w, int(ns.speed), (" (%s)" % String(ns.speed_who).to_upper()) if String(ns.speed_who) != "" else ""])
+				close())
+			row.add_child(b)
 		_note(vb, "x2 ЧЕРЕЗ 20 С ТИШИНЫ, x3 ЧЕРЕЗ 60 С", UiKit.MUTED)
 		_note(vb, "СОБЫТИЕ У ЛЮБОГО ИГРОКА — СРАЗУ x1", UiKit.MUTED)
 	else:
