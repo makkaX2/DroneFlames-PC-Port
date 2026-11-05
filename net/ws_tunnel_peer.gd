@@ -9,7 +9,7 @@ extends MultiplayerPeerExtension
 
 const PART: int = 6000
 const EARLY_MAX_PEERS: int = 8
-const EARLY_MAX_PACKETS: int = 64
+const EARLY_MAX_PACKETS: int = 256
 
 var _rtc: RtcLink
 var _id: int = 0
@@ -72,7 +72,7 @@ func _receive_known(from: int, d: Dictionary) -> void:
 	var n: int = int(d.get("n", 1))
 	if n > 1:
 		var key: String = "%d:%d" % [from, int(d.get("k", 0))]
-		if _parts.size() > 32:
+		if _parts.size() > 256:
 			_parts.clear()
 		var e: Dictionary = _parts.get(key, {"n": n, "got": {}})
 		(e["got"] as Dictionary)[int(d.get("i", 0))] = b64

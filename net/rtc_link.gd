@@ -277,8 +277,8 @@ func _process(delta: float) -> void :
 		if _ping_t <= 0.0:
 			_ping_t = PING_S
 			_send({"t": "ping"})
-		var send_burst: float = 4.0 if relay_only() else SEND_BURST
-		var send_rate: float = 20.0 if relay_only() else SEND_PER_S
+		var send_burst: float = 120.0 if relay_only() else SEND_BURST
+		var send_rate: float = 600.0 if relay_only() else SEND_PER_S
 		_tokens = minf(send_burst, _tokens + delta * send_rate)
 		while not _out.is_empty() and _tokens >= 1.0:
 			_tokens -= 1.0
@@ -526,6 +526,8 @@ func _on_msg(d: Dictionary) -> void :
 			if _conns.has(lid) and (peer == null or not peer.has_peer(lid) or peer.get_peer(lid).get("connected") != true):
 				(_conns[lid] as WebRTCPeerConnection).close()
 				_conns.erase(lid)
+		"pong":
+			pass
 		"error":
 			var why: String = String(d.get("why", "Ошибка сервера"))
 			if String(d.get("code", "")) == "suspended":

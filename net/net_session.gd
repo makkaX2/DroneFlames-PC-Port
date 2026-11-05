@@ -3086,22 +3086,27 @@ func _diff_parts(n: int, peer: int) -> String:
 func _send_snapshot(n: int) -> void:
 	var t0: int = Time.get_ticks_usec()
 	_last_snap = n
-	var bytes: PackedByteArray = Save.net_snapshot(main)
-	var ch: int = NetConfig.SNAP_CHUNK
-	var parts: int = ceili(float(bytes.size()) / float(ch))
-	# Every guest restores, not only the one that differed: the host restores too (a snapshot does
-	# not carry every cache), so a guest that kept the old state would go apart from it next.
-	_snap_begin.rpc(n, bytes.size(), parts)
-	for i in parts:
-		_snap_part.rpc(i, bytes.slice(i * ch, mini((i + 1) * ch, bytes.size())))
-	resyncs += 1
-	print("[Net] snapshot of turn %d: %d KiB in %d parts, %.1f ms" % [n, bytes.size() / 1024, parts, (Time.get_ticks_usec() - t0) / 1000.0])
+	var targets: Array[int] = []
+	for p: Variant in _resync_q:
+		var pid: int = int(p)
+		if pid > 1 and multiplayer.get_peers().has(pid) and not targets.has(pid):
+			targets.append(pid)
 	_resync_q.clear()
 	_lag.clear()  # NET 37: the backlogs of before the snapshot hold nothing now
 	_lag_now.clear()
-	# The host restores the same bytes too: a snapshot does not carry every cache / pending call
-	# (Save codec), so only "everybody restored" gives one identical state to go on from.
-	_restore_from(bytes, n)
+	if targets.is_empty():
+		return
+	var bytes: PackedByteArray = Save.net_snapshot(main)
+	if bytes.is_empty():
+		return
+	var ch: int = NetConfig.SNAP_CHUNK
+	var parts: int = ceili(float(bytes.size()) / float(ch))
+	for pid: int in targets:
+		_snap_begin.rpc_id(pid, n, bytes.size(), parts)
+		for i in parts:
+			_snap_part.rpc_id(pid, i, bytes.slice(i * ch, mini((i + 1) * ch, bytes.size())))
+	resyncs += 1
+	print("[Net] snapshot of turn %d sent to peers %s: %d KiB in %d parts, %.1f ms" % [n, str(targets), bytes.size() / 1024, parts, (Time.get_ticks_usec() - t0) / 1000.0])
 
 
 @rpc("authority", "call_remote", "reliable")

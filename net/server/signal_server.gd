@@ -24,8 +24,9 @@ const MAX_PEERS: int = 8
 const TURN_TTL: int = 4 * 3600
 const MAX_CONN_PER_IP: int = 12
 const MAX_ROOMS_PER_IP: int = 3
-const MAX_MSG_PER_S: int = 30
-const MAX_JOINS_PER_MIN: int = 10
+const MAX_MSG_PER_S: int = 1500
+const MAX_JOINS_PER_MIN: int = 60
+const MAX_PKT_BYTES: int = 262144
 const IDLE_NO_ROOM_S: float = 60.0
 const IDLE_IN_ROOM_S: float = 70.0
 const DIAG_INTERVAL_S: float = 30.0
@@ -182,7 +183,7 @@ func _process(delta: float) -> bool:
 				cl["msg_s"] = sec
 				cl["msg_n"] = 0
 			cl["msg_n"] = int(cl["msg_n"]) + 1
-			if int(cl["msg_n"]) > MAX_MSG_PER_S or pkt.size() > 16384:
+			if int(cl["msg_n"]) > MAX_MSG_PER_S or pkt.size() > MAX_PKT_BYTES:
 				_event("protocol_error", {"client": ck, "ip": String(cl.get("ip", "")), "room": String(cl.get("room", "")),
 					"name": String(cl.get("name", "")), "version": String(cl.get("version", "")),
 					"reason": "message_rate_limit" if int(cl["msg_n"]) > MAX_MSG_PER_S else "packet_too_large", "packet_bytes": pkt.size()})
@@ -485,6 +486,10 @@ func _on_msg(ck: int, d: Dictionary) -> void :
 			d["from"] = int(cl["id"])
 			d.erase("to")
 			_send(int(r3["peers"][to]), d)
+		"ping":
+			_send(ck, {"t": "pong"})
+		"done":
+			_drop(ck, "done")
 		_:
 			_event("protocol_error", {"client": ck, "ip": String(cl.get("ip", "")),
 				"room": String(cl.get("room", "")), "type": String(d.get("t", "")), "reason": "unknown_message_type"})
