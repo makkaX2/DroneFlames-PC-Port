@@ -8,7 +8,7 @@ extends Node
 signal rooms_changed
 signal peeked(code: String, open: bool)
 
-const REFRESH_S: float = 5.0
+const REFRESH_S: float = 2.5
 const ANSWER_S: float = 8.0
 const STATE_OFF: int = 0
 const STATE_LOADING: int = 1

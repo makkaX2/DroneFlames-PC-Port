@@ -80,6 +80,9 @@ static func open_socket(ws: WebSocketPeer) -> int:
 		headers.append("Authorization: Bearer " + Account.access)
 		headers.append("User-Agent: " + Api.user_agent())
 	ws.handshake_headers = headers
+	ws.inbound_buffer_size = 1048576
+	ws.outbound_buffer_size = 1048576
+	ws.max_queued_packets = 2048
 	return ws.connect_to_url(NetConfig.signal_url, NetTls.for_url(NetConfig.signal_url))
 
 
@@ -223,7 +226,7 @@ func _start(msg: Dictionary, keep_peer: bool = false) -> void :
 	if NetConfig.signal_url == "":
 		failed.emit("Сервер не настроен: net/net.cfg → signal_url")
 		return
-	_tokens = 4.0 if relay_only() else SEND_BURST
+	_tokens = 120.0 if relay_only() else SEND_BURST
 	if not Account.signed_in() and not relay_only():
 		failed.emit("Войдите в аккаунт")
 		return

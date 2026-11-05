@@ -31,7 +31,7 @@ const JOB_DELAY_TICKS: int = 120
 const SIM_DT: float = 1.0 / 30.0
 const TICKS_PER_TURN: int = 3
 const HASH_EVERY: int = 50
-const SNAP_CHUNK: int = 16000
+const SNAP_CHUNK: int = 32768
 const HOST_IDLE_S: float = 0.35
 const CAPITAL_TIMEOUT_S: float = 90.0
 

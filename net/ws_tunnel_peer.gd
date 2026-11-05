@@ -7,7 +7,7 @@ extends MultiplayerPeerExtension
 
 
 
-const PART: int = 6000
+const PART: int = 65536
 const EARLY_MAX_PEERS: int = 8
 const EARLY_MAX_PACKETS: int = 256
 

@@ -971,6 +971,9 @@ func _send_relay_hello() -> void:
 		return
 	_relay_hello_sent = true
 	_hello.rpc_id(1, NetConfig.version(), my_name(), clampi(GameConfig.arch_i, 0, 3), String(_rejoin.get("tok", "")) if reconnecting else "", my_cos(), my_flag())
+	if reconnecting:
+		_rc_reached_at = rc_t
+	_rc_resume = false
 	_status("Подключено, ждём хост")
 
 
