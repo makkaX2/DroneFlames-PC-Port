@@ -16,20 +16,17 @@ if not tg_token or not chat_id:
     sys.exit(0)
 
 try:
-    commit_msg = subprocess.check_output(["git", "log", "-1", "--pretty=%s"]).decode("utf-8").strip()
+    commit_desc = subprocess.check_output(["git", "log", "-1", "--pretty=format:%B"]).decode("utf-8").strip()
     commit_author = subprocess.check_output(["git", "log", "-1", "--pretty=%an"]).decode("utf-8").strip()
 except Exception:
-    commit_msg = "Тестовая сборка"
-    commit_author = "makkaX2"
+    commit_desc = "test build"
+    commit_author = "unknown"
 
 short_sha = commit_sha[:7] if commit_sha else "unknown"
 repo = "makkaX2/DroneFlames-PC-Port"
 base_url = f"https://github.com/{repo}"
 rel_url = f"{base_url}/releases/tag/{tag}"
 com_url = f"{base_url}/commit/{commit_sha}"
-
-def h(s):
-    return (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 def dl_url(fname):
     return f"{base_url}/releases/download/{tag}/{os.path.basename(fname)}"
@@ -39,47 +36,47 @@ win_files = [f for f in glob.glob("dist/*.zip") if "PC" in f or "macOS" not in f
 mac_files = glob.glob("dist/*.dmg")
 ver = tag.lstrip("v")
 
-text = f"""🎮 <b>DroneFlames — Тестовая сборка</b>
-<b>Версия:</b> <code>{h(tag)}</code> (ветка <code>test</code>)
+apk_name = os.path.basename(apk_files[0]) if apk_files else f"DroneFlames_v{ver}_good_boy_irl.apk"
+win_name = os.path.basename(win_files[0]) if win_files else f"DroneFlames_PC_v{ver}_good_boy_irl.zip"
+mac_name = os.path.basename(mac_files[0]) if mac_files else f"DroneFlames_macOS_v{ver}_good_boy_irl.dmg"
 
-📌 <b>Коммит:</b> <a href="{com_url}">{short_sha}</a>
-📝 <b>Сообщение:</b> <code>{h(commit_msg)}</code>
-👤 <b>Автор:</b> {h(commit_author)}
+text = f"""[build:test] {tag}
+branch: test
+commit: {short_sha}
+author: {commit_author}
+url: {com_url}
 
-📥 <b>Скачать сборку (нажмите на кнопку нужной платформы):</b>
-• <b>Android</b> — APK для смартфона/планшета
-• <b>Windows</b> — ZIP-архив с игрой для ПК
-• <b>macOS</b> — DMG-образ для Mac
+commit description:
+{commit_desc}
 
-<code>[build:test | branch: test | run: {run_id}]</code>"""
+artifacts:
+- android: {apk_name}
+- windows: {win_name}
+- macos: {mac_name}"""
 
-buttons = []
-if apk_files:
-    buttons.append([{"text": "📱 Скачать Android (.apk)", "url": dl_url(apk_files[0])}])
-elif tag:
-    buttons.append([{"text": "📱 Скачать Android (.apk)", "url": f"{base_url}/releases/download/{tag}/DroneFlames_v{ver}_good_boy_irl.apk"}])
+apk_dl = dl_url(apk_files[0]) if apk_files else f"{base_url}/releases/download/{tag}/{apk_name}"
+win_dl = dl_url(win_files[0]) if win_files else f"{base_url}/releases/download/{tag}/{win_name}"
+mac_dl = dl_url(mac_files[0]) if mac_files else f"{base_url}/releases/download/{tag}/{mac_name}"
 
-if win_files:
-    buttons.append([{"text": "💻 Скачать Windows (.zip)", "url": dl_url(win_files[0])}])
-elif tag:
-    buttons.append([{"text": "💻 Скачать Windows (.zip)", "url": f"{base_url}/releases/download/{tag}/DroneFlames_PC_v{ver}_good_boy_irl.zip"}])
-
-if mac_files:
-    buttons.append([{"text": "🍏 Скачать macOS (.dmg)", "url": dl_url(mac_files[0])}])
-elif tag:
-    buttons.append([{"text": "🍏 Скачать macOS (.dmg)", "url": f"{base_url}/releases/download/{tag}/DroneFlames_macOS_v{ver}_good_boy_irl.dmg"}])
-
-bottom_row = [
-    {"text": "📦 Все файлы на GitHub", "url": rel_url},
-    {"text": "🔍 Открыть коммит", "url": com_url}
+buttons = [
+    [
+        {"text": "[android apk]", "url": apk_dl},
+        {"text": "[windows zip]", "url": win_dl},
+        {"text": "[macos dmg]", "url": mac_dl}
+    ],
+    [
+        {"text": "[release notes]", "callback_data": "notes"},
+        {"text": "[check updates]", "callback_data": "check_now"}
+    ],
+    [
+        {"text": "[release url]", "url": rel_url},
+        {"text": "[commit url]", "url": com_url}
+    ]
 ]
-buttons.append(bottom_row)
-buttons.append([{"text": "🔄 Проверить обновления", "callback_data": "check_now"}])
 
 payload = {
     "chat_id": int(chat_id),
     "text": text,
-    "parse_mode": "HTML",
     "disable_web_page_preview": True,
     "reply_markup": {"inline_keyboard": buttons}
 }

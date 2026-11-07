@@ -106,49 +106,58 @@ export function buildMessagePayload(commit, release) {
   const tag = release ? release.tagName : 'test';
   const shortSha = commit ? commit.shortSha : 'unknown';
   const commitUrl = commit ? commit.htmlUrl : `https://github.com/${GITHUB_REPO}/commits/test`;
-  const commitMsg = commit ? escapeHtml(commit.message) : 'Тестовая сборка';
-  const author = commit ? escapeHtml(commit.authorName) : 'makkaX2';
+  const author = commit ? commit.authorName : 'unknown';
+  const commitDesc = commit ? (commit.fullMessage || commit.message || '').trim() : '';
 
-  let text = `🎮 <b>DroneFlames — Тестовая сборка</b>\n`;
-  text += `<b>Версия:</b> <code>${escapeHtml(tag)}</code> (ветка <code>test</code>)\n\n`;
-  text += `📌 <b>Коммит:</b> <a href="${commitUrl}">${shortSha}</a>\n`;
-  text += `📝 <b>Сообщение:</b> <code>${commitMsg}</code>\n`;
-  text += `👤 <b>Автор:</b> ${author}\n\n`;
-  text += `📥 <b>Скачать сборку (нажмите кнопку нужной платформы):</b>\n`;
-  text += `• <b>Android</b> — APK для смартфона/планшета\n`;
-  text += `• <b>Windows</b> — ZIP-архив с игрой для ПК\n`;
-  text += `• <b>macOS</b> — DMG-образ для Mac\n\n`;
-  text += `<code>[build:test | branch: test | release: ${escapeHtml(tag)}]</code>`;
+  let text = `[build:test] ${tag}\n`;
+  text += `branch: test\n`;
+  text += `commit: ${shortSha}\n`;
+  text += `author: ${author}\n`;
+  text += `url: ${commitUrl}\n\n`;
+
+  text += `commit description:\n${commitDesc || '(no description)'}\n\n`;
+
+  text += `artifacts:\n`;
+  if (release && release.assets) {
+    const a = release.assets;
+    if (a.apk) text += `- android: ${a.apk.name} (${a.apk.sizeMb} MB)\n`;
+    if (a.winZip) text += `- windows: ${a.winZip.name} (${a.winZip.sizeMb} MB)\n`;
+    if (a.macDmg) text += `- macos: ${a.macDmg.name} (${a.macDmg.sizeMb} MB)\n`;
+  } else {
+    text += `- compiling artifacts...\n`;
+  }
 
   const inlineKeyboard = [];
+  const dlRow = [];
 
   if (release && release.assets) {
     const a = release.assets;
-    if (a.apk) {
-      inlineKeyboard.push([{ text: '📱 Скачать Android (.apk)', url: a.apk.url }]);
-    }
-    if (a.winZip) {
-      inlineKeyboard.push([{ text: '💻 Скачать Windows (.zip)', url: a.winZip.url }]);
-    }
-    if (a.macDmg) {
-      inlineKeyboard.push([{ text: '🍏 Скачать macOS (.dmg)', url: a.macDmg.url }]);
-    }
+    if (a.apk) dlRow.push({ text: '[android apk]', url: a.apk.url });
+    if (a.winZip) dlRow.push({ text: '[windows zip]', url: a.winZip.url });
+    if (a.macDmg) dlRow.push({ text: '[macos dmg]', url: a.macDmg.url });
   }
 
-  const bottomRow = [];
+  if (dlRow.length > 0) {
+    inlineKeyboard.push(dlRow);
+  }
+
+  inlineKeyboard.push([
+    { text: '[release notes]', callback_data: 'notes' },
+    { text: '[check updates]', callback_data: 'check_now' },
+  ]);
+
+  const linkRow = [];
   if (release && release.htmlUrl) {
-    bottomRow.push({ text: '📦 Все файлы на GitHub', url: release.htmlUrl });
+    linkRow.push({ text: '[release url]', url: release.htmlUrl });
   }
   if (commitUrl) {
-    bottomRow.push({ text: '🔍 Открыть коммит', url: commitUrl });
+    linkRow.push({ text: '[commit url]', url: commitUrl });
   }
-  if (bottomRow.length > 0) {
-    inlineKeyboard.push(bottomRow);
+  if (linkRow.length > 0) {
+    inlineKeyboard.push(linkRow);
   }
 
-  inlineKeyboard.push([{ text: '🔄 Проверить обновления', callback_data: 'check_now' }]);
-
-  return { text, parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKeyboard } };
+  return { text, reply_markup: { inline_keyboard: inlineKeyboard } };
 }
 
 function escapeHtml(str) {
@@ -184,7 +193,6 @@ export async function checkAndSend(chatId = TARGET_CHAT_ID, force = false) {
   await api.sendMessage({
     chat_id: chatId,
     text: payload.text,
-    parse_mode: 'HTML',
     reply_markup: payload.reply_markup,
     disable_web_page_preview: true,
   });
