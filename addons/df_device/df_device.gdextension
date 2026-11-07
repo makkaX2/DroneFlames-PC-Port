@@ -7,7 +7,5 @@ compatibility_minimum = 4.5
 
 [libraries]
 
-macos.debug = "lib/libdf_device.macos.template_debug.universal.dylib"
-macos.release = "lib/libdf_device.macos.template_release.universal.dylib"
 ios.debug.arm64 = "lib/libdf_device.ios.template_debug.arm64.dylib"
 ios.release.arm64 = "lib/libdf_device.ios.template_release.arm64.dylib"

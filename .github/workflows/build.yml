@@ -81,6 +81,13 @@ jobs:
           Godot --headless --export-release "macOS" "build/macos/DroneFlames.zip"
           unzip -q build/macos/DroneFlames.zip -d dist/
 
+          # Find whatever .app was extracted and normalize its name to DroneFlames.app
+          EXTRACTED_APP=$(find dist -maxdepth 1 -name "*.app" | head -n 1)
+          echo "Found extracted macOS bundle: $EXTRACTED_APP"
+          if [ -n "$EXTRACTED_APP" ] && [ "$EXTRACTED_APP" != "dist/DroneFlames.app" ]; then
+            mv "$EXTRACTED_APP" dist/DroneFlames.app
+          fi
+
           # Ad-hoc codesign and remove quarantine attributes
           codesign --force --deep -s - dist/DroneFlames.app
           xattr -cr dist/DroneFlames.app
