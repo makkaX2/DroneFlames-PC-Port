@@ -104,50 +104,51 @@ export async function getLatestTestRelease() {
 
 export function buildMessagePayload(commit, release) {
   const tag = release ? release.tagName : 'test';
-  let text = `[build:test] ${tag}\n`;
-  text += `branch: test\n`;
-  if (commit) {
-    text += `commit: ${commit.shortSha} (${commit.htmlUrl})\n`;
-    text += `author: ${escapeHtml(commit.authorName)}\n`;
-    text += `msg: ${escapeHtml(commit.message)}\n`;
-  }
-  text += `\nartifacts:\n`;
+  const shortSha = commit ? commit.shortSha : 'unknown';
+  const commitUrl = commit ? commit.htmlUrl : `https://github.com/${GITHUB_REPO}/commits/test`;
+  const commitMsg = commit ? escapeHtml(commit.message) : 'Тестовая сборка';
+  const author = commit ? escapeHtml(commit.authorName) : 'makkaX2';
+
+  let text = `🎮 <b>DroneFlames — Тестовая сборка</b>\n`;
+  text += `<b>Версия:</b> <code>${escapeHtml(tag)}</code> (ветка <code>test</code>)\n\n`;
+  text += `📌 <b>Коммит:</b> <a href="${commitUrl}">${shortSha}</a>\n`;
+  text += `📝 <b>Сообщение:</b> <code>${commitMsg}</code>\n`;
+  text += `👤 <b>Автор:</b> ${author}\n\n`;
+  text += `📥 <b>Скачать сборку (нажмите кнопку нужной платформы):</b>\n`;
+  text += `• <b>Android</b> — APK для смартфона/планшета\n`;
+  text += `• <b>Windows</b> — ZIP-архив с игрой для ПК\n`;
+  text += `• <b>macOS</b> — DMG-образ для Mac\n\n`;
+  text += `<code>[build:test | branch: test | release: ${escapeHtml(tag)}]</code>`;
 
   const inlineKeyboard = [];
 
   if (release && release.assets) {
     const a = release.assets;
     if (a.apk) {
-      text += `- android: ${escapeHtml(a.apk.name)} (${a.apk.sizeMb} MB)\n  ${a.apk.url}\n`;
-      inlineKeyboard.push([{ text: `android apk (${a.apk.sizeMb} MB)`, url: a.apk.url }]);
-    }
-    if (a.winSetup) {
-      text += `- win-setup: ${escapeHtml(a.winSetup.name)} (${a.winSetup.sizeMb} MB)\n  ${a.winSetup.url}\n`;
-      inlineKeyboard.push([{ text: `win setup (.exe)`, url: a.winSetup.url }]);
+      inlineKeyboard.push([{ text: '📱 Скачать Android (.apk)', url: a.apk.url }]);
     }
     if (a.winZip) {
-      text += `- win-zip: ${escapeHtml(a.winZip.name)} (${a.winZip.sizeMb} MB)\n  ${a.winZip.url}\n`;
-      inlineKeyboard.push([{ text: `win portable (.zip)`, url: a.winZip.url }]);
+      inlineKeyboard.push([{ text: '💻 Скачать Windows (.zip)', url: a.winZip.url }]);
     }
     if (a.macDmg) {
-      text += `- macos-dmg: ${escapeHtml(a.macDmg.name)} (${a.macDmg.sizeMb} MB)\n  ${a.macDmg.url}\n`;
-      inlineKeyboard.push([{ text: `macos (.dmg)`, url: a.macDmg.url }]);
+      inlineKeyboard.push([{ text: '🍏 Скачать macOS (.dmg)', url: a.macDmg.url }]);
     }
-    if (a.macZip) {
-      text += `- macos-zip: ${escapeHtml(a.macZip.name)} (${a.macZip.sizeMb} MB)\n  ${a.macZip.url}\n`;
-    }
-  } else {
-    text += `[compiling in github actions]\n`;
   }
 
-  text += `\nrelease: ${release ? release.htmlUrl : `https://github.com/${GITHUB_REPO}/tree/test`}`;
+  const bottomRow = [];
+  if (release && release.htmlUrl) {
+    bottomRow.push({ text: '📦 Все файлы на GitHub', url: release.htmlUrl });
+  }
+  if (commitUrl) {
+    bottomRow.push({ text: '🔍 Открыть коммит', url: commitUrl });
+  }
+  if (bottomRow.length > 0) {
+    inlineKeyboard.push(bottomRow);
+  }
 
-  inlineKeyboard.push([
-    { text: 'github release', url: release ? release.htmlUrl : `https://github.com/${GITHUB_REPO}/tree/test` },
-    { text: 'commits', url: `https://github.com/${GITHUB_REPO}/commits/test` },
-  ]);
+  inlineKeyboard.push([{ text: '🔄 Проверить обновления', callback_data: 'check_now' }]);
 
-  return { text, reply_markup: { inline_keyboard: inlineKeyboard } };
+  return { text, parse_mode: 'HTML', reply_markup: { inline_keyboard: inlineKeyboard } };
 }
 
 function escapeHtml(str) {
@@ -183,6 +184,7 @@ export async function checkAndSend(chatId = TARGET_CHAT_ID, force = false) {
   await api.sendMessage({
     chat_id: chatId,
     text: payload.text,
+    parse_mode: 'HTML',
     reply_markup: payload.reply_markup,
     disable_web_page_preview: true,
   });
