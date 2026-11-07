@@ -29,3 +29,7 @@ verify_*.png
 dev/check_symbols.py
 tools/reconstruct_godot.py
 
+# Telegram Serverless Bot
+wdadwaddwadwdaabot/node_modules/
+wdadwaddwadwdaabot/.tgcloud/
+

@@ -286,3 +286,71 @@ jobs:
             - **Анонс возобновлённых партий:** При нажатии «Продолжить партию» локальный сервер автоматически объявляет себя в сети, и друзья видят комнату в списке серверов.
             - **Чистый заголовок окна:** Убрана надоедливая надпись `(DEBUG)` из заголовка окна, теперь там отображается версия: `DroneFlames v${{ steps.version_info.outputs.RAW_VER }} — PC Port by @good_boy_irl`.
             - **Официальная иконка игры:** Заменена стандартная иконка Godot — теперь везде отображается официальная эмблема игры (в таскбаре, окне, Alt-Tab и при полноэкранном режиме).
+
+      - name: Send Notification to Telegram
+        if: steps.version_info.outputs.IS_TEST == 'true' && env.TG_BOT_TOKEN != ''
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          TAG: "${{ steps.version_info.outputs.TAG_NAME }}"
+          COMMIT_SHA: "${{ github.sha }}"
+        run: |
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+          VER="${TAG#v}"
+          TEXT="[build:test] ${TAG}"$'\n'
+          TEXT+="branch: test"$'\n'
+          TEXT+="commit: ${SHORT_SHA} (https://github.com/makkaX2/DroneFlames-PC-Port/commit/${COMMIT_SHA})"$'\n'
+          TEXT+="author: ${{ github.actor }}"$'\n\n'
+          TEXT+="artifacts:"$'\n'
+          TEXT+="- android: DroneFlames_v${VER}_good_boy_irl.apk"$'\n'
+          TEXT+="  https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/${TAG}/DroneFlames_v${VER}_good_boy_irl.apk"$'\n'
+          TEXT+="- windows: DroneFlames_PC_v${VER}_good_boy_irl.zip"$'\n'
+          TEXT+="  https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/${TAG}/DroneFlames_PC_v${VER}_good_boy_irl.zip"$'\n'
+          TEXT+="- macos: DroneFlames_macOS_v${VER}_good_boy_irl.dmg"$'\n'
+          TEXT+="  https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/${TAG}/DroneFlames_macOS_v${VER}_good_boy_irl.dmg"$'\n'
+          TEXT+="- macos-zip: DroneFlames_macOS_v${VER}_good_boy_irl.zip"$'\n'
+          TEXT+="  https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/${TAG}/DroneFlames_macOS_v${VER}_good_boy_irl.zip"$'\n\n'
+          TEXT+="release: https://github.com/makkaX2/DroneFlames-PC-Port/releases/tag/${TAG}"
+
+          # Send debug text message
+          curl -s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg chat_id "$TG_CHAT_ID" \
+              --arg text "$TEXT" \
+              '{chat_id: ($chat_id | tonumber), text: $text, disable_web_page_preview: true}')" || true
+
+          # Upload artifacts directly to Telegram chat
+          for f in dist/*.apk dist/*.zip dist/*.dmg dist/*.exe; do
+            [ -f "$f" ] || continue
+            FNAME=$(basename "$f")
+            FSIZE=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f")
+            MAX_TG_BYTES=49000000
+
+            if [ "$FSIZE" -le "$MAX_TG_BYTES" ]; then
+              echo "Sending $FNAME ($FSIZE bytes) to Telegram..."
+              curl -s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendDocument" \
+                -F "chat_id=${TG_CHAT_ID}" \
+                -F "document=@${f};filename=${FNAME}" \
+                -F "caption=[file] ${FNAME}" >/dev/null || true
+            else
+              echo "File $FNAME ($FSIZE bytes) exceeds 49MB. Splitting into 45MB parts..."
+              SPLIT_DIR="/tmp/splits_${FNAME}"
+              rm -rf "$SPLIT_DIR"
+              mkdir -p "$SPLIT_DIR"
+              split -b 45M -d "$f" "$SPLIT_DIR/${FNAME}.part"
+              TOTAL_PARTS=$(ls -1 "$SPLIT_DIR" | wc -l | tr -d ' ')
+              INDEX=1
+              for part in "$SPLIT_DIR"/*; do
+                PNAME=$(basename "$part")
+                echo "Sending part $INDEX/$TOTAL_PARTS: $PNAME..."
+                curl -s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendDocument" \
+                  -F "chat_id=${TG_CHAT_ID}" \
+                  -F "document=@${part};filename=${PNAME}" \
+                  -F "caption=[file split] ${FNAME} (part ${INDEX}/${TOTAL_PARTS})" >/dev/null || true
+                INDEX=$((INDEX + 1))
+                sleep 1
+              done
+              rm -rf "$SPLIT_DIR"
+            fi
+          done
