@@ -288,13 +288,17 @@ jobs:
             - **Официальная иконка игры:** Заменена стандартная иконка Godot — теперь везде отображается официальная эмблема игры (в таскбаре, окне, Alt-Tab и при полноэкранном режиме).
 
       - name: Send Notification to Telegram
-        if: steps.version_info.outputs.IS_TEST == 'true' && env.TG_BOT_TOKEN != ''
+        if: steps.version_info.outputs.IS_TEST == 'true'
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           TAG: "${{ steps.version_info.outputs.TAG_NAME }}"
           COMMIT_SHA: "${{ github.sha }}"
         run: |
+          if [ -z "$TG_BOT_TOKEN" ]; then
+            echo "TG_BOT_TOKEN secret is not set, skipping Telegram notification."
+            exit 0
+          fi
           SHORT_SHA="${COMMIT_SHA:0:7}"
           VER="${TAG#v}"
           TEXT="[build:test] ${TAG}"$'\n'
