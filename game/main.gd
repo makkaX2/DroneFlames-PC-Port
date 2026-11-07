@@ -183,7 +183,10 @@ func _on_menu(req: String) -> void :
 		"settings_pause":
 			menus.show_settings(true)
 		"mods":
-			menus.show_mods()
+			if GameConfig.mods_enabled:
+				menus.show_mods()
+			else:
+				menus.show_mods_settings(false)
 		"start":
 			GameConfig.tutorial = false
 			if GameConfig.cb_on:
@@ -1305,10 +1308,12 @@ func _unhandled_input(event: InputEvent) -> void :
 		if mb.device == InputEvent.DEVICE_ID_EMULATION:
 			return
 		if mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
-			cam.step_zoom(1, mb.position)
+			var f: float = mb.factor if mb.factor > 0.0 else 1.0
+			cam.step_zoom(1.0, mb.position, f)
 			return
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
-			cam.step_zoom(-1, mb.position)
+			var f: float = mb.factor if mb.factor > 0.0 else 1.0
+			cam.step_zoom(-1.0, mb.position, f)
 			return
 		elif mb.button_index == MOUSE_BUTTON_RIGHT or mb.button_index == MOUSE_BUTTON_MIDDLE or KeybindManager.is_event_match(mb, "pan_mouse"):
 			if mb.pressed:

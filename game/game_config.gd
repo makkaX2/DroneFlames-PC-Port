@@ -99,6 +99,7 @@ static var confirm_actions: bool = true
 static var fog: bool = true
 static var perf_hud: bool = false
 static var dev_mode: bool = false
+static var mods_enabled: bool = false
 static var econ_fx: bool = true
 static var day_grade: bool = true
 static var ground_detail: bool = true
@@ -170,6 +171,8 @@ static func get_all_map_types() -> Array:
 			"icon": String(MAP_TYPE_ICONS[i]),
 			"land": int(MAP_LAND[i])
 		})
+	if not mods_enabled:
+		return res
 	var custom_maps: Array = custom_maps_cache
 	if custom_maps.is_empty():
 		var mm = _get_mod_manager()

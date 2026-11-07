@@ -26,4 +26,6 @@ Desktop.ini
 
 # Dev verification artifacts
 verify_*.png
+dev/check_symbols.py
+tools/reconstruct_godot.py
 

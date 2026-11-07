@@ -76,7 +76,7 @@ func _process(_delta: float) -> void:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_F11 or (event.keycode == KEY_ENTER and event.alt_pressed):
+		if event.keycode == KEY_F11 or (event.keycode == KEY_ENTER and event.alt_pressed) or (event.keycode == KEY_F and (event.meta_pressed or (event.ctrl_pressed and event.meta_pressed))):
 			get_viewport().set_input_as_handled()
 			var now: int = Time.get_ticks_msec()
 			if now - _last_fullscreen_toggle < 350:
@@ -92,7 +92,10 @@ func _input(event: InputEvent) -> void:
 			call_deferred("_setup_app_icon")
 
 func _apply_ui_scale() -> void:
-	Save.apply_ui_scale()
+	if ResourceLoader.exists("res://game/save.gd"):
+		var s = load("res://game/save.gd")
+		if s != null and s.has_method("apply_ui_scale"):
+			s.apply_ui_scale()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:

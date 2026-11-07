@@ -45,6 +45,7 @@ var smooth_zoom_enabled: bool = true
 var smooth_zoom_speed: float = 15.0
 var zoom_step_factor: float = 1.25
 var _target_z: float = 0.0
+var _last_wheel_time: int = 0
 
 
 var _settle_z: float = 0.0
@@ -220,10 +221,31 @@ func _zoom_at(z: float, focus: Vector2) -> void :
 	zoom_changed.emit(z)
 
 
-func smooth_step_zoom(dir: int, focus: Vector2) -> void :
+func smooth_step_zoom(dir: float, focus: Vector2, factor_weight: float = 1.0) -> void :
 	_dive_t = -1.0
-	var cur_tgt: float = _target_z if _target_z > 0.0 else zoom.x
-	var factor: float = pow(zoom_step_factor, float(dir))
+	var now: int = Time.get_ticks_msec()
+	var dt_ms: int = now - _last_wheel_time
+	_last_wheel_time = now
+
+	# Rate-scaling for rapid-fire events (macOS smooth scrolling utilities like Mos/Mac Mouse Fix)
+	var rate_scale: float = 1.0
+	if dt_ms < 60 and dt_ms > 0:
+		rate_scale = clampf(float(dt_ms) / 60.0, 0.1, 1.0)
+
+	var effective_weight: float = clampf(factor_weight, 0.05, 1.5) * rate_scale
+
+	var cur_z: float = zoom.x
+	var cur_tgt: float = _target_z if _target_z > 0.0 else cur_z
+
+	# Direction reversal: eliminate any sponginess/lag when suddenly switching zoom direction
+	if (dir < 0.0 and cur_tgt > cur_z) or (dir > 0.0 and cur_tgt < cur_z):
+		cur_tgt = cur_z
+	else:
+		# Don't let target zoom get more than ~1.5 steps ahead of current visual zoom
+		var max_ratio: float = pow(zoom_step_factor, 1.5)
+		cur_tgt = clampf(cur_tgt, cur_z / max_ratio, cur_z * max_ratio)
+
+	var factor: float = pow(zoom_step_factor, dir * effective_weight)
 	var new_z: float = cur_tgt * factor
 	var max_z: float = float(zs[zs.size() - 1]) * 1.5
 	new_z = clampf(new_z, min_zoom(), max_z)
@@ -240,27 +262,32 @@ func set_smooth_zoom_sensitivity(sens: float) -> void :
 func set_smooth_zoom_enabled(enabled: bool) -> void :
 	smooth_zoom_enabled = enabled
 
-func step_zoom(dir: int, focus: Vector2) -> void :
+func step_zoom(dir: float, focus: Vector2, factor_weight: float = 1.0) -> void :
 	if smooth_zoom_enabled:
-		smooth_step_zoom(dir, focus)
+		smooth_step_zoom(dir, focus, factor_weight)
 		return
-	if floor_z <= 0.0 and (zoom.x < float(zs[0]) - 0.001 or dir < 0):
+	var now: int = Time.get_ticks_msec()
+	if now - _last_wheel_time < 50:
+		return
+	_last_wheel_time = now
+	var idir: int = int(signf(dir))
+	if floor_z <= 0.0 and (zoom.x < float(zs[0]) - 0.001 or idir < 0):
 		var z0: float = zoom.x
-		if dir < 0 and z0 <= float(zs[0]) + 0.001:
+		if idir < 0 and z0 <= float(zs[0]) + 0.001:
 			set_zoom_at(maxf(min_zoom(), STRAT_FULL if z0 > STRAT_FULL + 0.001 else z0 * STRAT_WHEEL), focus)
 			return
-		if dir > 0 and z0 < float(zs[0]) - 0.001:
+		if idir > 0 and z0 < float(zs[0]) - 0.001:
 			set_zoom_at(float(zs[0]) if z0 >= STRAT_FULL - 0.001 else minf(STRAT_FULL, z0 / STRAT_WHEEL), focus)
 			return
 	if min_zoom() < float(zs[0]):
-		if dir < 0 and zoom.x <= float(zs[0]) + 0.001:
+		if idir < 0 and zoom.x <= float(zs[0]) + 0.001:
 			set_zoom_at(min_zoom(), focus)
 			return
-		if dir > 0 and zoom.x < float(zs[0]) - 0.001:
+		if idir > 0 and zoom.x < float(zs[0]) - 0.001:
 			set_zoom_at(float(zs[0]), focus)
 			return
 	var idx: int = nearest_index(zoom.x)
-	idx = clampi(idx + dir, 0, zs.size() - 1)
+	idx = clampi(idx + idir, 0, zs.size() - 1)
 	set_zoom_at(float(zs[idx]), focus)
 
 

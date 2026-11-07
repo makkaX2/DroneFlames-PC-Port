@@ -52,10 +52,27 @@ var _active_main: Node = null
 var _active_world: Node = null
 var _is_initializing_mod: bool = false
 
+func _are_mods_enabled() -> bool:
+	if ResourceLoader.exists("res://game/game_config.gd"):
+		var cfg = load("res://game/game_config.gd")
+		if cfg != null and "mods_enabled" in cfg:
+			return bool(cfg.mods_enabled)
+	return false
+
+func _set_custom_maps_cache(arr: Array) -> void:
+	if ResourceLoader.exists("res://game/game_config.gd"):
+		var cfg = load("res://game/game_config.gd")
+		if cfg != null and "custom_maps_cache" in cfg:
+			cfg.custom_maps_cache = arr
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_network()
 	_ensure_directories()
+	if ResourceLoader.exists("res://game/save.gd"):
+		var s = load("res://game/save.gd")
+		if s != null and s.has_method("load_prefs"):
+			s.load_prefs()
 	_load_config()
 	scan_installed_mods()
 
@@ -307,21 +324,32 @@ func scan_installed_mods() -> void:
 	_unpack_pending_dfmods(USER_MODS_DIR)
 	_scan_dir(USER_MODS_DIR, false)
 
-	# 2. Сканируем папку рядом с .exe (портативные моды), если отличается от user:// и res://
+	# 2. Сканируем папку рядом с .exe / .app (портативные моды), если отличается от user:// и res://
 	var exe_mods: String = OS.get_executable_path().get_base_dir().path_join("mods")
+	if OS.get_name() == "macOS" and not DirAccess.dir_exists_absolute(exe_mods):
+		# Внутри macOS .app бандла исполняемый файл в Contents/MacOS/, поднимаемся к папке с .app
+		var bundle_parent: String = OS.get_executable_path().get_base_dir().get_base_dir().get_base_dir().get_base_dir()
+		var app_mods: String = bundle_parent.path_join("mods")
+		if DirAccess.dir_exists_absolute(app_mods):
+			exe_mods = app_mods
 	var user_mods_global: String = ProjectSettings.globalize_path(USER_MODS_DIR)
 	var builtin_mods_global: String = ProjectSettings.globalize_path(BUILTIN_MODS_DIR)
 	if DirAccess.dir_exists_absolute(exe_mods) and exe_mods != user_mods_global and exe_mods != builtin_mods_global:
 		_unpack_pending_dfmods(exe_mods)
 		_scan_dir_absolute(exe_mods, false)
 
-	# 3. Активируем ТОЛЬКО те моды, которые пользователь включил! (Ванильный режим по умолчанию)
-	for mod_id in installed_mods.keys():
-		if enabled_mod_ids.has(mod_id):
-			if not _load_mod(mod_id):
-				enabled_mod_ids.erase(mod_id)
-				if not disabled_mod_ids.has(mod_id):
-					disabled_mod_ids.append(mod_id)
+	# 3. Активируем ТОЛЬКО те моды, которые пользователь включил! (Если моды разрешены в настройках)
+	if _are_mods_enabled():
+		for mod_id in installed_mods.keys():
+			if enabled_mod_ids.has(mod_id):
+				if not _load_mod(mod_id):
+					enabled_mod_ids.erase(mod_id)
+					if not disabled_mod_ids.has(mod_id):
+						disabled_mod_ids.append(mod_id)
+	else:
+		for mod_id in installed_mods.keys():
+			if is_mod_loaded(mod_id):
+				_unload_mod(mod_id)
 
 	_save_config()
 	mods_updated.emit()
@@ -461,10 +489,11 @@ func toggle_mod(mod_id: String, enable: bool) -> void:
 		disabled_mod_ids.erase(mod_id)
 		if not enabled_mod_ids.has(mod_id):
 			enabled_mod_ids.append(mod_id)
-		if not _load_mod(mod_id):
-			enabled_mod_ids.erase(mod_id)
-			if not disabled_mod_ids.has(mod_id):
-				disabled_mod_ids.append(mod_id)
+		if _are_mods_enabled():
+			if not _load_mod(mod_id):
+				enabled_mod_ids.erase(mod_id)
+				if not disabled_mod_ids.has(mod_id):
+					disabled_mod_ids.append(mod_id)
 	else:
 		if not disabled_mod_ids.has(mod_id):
 			disabled_mod_ids.append(mod_id)
@@ -561,14 +590,14 @@ func register_map_type(data: Dictionary) -> void:
 	if id == "":
 		return
 	registered_map_types[id] = data
-	GameConfig.custom_maps_cache = registered_map_types.values()
+	_set_custom_maps_cache(registered_map_types.values())
 	print("[ModManager] Registered custom map type: ", id, " ('", data.get("name", ""), "')")
 	mods_updated.emit()
 
 func unregister_map_type(id: String) -> void:
 	if registered_map_types.has(id):
 		registered_map_types.erase(id)
-		GameConfig.custom_maps_cache = registered_map_types.values()
+		_set_custom_maps_cache(registered_map_types.values())
 		print("[ModManager] Unregistered map type: ", id)
 		mods_updated.emit()
 

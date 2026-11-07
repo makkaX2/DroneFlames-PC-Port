@@ -175,6 +175,25 @@ def main():
         print("  [Notice] Inno Setup (ISCC.exe) not found. Skipped installer .exe compilation.")
         print("           Portable ZIP was built successfully in dist/.")
 
+    # 5b. Packaging for macOS (if on macOS and DroneFlames.app is present)
+    if sys.platform == "darwin":
+        mac_app_candidates = [
+            DIST_DIR / "DroneFlames_macOS_Test" / "DroneFlames.app",
+            DIST_DIR / "DroneFlames.app",
+        ]
+        mac_app = next((p for p in mac_app_candidates if p.exists()), None)
+        if mac_app:
+            dmg_name = f"{APP_NAME}_macOS_v{VERSION}_{PUBLISHER}.dmg"
+            dmg_path = DIST_DIR / dmg_name
+            print(f"Creating macOS DMG package: {dmg_name}...")
+            subprocess.run([
+                "hdiutil", "create",
+                "-volname", APP_NAME,
+                "-srcfolder", str(mac_app),
+                "-ov", "-format", "UDZO",
+                str(dmg_path)
+            ], check=False)
+
     print("\n=== Build Complete! Files in dist/: ===")
     for item in DIST_DIR.iterdir():
         if item.is_file():

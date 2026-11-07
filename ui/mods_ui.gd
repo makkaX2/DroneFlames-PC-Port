@@ -58,6 +58,14 @@ static func build(menus: Menus, parent: VBoxContainer) -> void:
 
 	_ensure_signals(menus, mm)
 
+	# Предупреждение об экспериментальном режиме
+	var exp_badge: PanelContainer = PanelContainer.new()
+	exp_badge.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 6, 4))
+	parent.add_child(exp_badge)
+	var exp_lbl: Label = UiKit.lbl("⚠️ Экспериментальный режим: моды могут быть крайне нестабильными", 9, UiKit.GOLD, 1, 1)
+	exp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	exp_badge.add_child(exp_lbl)
+
 	# Верхняя панель: Переключатель вкладок
 	var top_tabs: HBoxContainer = HBoxContainer.new()
 	top_tabs.add_theme_constant_override("separation", 8)
@@ -150,8 +158,16 @@ static func build(menus: Menus, parent: VBoxContainer) -> void:
 
 	# Кнопка НАЗАД внизу
 	var bot_row: HBoxContainer = menus._bottom_row()
-	var back_btn: Button = menus._button(bot_row, "НАЗАД", "stone", "main")
+	var back_btn: Button = menus._button(bot_row, "НАЗАД", "stone", "")
 	back_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back_btn.pressed.connect(func() -> void:
+		UiKit.snd("ui_click")
+		if bool(menus.get("_mods_from_settings")):
+			menus.set("_mods_from_settings", false)
+			menus.show_mods_settings(menus._from_pause)
+		else:
+			menus.request.emit("main")
+	)
 
 static func _build_installed_tab(menus: Menus, parent: VBoxContainer, mm: Node) -> void:
 	var list_container: VBoxContainer = VBoxContainer.new()

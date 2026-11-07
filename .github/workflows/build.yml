@@ -43,6 +43,61 @@ jobs:
             dist/*.zip
           if-no-files-found: error
 
+  build-macos:
+    name: Build macOS Universal Port
+    runs-on: macos-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout Repository (with Git LFS)
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Godot 4.7.2 Headless & macOS Export Templates
+        run: |
+          mkdir -p godot_bin
+          curl -fL -o godot_bin/godot.zip https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_macos.universal.zip
+          unzip -q godot_bin/godot.zip -d godot_bin
+          xattr -cr godot_bin/Godot.app || true
+          chmod +x godot_bin/Godot.app/Contents/MacOS/Godot
+          echo "$PWD/godot_bin/Godot.app/Contents/MacOS" >> $GITHUB_PATH
+
+          TEMPLATES_DIR="$HOME/Library/Application Support/Godot/export_templates/4.7.2.stable"
+          mkdir -p "$TEMPLATES_DIR"
+          curl -fL -o godot_bin/templates.tpz https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz
+          unzip -q godot_bin/templates.tpz -d godot_bin/templates_extracted
+          cp -r godot_bin/templates_extracted/templates/* "$TEMPLATES_DIR/"
+
+      - name: Export macOS Universal (.app)
+        run: |
+          mkdir -p dist build/macos
+          VERSION=$(python3 -c "import build; print(build.VERSION)")
+          Godot --headless --export-release "macOS" "build/macos/DroneFlames.zip"
+          unzip -q build/macos/DroneFlames.zip -d dist/
+
+          # Ad-hoc codesign and remove quarantine attributes
+          codesign --force --deep -s - dist/DroneFlames.app
+          xattr -cr dist/DroneFlames.app
+
+          # Create DMG and Portable ZIP
+          hdiutil create -volname "DroneFlames" -srcfolder dist/DroneFlames.app -ov -format UDZO "dist/DroneFlames_macOS_v${VERSION}_good_boy_irl.dmg"
+          (cd dist && zip -r -q "DroneFlames_macOS_v${VERSION}_good_boy_irl.zip" "DroneFlames.app" && rm -rf "DroneFlames.app")
+
+      - name: Upload macOS Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-builds
+          path: |
+            dist/*.dmg
+            dist/*macOS*.zip
+          if-no-files-found: ignore
+
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
@@ -117,7 +172,7 @@ jobs:
 
   release:
     name: Publish GitHub Release
-    needs: [build-windows, build-android]
+    needs: [build-windows, build-macos, build-android]
     runs-on: ubuntu-latest
     if: |
       always() &&
@@ -176,6 +231,7 @@ jobs:
           files: |
             dist/*.exe
             dist/*.zip
+            dist/*.dmg
             dist/*.apk
           body: |
             ## 🎮 DroneFlames — PC Port by @good_boy_irl
@@ -184,11 +240,18 @@ jobs:
             ### 📦 Файлы для загрузки:
             - **Windows Setup Installer:** `DroneFlames_PC_Setup_v${{ steps.version_info.outputs.RAW_VER }}_good_boy_irl.exe`
             - **Windows Portable (.ZIP):** `DroneFlames_PC_v${{ steps.version_info.outputs.RAW_VER }}_good_boy_irl.zip`
+            - **macOS Universal (.DMG):** `DroneFlames_macOS_v${{ steps.version_info.outputs.RAW_VER }}_good_boy_irl.dmg`
+            - **macOS Portable (.ZIP):** `DroneFlames_macOS_v${{ steps.version_info.outputs.RAW_VER }}_good_boy_irl.zip`
             - **Android APK:** `DroneFlames_v${{ steps.version_info.outputs.RAW_VER }}_good_boy_irl.apk`
 
             ---
 
             ### 🔥 Обновления и исправления ${{ steps.version_info.outputs.TAG_NAME }}:
+            - **Нативная поддержка macOS (Universal Apple Silicon & Intel):** Полноценная третья поддерживаемая платформа! Сборка упакована в нативные DMG и Portable ZIP с поддержкой жестов трекпада macOS (pinch-to-zoom, панорамирование двумя пальцами) и сочетаний клавиш.
+            - **Мультиплеер — позднее подключение и реконнект (Late Join):** Возможность подключаться к уже идущей партии, восстанавливать контроль над своей страной после вылета или брать управление над свободной страной ИИ.
+            - **Мультиплеер — консенсусная скорость и защита от десинхронов:** Синхронизация скорости игры, устранение циклов рассинхронизации через паузу снапшотов и подтверждения (ACK).
+            - **Оптимизация и безопасность модов:** Модификации временно скрыты с главного экрана для максимальной стабильности у обычных игроков; для моддеров и тестирования доступен переключатель в настройках.
+            - **Умное сглаживание зума и совместимость с утилитами мыши macOS:** Полностью решена проблема резкого улёта камеры при использовании программ плавной прокрутки (Mos, Mac Mouse Fix, SmoothScroll, LinearMouse); добавлен учёт `factor` и адаптивное масштабирование частоты событий.
             - **Чёткая графика:** интерфейс и шрифты рисуются в разрешении окна без размытия из-за растяжения низкоразрешённого кадра.
             - **Окно целей ПВО:** сетка целей рассчитывается по ширине панели, поэтому элементы не раздвигают окно за край экрана.
             - **Сохранения:** стабильная папка пользовательских данных между версиями; сохранения и настройки копируются из старых папок без удаления исходных файлов.

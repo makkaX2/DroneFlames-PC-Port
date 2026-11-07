@@ -39,7 +39,7 @@ const GENERIC: Array = ["defense", "diplo", "ai", "session"]
 const CFG: Array = ["bots", "difficulty", "aggression", "victory", "target_i", "time_i", "size_i", "tutorial", "fog", "ore_preset", "ore_custom", "creative", "expand_i", "reserves_i", "ai_autodig", "alliances", "limit_i"]
 
 
-const PREFS: Array = ["night", "hints", "econ_fx", "clouds", "fx_level", "ground_detail", "day_grade", "perf_hud", "confirm_actions", "dev_mode", "arch_i", "opening", "notif_mode", "plan_pos", "power_save", "my_name", "my_flag", "my_land", "cb_on", "cb_list", "my_money", "lang", "pseudo_loc", "fps_i", "ui_scale_i", "ui_scale_auto", "resolution_w", "resolution_h"]
+const PREFS: Array = ["night", "hints", "econ_fx", "clouds", "fx_level", "ground_detail", "day_grade", "perf_hud", "confirm_actions", "dev_mode", "arch_i", "opening", "notif_mode", "plan_pos", "power_save", "my_name", "my_flag", "my_land", "cb_on", "cb_list", "my_money", "lang", "pseudo_loc", "fps_i", "ui_scale_i", "ui_scale_auto", "resolution_w", "resolution_h", "mods_enabled"]
 const DISPLAY_RESOLUTIONS: Array[Vector2i] = [
 	Vector2i(3840, 2160), Vector2i(2560, 1600), Vector2i(2560, 1440),
 	Vector2i(1920, 1200), Vector2i(1920, 1080), Vector2i(1680, 1050),

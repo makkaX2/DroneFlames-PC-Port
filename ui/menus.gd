@@ -55,6 +55,7 @@ var _mp_code: String = ""
 var _mp_lan_ip: String = ""
 var _mp_browse_ms: int = 0
 var _nick_edit: LineEdit = null
+var _mods_from_settings: bool = false
 var root: Control
 var screen: Control
 var current: String = ""
@@ -1038,13 +1039,30 @@ func show_main() -> void :
 						tw.tween_callback( func() -> void : pb.text = String(one[0])))
 			b = pair
 		else:
-			var mpl1: bool = String(it[2]) == "mp" and mp_locked()
-			var bb: Button = _ibutton(col, String(it[0]), String(it[1]), "" if mpl1 else String(it[2]), String(it[4]), float(it[3]))
-			if mpl1:
-				_android_mp_lock(bb, String(it[0]))
-			if i2 == 0:
-				bb.add_theme_font_size_override("font_size", 20)
-			b = bb
+			var is_mods: bool = String(it[2]) == "mods"
+			if is_mods and not GameConfig.mods_enabled:
+				var m_box: = VBoxContainer.new()
+				m_box.add_theme_constant_override("separation", 2)
+				m_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				col.add_child(m_box)
+				var bb: Button = _ibutton(m_box, String(it[0]), "stone", "", String(it[4]), float(it[3]))
+				bb.disabled = true
+				bb.focus_mode = Control.FOCUS_NONE
+				bb.self_modulate = Color(0.65, 0.65, 0.65, 0.75)
+				bb.add_theme_color_override("font_disabled_color", Color(0.65, 0.65, 0.65))
+				bb.tooltip_text = "Модификации временно отключены. Скоро вернутся!"
+				var sub_lbl: Label = UiKit.lbl("СКОРО ВЕРНУТСЯ", 9, UiKit.MUTED, 1, 2)
+				sub_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				m_box.add_child(sub_lbl)
+				b = m_box
+			else:
+				var mpl1: bool = String(it[2]) == "mp" and mp_locked()
+				var bb: Button = _ibutton(col, String(it[0]), String(it[1]), "" if mpl1 else String(it[2]), String(it[4]), float(it[3]))
+				if mpl1:
+					_android_mp_lock(bb, String(it[0]))
+				if i2 == 0:
+					bb.add_theme_font_size_override("font_size", 20)
+				b = bb
 		if i2 == 0:
 			SavesUI.main_strip(self, col, has_save)
 		b.modulate.a = 0.0
@@ -1612,12 +1630,302 @@ func show_flag_editor(bot: int = -1) -> void :
 
 
 func show_mods(keep: bool = false) -> void:
+	if not GameConfig.mods_enabled:
+		show_mods_settings(_from_pause)
+		return
 	var ks: int = _scroll.scroll_vertical if keep and _scroll != null and is_instance_valid(_scroll) else 0
 	var vb: VBoxContainer = _screen("Модификации", 0.55, not keep)
 	current = "mods"
 	ModsUI.build(self, vb)
 	if keep and _scroll != null:
 		_scroll.set_deferred("scroll_vertical", ks)
+
+func show_mods_settings(from_pause: bool = false) -> void:
+	_from_pause = from_pause
+	var vb: VBoxContainer = _screen("Модификации", 0.45)
+	current = "settings_mods"
+
+	var banner: PanelContainer = PanelContainer.new()
+	banner.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 10, 8))
+	vb.add_child(banner)
+
+	var b_col: VBoxContainer = VBoxContainer.new()
+	b_col.add_theme_constant_override("separation", 6)
+	banner.add_child(b_col)
+
+	if not GameConfig.mods_enabled:
+		var h_lbl: Label = UiKit.lbl("⚠️ МОДИФИКАЦИИ ВРЕМЕННО ОТКЛЮЧЕНЫ", 11, UiKit.GOLD, 2, 2)
+		h_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b_col.add_child(h_lbl)
+		var d_lbl: Label = UiKit.lbl("Вкладка отключена для стабильности игры у обычных игроков. Скоро модификации вернутся в официальном обновлении.\nДля моддеров и тестирования можно включить экспериментальный режим ниже.", 9, UiKit.MUTED, 1, 1)
+		d_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		d_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b_col.add_child(d_lbl)
+	else:
+		var h_lbl: Label = UiKit.lbl("⚡ ЭКСПЕРИМЕНТАЛЬНЫЙ РЕЖИМ ВКЛЮЧЁН", 11, UiKit.GREEN, 2, 2)
+		h_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b_col.add_child(h_lbl)
+		var d_lbl: Label = UiKit.lbl("Модификации активны. Обратите внимание: моды могут быть крайне нестабильными, вызывать сбои или не работать вовсе.", 9, UiKit.MUTED, 1, 1)
+		d_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		d_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b_col.add_child(d_lbl)
+
+	_sep(vb, 6)
+
+	# Переключатель модификаций
+	var toggle_btn: Button = Button.new()
+	toggle_btn.focus_mode = Control.FOCUS_NONE
+	toggle_btn.custom_minimum_size = Vector2(0, 48)
+	var n_sb: StyleBox = UiKit.sb("wb_panel_dark", 8, 2)
+	var pr_sb: StyleBox = UiKit.sb("wb_panel", 8, 2)
+	for st: String in ["normal", "hover", "disabled"]:
+		toggle_btn.add_theme_stylebox_override(st, n_sb)
+	toggle_btn.add_theme_stylebox_override("pressed", pr_sb)
+	toggle_btn.add_theme_stylebox_override("hover_pressed", pr_sb)
+	toggle_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	vb.add_child(toggle_btn)
+
+	var row: HBoxContainer = HBoxContainer.new()
+	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.offset_left = 12.0
+	row.offset_right = -12.0
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 6)
+	toggle_btn.add_child(row)
+
+	var t_lbl: Label = UiKit.lbl("ЭКСПЕРИМЕНТАЛЬНЫЕ МОДИФИКАЦИИ", 10, UiKit.TEXT, 2, 2)
+	t_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	t_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(t_lbl)
+
+	var track: PanelContainer = PanelContainer.new()
+	track.add_theme_stylebox_override("panel", UiKit.sb("wb_slot", 3, 3))
+	track.custom_minimum_size = Vector2(76, 32)
+	track.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(track)
+
+	var tr: HBoxContainer = HBoxContainer.new()
+	tr.add_theme_constant_override("separation", 2)
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	track.add_child(tr)
+
+	var word: Label = UiKit.lbl("ВКЛ" if GameConfig.mods_enabled else "ВЫКЛ", 10, UiKit.GREEN if GameConfig.mods_enabled else UiKit.MUTED, 2, 2)
+	word.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	word.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	word.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+	var knob: Panel = Panel.new()
+	knob.custom_minimum_size = Vector2(22, 22)
+	knob.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	knob.add_theme_stylebox_override("panel", UiKit.sb("wb_btn_green" if GameConfig.mods_enabled else "wb_btn_stone", 0, 0))
+
+	if GameConfig.mods_enabled:
+		tr.add_child(word)
+		tr.add_child(knob)
+	else:
+		tr.add_child(knob)
+		tr.add_child(word)
+
+	UiKit.press_fx(toggle_btn)
+	toggle_btn.pressed.connect(func() -> void:
+		if not GameConfig.mods_enabled:
+			show_mods_disclaimer_dialog(
+				func() -> void:
+					GameConfig.mods_enabled = true
+					GameConfig.custom_maps_cache.clear()
+					Save.save_prefs()
+					if has_node("/root/ModManager"):
+						get_node("/root/ModManager").scan_installed_mods()
+					show_mods_settings(from_pause),
+				func() -> void:
+					pass
+			)
+		else:
+			GameConfig.mods_enabled = false
+			GameConfig.custom_maps_cache.clear()
+			Save.save_prefs()
+			if has_node("/root/ModManager"):
+				get_node("/root/ModManager").scan_installed_mods()
+			show_mods_settings(from_pause)
+	)
+
+	if GameConfig.mods_enabled:
+		_sep(vb, 6)
+		var open_btn: Button = UiKit.big("📦 КАТАЛОГ И УПРАВЛЕНИЕ МОДАМИ", "green", "", 44.0, 11)
+		open_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		open_btn.pressed.connect(func() -> void:
+			UiKit.snd("ui_click")
+			_mods_from_settings = true
+			show_mods()
+		)
+		vb.add_child(open_btn)
+
+		var folder_btn: Button = UiKit.big("📁 ОТКРЫТЬ ПАПКУ С МОДАМИ", "stone", "", 38.0, 10)
+		folder_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		folder_btn.pressed.connect(func() -> void:
+			UiKit.snd("ui_click")
+			if has_node("/root/ModManager"):
+				get_node("/root/ModManager").open_mods_folder_in_os()
+		)
+		vb.add_child(folder_btn)
+
+	_sep(vb, 6)
+	var tg_btn: Button = UiKit.big("💬 ТЕЛЕГРАМ: ПОРТЫ И МОДЫ", "blue", "", 36.0, 10)
+	tg_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tg_btn.pressed.connect(func() -> void:
+		UiKit.snd("ui_click")
+		OS.shell_open("https://t.me/droneflamesmod")
+	)
+	vb.add_child(tg_btn)
+
+	var back: Button = _button(_bottom_row(), "НАЗАД", "stone", "")
+	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back.pressed.connect(func() -> void:
+		UiKit.snd("ui_click")
+		show_settings(from_pause)
+	)
+
+func show_mods_disclaimer_dialog(on_confirm: Callable, on_cancel: Callable = Callable()) -> void:
+	var bg: = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.02, 0.03, 0.06, 0.92)
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(bg)
+	UiKit.pop_in(bg)
+
+	var cc: = CenterContainer.new()
+	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.add_child(cc)
+
+	var panel: = PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", UiKit.sb("wb_window", 16, 14))
+	var win_w: float = clampf(root.size.x - 30.0, 320.0, 560.0)
+	panel.custom_minimum_size = Vector2(win_w, 0)
+	cc.add_child(panel)
+
+	var vbox: = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	panel.add_child(vbox)
+
+	var title_lbl: Label = UiKit.lbl("⚠️ ВНИМАНИЕ: ДИСКЛЕЙМЕР", 13, UiKit.TITLE, 3, 3)
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title_lbl)
+
+	var sub_lbl: Label = UiKit.lbl("ЭКСПЕРИМЕНТАЛЬНЫЙ РЕЖИМ МОДИФИКАЦИЙ", 9, UiKit.GOLD, 2, 2)
+	sub_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(sub_lbl)
+
+	_sep(vbox, 2)
+
+	var card: = PanelContainer.new()
+	card.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 12, 10))
+	vbox.add_child(card)
+
+	var card_vbox: = VBoxContainer.new()
+	card_vbox.add_theme_constant_override("separation", 6)
+	card.add_child(card_vbox)
+
+	var items: Array[String] = [
+		"• Модификации в текущей версии ПК-порта крайне нестабильны, могут работать некорректно или не работать вовсе.",
+		"• Использование модов может приводить к вылетам игры, нарушению логики матча и ошибкам сохранений.",
+		"• Все найденные баги и проблемы будут постепенно устраняться авторами порта в будущих обновлениях.",
+		"• Текущая поддержка оставлена исключительно для опытных игроков и авторов модов (моддеров) для тестирования.",
+		"• Скоро ожидается официальный порт от оригинального разработчика игры, который сделает модификации максимально удобными и стабильными.",
+		"• Включая модификации, вы подтверждаете понимание всех рисков нестабильности игрового процесса."
+	]
+
+	for it_text in items:
+		var lbl: Label = UiKit.lbl(it_text, 9, UiKit.TEXT, 1, 1)
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		card_vbox.add_child(lbl)
+
+	_sep(vbox, 2)
+
+	# Чекбокс согласия
+	var check_btn: = Button.new()
+	check_btn.focus_mode = Control.FOCUS_NONE
+	check_btn.custom_minimum_size = Vector2(0, 44)
+	var n_s: StyleBox = UiKit.sb("wb_panel_dark", 8, 4)
+	var h_s: StyleBox = UiKit.sb("wb_panel", 8, 4)
+	check_btn.add_theme_stylebox_override("normal", n_s)
+	check_btn.add_theme_stylebox_override("hover", h_s)
+	check_btn.add_theme_stylebox_override("pressed", h_s)
+	check_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	vbox.add_child(check_btn)
+
+	var check_row: = HBoxContainer.new()
+	check_row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	check_row.offset_left = 10.0
+	check_row.offset_right = -10.0
+	check_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	check_row.add_theme_constant_override("separation", 10)
+	check_btn.add_child(check_row)
+
+	var box: = PanelContainer.new()
+	box.custom_minimum_size = Vector2(26, 26)
+	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_stylebox_override("panel", UiKit.sb("wb_slot", 4, 2))
+	check_row.add_child(box)
+
+	var check_mark: Label = UiKit.lbl("", 15, UiKit.GREEN, 3, 2)
+	check_mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	check_mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	box.add_child(check_mark)
+
+	var check_text: Label = UiKit.lbl("Да, я согласен. Я понимаю риски и возможную нестабильность модификаций.", 10, UiKit.TEXT, 2, 2)
+	check_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	check_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	check_text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	check_row.add_child(check_text)
+
+	_sep(vbox, 2)
+
+	# Кнопки действий
+	var act_row: = HBoxContainer.new()
+	act_row.add_theme_constant_override("separation", 10)
+	vbox.add_child(act_row)
+
+	var cancel_btn: Button = UiKit.big("ОТМЕНА", "stone", "", 44.0, 11)
+	cancel_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	act_row.add_child(cancel_btn)
+
+	var apply_btn: Button = UiKit.big("ПРИМЕНИТЬ", "green", "", 44.0, 12)
+	apply_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	apply_btn.disabled = true
+	act_row.add_child(apply_btn)
+
+	var agreed: Array[bool] = [false]
+	check_btn.pressed.connect(func() -> void:
+		agreed[0] = not agreed[0]
+		UiKit.snd("ui_click")
+		if agreed[0]:
+			check_mark.text = "✓"
+			box.add_theme_stylebox_override("panel", UiKit.sb("wb_btn_green_p", 4, 2))
+			check_text.add_theme_color_override("font_color", UiKit.GREEN)
+			apply_btn.disabled = false
+		else:
+			check_mark.text = ""
+			box.add_theme_stylebox_override("panel", UiKit.sb("wb_slot", 4, 2))
+			check_text.add_theme_color_override("font_color", UiKit.TEXT)
+			apply_btn.disabled = true
+	)
+
+	cancel_btn.pressed.connect(func() -> void:
+		UiKit.snd("ui_click")
+		bg.queue_free()
+		if on_cancel.is_valid():
+			on_cancel.call()
+	)
+
+	apply_btn.pressed.connect(func() -> void:
+		UiKit.snd("ui_build")
+		bg.queue_free()
+		if on_confirm.is_valid():
+			on_confirm.call()
+	)
 
 
 
@@ -2505,7 +2813,7 @@ func show_settings(from_pause: bool) -> void :
 	_nav_row(vb, "УПРАВЛЕНИЕ", "КЛАВИАТУРА И МЫШЬ", show_controls.bind(from_pause))
 	_nav_row(vb, "ЗВУК", _sound_hint(), show_settings_sub.bind("audio"))
 	_nav_row(vb, "ГРАФИКА", Loc.t("ЭФФЕКТЫ: %s") % Loc.t(String(["НИЗКО", "НОРМА", "ВЫСОКО"][clampi(GameConfig.fx_level, 0, 2)])), show_settings_sub.bind("gfx"))
-	_nav_row(vb, "МОДИФИКАЦИИ", "КАТАЛОГ И УПРАВЛЕНИЕ", func() -> void : show_mods())
+	_nav_row(vb, "МОДИФИКАЦИИ", Loc.t("ВКЛЮЧЕНО") if GameConfig.mods_enabled else Loc.t("ОТКЛЮЧЕНО (СКОРО ВЕРНУТСЯ)"), func() -> void : show_mods_settings(from_pause))
 	_selector(vb, "ПОДСКАЗКИ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.hints else 1, func(i: int) -> void : GameConfig.hints = i == 0, VW_SHORT)
 	_selector(vb, "ПЛАН РАЗВИТИЯ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 1 if Hud.plan_closed else 0, func(i: int) -> void : Hud.plan_closed = i == 1, VW_SHORT)
 	_selector(vb, "ПОДТВЕРЖДЕНИЕ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.confirm_actions else 1, func(i: int) -> void : GameConfig.confirm_actions = i == 0, VW_SHORT)
@@ -2768,6 +3076,9 @@ var _dev_taps: int = 0
 
 
 func show_settings_sub(kind: String) -> void :
+	if kind == "mods":
+		show_mods_settings(_from_pause)
+		return
 	var vb: VBoxContainer = _screen("Графика" if kind == "gfx" else (Loc.t("Заставка") if kind == "opening" else Loc.t("Звук")), 0.45)
 	current = "settings_" + kind
 	_sheet = kind != "gfx"

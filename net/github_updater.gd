@@ -150,20 +150,32 @@ func _on_check_request_completed(result: int, response_code: int, _headers: Pack
 		var target_url: String = ""
 		var target_name: String = ""
 
+		var is_mac: bool = OS.get_name() == "macOS"
 		for asset_dict in assets:
 			if not (asset_dict is Dictionary):
 				continue
 			var aname: String = String(asset_dict.get("name", ""))
 			var adl: String = String(asset_dict.get("browser_download_url", ""))
-			if aname.ends_with(".exe"):
-				target_url = adl
-				target_name = aname
-				if aname.to_lower().contains("setup"):
-					break # Нашли именно установщик
+			if is_mac:
+				if aname.ends_with(".dmg") or (aname.contains("macOS") and aname.ends_with(".zip")):
+					target_url = adl
+					target_name = aname
+					if aname.ends_with(".dmg"):
+						break # Приоритет DMG установщику на Mac
+			else:
+				if aname.ends_with(".exe"):
+					target_url = adl
+					target_name = aname
+					if aname.to_lower().contains("setup"):
+						break # Нашли именно установщик
 
 		if target_url == "":
-			target_url = "https://github.com/%s/%s/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [repo_owner, repo_name, tag, tag]
-			target_name = "DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % tag
+			if is_mac:
+				target_url = "https://github.com/%s/%s/releases/download/v%s/DroneFlames_macOS_v%s_good_boy_irl.dmg" % [repo_owner, repo_name, tag, tag]
+				target_name = "DroneFlames_macOS_v%s_good_boy_irl.dmg" % tag
+			else:
+				target_url = "https://github.com/%s/%s/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [repo_owner, repo_name, tag, tag]
+				target_name = "DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % tag
 
 		latest_url = target_url
 		latest_asset_name = target_name
@@ -208,9 +220,14 @@ func _on_download_request_completed(result: int, response_code: int, _headers: P
 
 	download_completed.emit(_download_path)
 
-## Запустить скачанный инсталлятор и выйти из игры
+## Запустить скачанный инсталлятор/образ и выйти из игры
 func apply_and_restart(installer_path: String, silent: bool = false) -> void:
 	var abs_path: String = ProjectSettings.globalize_path(installer_path)
+	if OS.get_name() == "macOS":
+		OS.shell_open(abs_path)
+		get_tree().quit()
+		return
+
 	var args: PackedStringArray = PackedStringArray()
 	if silent:
 		args.append("/SILENT")
