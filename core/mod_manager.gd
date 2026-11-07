@@ -325,18 +325,19 @@ func scan_installed_mods() -> void:
 	_scan_dir(USER_MODS_DIR, false)
 
 	# 2. Сканируем папку рядом с .exe / .app (портативные моды), если отличается от user:// и res://
-	var exe_mods: String = OS.get_executable_path().get_base_dir().path_join("mods")
-	if OS.get_name() == "macOS" and not DirAccess.dir_exists_absolute(exe_mods):
-		# Внутри macOS .app бандла исполняемый файл в Contents/MacOS/, поднимаемся к папке с .app
-		var bundle_parent: String = OS.get_executable_path().get_base_dir().get_base_dir().get_base_dir().get_base_dir()
-		var app_mods: String = bundle_parent.path_join("mods")
-		if DirAccess.dir_exists_absolute(app_mods):
-			exe_mods = app_mods
-	var user_mods_global: String = ProjectSettings.globalize_path(USER_MODS_DIR)
-	var builtin_mods_global: String = ProjectSettings.globalize_path(BUILTIN_MODS_DIR)
-	if DirAccess.dir_exists_absolute(exe_mods) and exe_mods != user_mods_global and exe_mods != builtin_mods_global:
-		_unpack_pending_dfmods(exe_mods)
-		_scan_dir_absolute(exe_mods, false)
+	if not (OS.has_feature("mobile") or OS.get_name() == "Android"):
+		var exe_mods: String = OS.get_executable_path().get_base_dir().path_join("mods")
+		if OS.get_name() == "macOS" and not DirAccess.dir_exists_absolute(exe_mods):
+			# Внутри macOS .app бандла исполняемый файл в Contents/MacOS/, поднимаемся к папке с .app
+			var bundle_parent: String = OS.get_executable_path().get_base_dir().get_base_dir().get_base_dir().get_base_dir()
+			var app_mods: String = bundle_parent.path_join("mods")
+			if DirAccess.dir_exists_absolute(app_mods):
+				exe_mods = app_mods
+		var user_mods_global: String = ProjectSettings.globalize_path(USER_MODS_DIR)
+		var builtin_mods_global: String = ProjectSettings.globalize_path(BUILTIN_MODS_DIR)
+		if DirAccess.dir_exists_absolute(exe_mods) and exe_mods != user_mods_global and exe_mods != builtin_mods_global:
+			_unpack_pending_dfmods(exe_mods)
+			_scan_dir_absolute(exe_mods, false)
 
 	# 3. Активируем ТОЛЬКО те моды, которые пользователь включил! (Если моды разрешены в настройках)
 	if _are_mods_enabled():

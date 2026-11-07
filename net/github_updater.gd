@@ -151,12 +151,18 @@ func _on_check_request_completed(result: int, response_code: int, _headers: Pack
 		var target_name: String = ""
 
 		var is_mac: bool = OS.get_name() == "macOS"
+		var is_android: bool = OS.has_feature("mobile") or OS.get_name() == "Android"
 		for asset_dict in assets:
 			if not (asset_dict is Dictionary):
 				continue
 			var aname: String = String(asset_dict.get("name", ""))
 			var adl: String = String(asset_dict.get("browser_download_url", ""))
-			if is_mac:
+			if is_android:
+				if aname.ends_with(".apk"):
+					target_url = adl
+					target_name = aname
+					break
+			elif is_mac:
 				if aname.ends_with(".dmg") or (aname.contains("macOS") and aname.ends_with(".zip")):
 					target_url = adl
 					target_name = aname
@@ -170,7 +176,10 @@ func _on_check_request_completed(result: int, response_code: int, _headers: Pack
 						break # Нашли именно установщик
 
 		if target_url == "":
-			if is_mac:
+			if is_android:
+				target_url = "https://github.com/%s/%s/releases/download/v%s/DroneFlames_v%s_good_boy_irl.apk" % [repo_owner, repo_name, tag, tag]
+				target_name = "DroneFlames_v%s_good_boy_irl.apk" % tag
+			elif is_mac:
 				target_url = "https://github.com/%s/%s/releases/download/v%s/DroneFlames_macOS_v%s_good_boy_irl.dmg" % [repo_owner, repo_name, tag, tag]
 				target_name = "DroneFlames_macOS_v%s_good_boy_irl.dmg" % tag
 			else:
@@ -223,7 +232,7 @@ func _on_download_request_completed(result: int, response_code: int, _headers: P
 ## Запустить скачанный инсталлятор/образ и выйти из игры
 func apply_and_restart(installer_path: String, silent: bool = false) -> void:
 	var abs_path: String = ProjectSettings.globalize_path(installer_path)
-	if OS.get_name() == "macOS":
+	if OS.get_name() == "macOS" or OS.has_feature("mobile") or OS.get_name() == "Android":
 		OS.shell_open(abs_path)
 		get_tree().quit()
 		return

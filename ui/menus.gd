@@ -961,28 +961,6 @@ func show_main() -> void :
 		tl.offset_top = 110
 		bg.add_child(tl)
 
-	var sub: = CenterContainer.new()
-	sub.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	sub.offset_top = 70 + (lt.get_size().y * float(_logo.get_meta("k", 1.0)) * 0.5 + 40.0 if _logo != null else 60.0) + 6.0
-	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bg.add_child(sub)
-	var badge: = PanelContainer.new()
-	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var bsb: = StyleBoxFlat.new()
-	bsb.bg_color = Color("e8731c")
-	bsb.border_color = UiKit.OUTLINE
-	bsb.set_border_width_all(2)
-	bsb.border_width_bottom = 4
-	bsb.shadow_color = UiKit.SHADOW
-	bsb.shadow_size = 0
-	bsb.shadow_offset = Vector2(0, 3)
-	bsb.content_margin_left = 14
-	bsb.content_margin_right = 14
-	bsb.content_margin_top = 3
-	bsb.content_margin_bottom = 4
-	badge.add_theme_stylebox_override("panel", bsb)
-	sub.add_child(badge)
-	badge.add_child(UiKit.title("ЗАКРЫТАЯ БЕТА", 15, UiKit.TEXT))
 	var col: = VBoxContainer.new()
 	col.add_theme_constant_override("separation", 10)
 	col.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
@@ -2912,8 +2890,21 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 		changelog = String(up.get("latest_changelog"))
 	if tag == "":
 		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.9"
-	var direct_installer_url: String = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [tag, tag]
-	if dl_url == "" or dl_url.contains("/releases/tag/") or dl_url.contains("/releases/latest") or not dl_url.ends_with(".exe"):
+	var is_android: bool = OS.has_feature("mobile") or OS.get_name() == "Android"
+	var is_mac: bool = OS.get_name() == "macOS"
+	var direct_installer_url: String = ""
+	var file_label: String = "(.EXE)"
+	if is_android:
+		direct_installer_url = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_v%s_good_boy_irl.apk" % [tag, tag]
+		file_label = "(.APK)"
+	elif is_mac:
+		direct_installer_url = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_macOS_v%s_good_boy_irl.dmg" % [tag, tag]
+		file_label = "(.DMG)"
+	else:
+		direct_installer_url = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [tag, tag]
+		file_label = "(.EXE)"
+
+	if dl_url == "" or dl_url.contains("/releases/tag/") or dl_url.contains("/releases/latest") or (not is_android and not is_mac and not dl_url.ends_with(".exe")):
 		dl_url = direct_installer_url
 
 	var bg: = ColorRect.new()
@@ -3040,7 +3031,7 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 		nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cl_vb.add_child(nl)
 
-	var dl_btn: Button = UiKit.big("СКАЧАТЬ ОБНОВЛЕНИЕ (.EXE)", "green", "", 44.0, 13)
+	var dl_btn: Button = UiKit.big("СКАЧАТЬ ОБНОВЛЕНИЕ " + file_label, "green", "", 44.0, 13)
 	dl_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dl_btn.pressed.connect(func() -> void:
 		UiKit.snd("ui_click")

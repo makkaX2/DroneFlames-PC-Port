@@ -4,15 +4,32 @@ DroneFlames PC Port - Automated Build & Packaging Script
 Prepares clean distribution, packages Portable ZIP, and compiles Inno Setup installer.
 Author: @good_boy_irl
 """
+from __future__ import annotations
 
 import os
 import sys
+import json
 import shutil
 import zipfile
 import subprocess
 from pathlib import Path
 
-VERSION = "0.33.4.9"
+ROOT_DIR = Path(__file__).resolve().parent
+
+def get_version() -> str:
+    v_file = ROOT_DIR / "version_info.json"
+    if v_file.exists():
+        try:
+            data = json.loads(v_file.read_text(encoding="utf-8"))
+            if "version" in data:
+                return str(data["version"])
+        except Exception:
+            pass
+    return "0.33.4.9"
+
+VERSION = get_version()
+IS_TEST_BUILD = "--test" in sys.argv or "-test" in VERSION.lower() or os.environ.get("BUILD_TEST", "").lower() in ("1", "true")
+
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -22,7 +39,6 @@ if sys.platform == "win32":
 APP_NAME = "DroneFlames"
 PUBLISHER = "good_boy_irl"
 
-ROOT_DIR = Path(__file__).resolve().parent
 BUILD_DIR = ROOT_DIR / "build"
 STAGE_NAME = f"{APP_NAME}_PC_v{VERSION}_{PUBLISHER}"
 STAGE_DIR = BUILD_DIR / STAGE_NAME

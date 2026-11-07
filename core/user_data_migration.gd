@@ -12,6 +12,8 @@ const LEGACY_NAMES: Array[String] = [
 
 
 func _ready() -> void:
+	if OS.has_feature("mobile") or OS.get_name() == "Android" or OS.get_name() == "iOS":
+		return
 	_migrate_legacy_data()
 
 

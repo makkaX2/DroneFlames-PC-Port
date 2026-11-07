@@ -6,18 +6,23 @@ var _base_title: String = ""
 var _last_title_check: int = 0
 var _last_fullscreen_toggle: int = 0
 
+func _is_mobile() -> bool:
+	return OS.has_feature("mobile") or OS.get_name() == "Android" or OS.get_name() == "iOS"
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_init_title_string()
-	_setup_app_icon()
-	_update_title()
-	call_deferred("_update_title")
+	if not _is_mobile():
+		_init_title_string()
+		_setup_app_icon()
+		_update_title()
+		call_deferred("_update_title")
 	get_tree().node_added.connect(_on_node_added)
 	_setup_updater()
-	var t := get_tree().create_timer(0.4)
-	t.timeout.connect(func() -> void:
-		_update_title()
-		_setup_app_icon())
+	if not _is_mobile():
+		var t := get_tree().create_timer(0.4)
+		t.timeout.connect(func() -> void:
+			_update_title()
+			_setup_app_icon())
 
 func _init_title_string() -> void:
 	var ver: String = _get_game_version()
@@ -34,6 +39,8 @@ func _get_game_version() -> String:
 	return "v0.33.4.9"
 
 func _setup_app_icon() -> void:
+	if _is_mobile():
+		return
 	# 1. Native Windows .ico for taskbar and window frame
 	if ResourceLoader.exists("res://app_icon.ico"):
 		DisplayServer.set_native_icon("res://app_icon.ico")
@@ -69,6 +76,8 @@ func _on_update_available(new_version: String, _changelog: String, _dl_url: Stri
 	_update_title()
 
 func _process(_delta: float) -> void:
+	if _is_mobile():
+		return
 	var now := Time.get_ticks_msec()
 	if now - _last_title_check > 500:
 		_last_title_check = now
@@ -98,6 +107,8 @@ func _apply_ui_scale() -> void:
 			s.apply_ui_scale()
 
 func _notification(what: int) -> void:
+	if _is_mobile():
+		return
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		# PC Optimization: Throttle FPS to 15 when game is in background / alt-tabbed to save GPU and battery
 		Engine.max_fps = 15
@@ -111,6 +122,8 @@ func _notification(what: int) -> void:
 		_setup_app_icon()
 
 func _update_title() -> void:
+	if _is_mobile():
+		return
 	if _base_title.is_empty():
 		_init_title_string()
 	var win := get_window()

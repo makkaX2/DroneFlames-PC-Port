@@ -31,14 +31,6 @@ func setup(m: Node, world: GameWorld) -> void :
 	_build_plan()
 	_build_armies()
 	_build_toast()
-	var port_mark: Label = UiKit.lbl("PC PORT: @good_boy_irl", 9, UiKit.MUTED, 1, 1)
-	port_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	port_mark.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	port_mark.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	port_mark.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	port_mark.offset_right = -8
-	port_mark.offset_bottom = -6
-	root.add_child(port_mark)
 	busy = Control.new()
 	gw.changed.connect(refresh)
 	if not Loc.bus.changed.is_connected(_lang_refresh):

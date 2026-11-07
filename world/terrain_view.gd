@@ -68,7 +68,10 @@ func _init() -> void :
 	centered = false
 	scale = Vector2(4, 4)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	threads = clampi(OS.get_processor_count(), 1, 8)
+	if OS.has_feature("mobile") or OS.get_name() == "Android":
+		threads = 1
+	else:
+		threads = clampi(OS.get_processor_count(), 1, 8)
 
 
 func _load_colors() -> void :
@@ -237,7 +240,7 @@ func build(w: WorldData) -> void :
 
 
 func _run(fn: Callable, nthreads: int) -> void :
-	if nthreads > 1:
+	if nthreads > 1 and not (OS.has_feature("mobile") or OS.get_name() == "Android"):
 		var tid: int = WorkerThreadPool.add_group_task(fn, BANDS, nthreads, true, "terrain bake")
 		WorkerThreadPool.wait_for_group_task_completion(tid)
 	else:
