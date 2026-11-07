@@ -104,6 +104,12 @@ var smokes: Array = []
 var grenades: Array = []
 const GRID_PX: float = 128.0
 var _grid: Dictionary = {}
+# Для быстрого поиска целей: битовые маски стран в ячейках сетки и «врагов» каждой страны.
+# Пересобираются вместе с _grid (раз в скан), поэтому всегда согласованы с ним.
+var _gmask: Dictionary = {}
+var _hmask_cache: Dictionary = {}
+const _NO_UNITS: Array = []
+const _NO_FACS: Array = []
 var _fgrid: Dictionary = {}
 var _flines: Array = []
 var _fgrid_t: float = -99.0
@@ -452,6 +458,23 @@ func _valid(u: Unit, t: Object) -> bool:
 
 
 
+func _hmask(cid: int) -> int:
+	var v: Variant = _hmask_cache.get(cid)
+	if v != null:
+		return int(v)
+	var m: int = 0
+	var c: Country = gw.country_by_id(cid)
+	if c != null:
+		for k: Variant in c.at_war:
+			var kid: int = int(k)
+			if kid < 0 or kid >= 63:
+				m = -1
+				break
+			m |= 1 << kid
+	_hmask_cache[cid] = m
+	return m
+
+
 func _acquire(u: Unit) -> void :
 	if u.target != null and _valid(u, u.target):
 		return
@@ -465,28 +488,74 @@ func _acquire(u: Unit) -> void :
 	var bd: float = r * r
 	var at: bool = u.type == Unit.Type.ATGM
 	var blind: bool = in_smoke(u.pos)
-	for o: Unit in _near(u.pos, r):
-		if not o.alive() or o.type == Unit.Type.FPV or o.country_id == u.country_id:
-			continue
-		if at and not o.vehicle():
-			continue
-		var d2: float = o.pos.distance_squared_to(u.pos)
-		if d2 < bd and (_hostile(u.country_id, o.country_id) or (grd and _guard_foe(u, o))) and (d2 < 784.0 or not (blind or in_smoke(o.pos))):
-			bd = d2
-			best = o
+	var ucid: int = u.country_id
+	var upos: Vector2 = u.pos
+	var hm: int = _hmask(ucid)
+	# Ячейку без юнитов враждебных стран можно пропустить целиком (если не «охрана»,
+	# при ней подходят и не враждебные). Результат идентичен полному перебору.
+	var skip_ok: bool = hm != -1 and not grd
+	var gx0: int = floori((upos.x - r) / GRID_PX)
+	var gx1: int = floori((upos.x + r) / GRID_PX)
+	var gy0: int = floori((upos.y - r) / GRID_PX)
+	var gy1: int = floori((upos.y + r) / GRID_PX)
+	for cy in range(gy0, gy1 + 1):
+		for cx in range(gx0, gx1 + 1):
+			var ck: = Vector2i(cx, cy)
+			if skip_ok and (int(_gmask.get(ck, 0)) & hm) == 0:
+				continue
+			for o: Unit in _grid.get(ck, _NO_UNITS):
+				if o.state == Unit.State.DEAD or o.type == Unit.Type.FPV or o.country_id == ucid:
+					continue
+				if at and not o.vehicle():
+					continue
+				var d2: float = o.pos.distance_squared_to(upos)
+				if d2 >= bd:
+					continue
+				var oc: int = o.country_id
+				var foe: bool = ((hm >> oc) & 1) == 1 if (hm != -1 and oc >= 0 and oc < 63) else _hostile(ucid, oc)
+				if (foe or (grd and _guard_foe(u, o))) and (d2 < 784.0 or not (blind or in_smoke(o.pos))):
+					bd = d2
+					best = o
 
 	var storming: bool = u.op_on and ( not u.op_hold or u.pi < u.path.size())
 	if best == null and not storming and (u.type == Unit.Type.TANK or u.type == Unit.Type.IFV or at or (u.kit & Unit.KIT_GREN) != 0):
 		bd = r * r * 1.3
-		for f: Facility in _near_fac(u.pos, r + 64.0):
-			if f.parent != null or f.kind == Facility.Kind.TRENCH_H or not _hostile(u.country_id, f.country_id) or not gw.mil.alive(f):
-				continue
-			if f.center_px().distance_squared_to(u.pos) > (r + float(maxi(f.size.x, f.size.y)) * 4.0) * (r + float(maxi(f.size.x, f.size.y)) * 4.0):
-				continue
-			var d3: float = _target_pos(f, u.pos).distance_squared_to(u.pos)
-			if d3 < bd:
-				bd = d3
-				best = f
+		# Тот же порядок, что у _near_fac (сначала линии, затем ячейки), но без копии массива
+		# и с проверкой вражды по маске страны.
+		var fr: float = r + 64.0
+		var fx0: int = floori((upos.x - fr) / GRID_PX)
+		var fx1: int = floori((upos.x + fr) / GRID_PX)
+		var fy0: int = floori((upos.y - fr) / GRID_PX)
+		var fy1: int = floori((upos.y + fr) / GRID_PX)
+		for pass_i in 2:
+			if pass_i == 0:
+				for f: Facility in _flines:
+					var fc0: int = f.country_id
+					var foe0: bool = ((hm >> fc0) & 1) == 1 if (hm != -1 and fc0 >= 0 and fc0 < 63) else _hostile(ucid, fc0)
+					if f.parent != null or f.kind == Facility.Kind.TRENCH_H or not foe0 or not gw.mil.alive(f):
+						continue
+					var rr0: float = r + float(maxi(f.size.x, f.size.y)) * 4.0
+					if f.center_px().distance_squared_to(upos) > rr0 * rr0:
+						continue
+					var d30: float = _target_pos(f, upos).distance_squared_to(upos)
+					if d30 < bd:
+						bd = d30
+						best = f
+			else:
+				for fcy in range(fy0, fy1 + 1):
+					for fcx in range(fx0, fx1 + 1):
+						for f: Facility in _fgrid.get(Vector2i(fcx, fcy), _NO_FACS):
+							var fc1: int = f.country_id
+							var foe1: bool = ((hm >> fc1) & 1) == 1 if (hm != -1 and fc1 >= 0 and fc1 < 63) else _hostile(ucid, fc1)
+							if f.parent != null or f.kind == Facility.Kind.TRENCH_H or not foe1 or not gw.mil.alive(f):
+								continue
+							var rr1: float = r + float(maxi(f.size.x, f.size.y)) * 4.0
+							if f.center_px().distance_squared_to(upos) > rr1 * rr1:
+								continue
+							var d31: float = _target_pos(f, upos).distance_squared_to(upos)
+							if d31 < bd:
+								bd = d31
+								best = f
 	u.target = best
 
 
@@ -2088,6 +2157,8 @@ func load_state(d: Dictionary) -> void :
 
 func _build_grid() -> void :
 	_grid.clear()
+	_gmask.clear()
+	_hmask_cache.clear()
 	_fpv_fly.clear()
 	for u: Unit in units:
 		if not u.alive():
@@ -2100,6 +2171,8 @@ func _build_grid() -> void :
 		if a.is_empty():
 			_grid[k] = a
 		a.append(u)
+		var cid: int = u.country_id
+		_gmask[k] = int(_gmask.get(k, 0)) | ((1 << cid) if cid >= 0 and cid < 63 else -1)
 	if gw.game_time - _fgrid_t < 1.0 and gw.game_time >= _fgrid_t:
 		return
 	_fgrid_t = gw.game_time
