@@ -70,8 +70,4 @@ export default async function (msg, ctx) {
     return;
   }
 
-  // If message in target group, perform a silent check for unannounced commits
-  if (chatId === TARGET_CHAT_ID) {
-    await checkAndSend(TARGET_CHAT_ID, false);
-  }
 }
