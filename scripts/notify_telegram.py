@@ -10,6 +10,7 @@ chat_id = os.environ.get("TG_CHAT_ID")
 tag = os.environ.get("TAG", "")
 commit_sha = os.environ.get("COMMIT_SHA", "")
 run_id = os.environ.get("RUN_ID", "")
+is_test = os.environ.get("IS_TEST", "false").lower() == "true" or "test" in tag.lower()
 
 if not tg_token or not chat_id:
     print("TG_BOT_TOKEN or TG_CHAT_ID not set, skipping Telegram notification.")
@@ -19,7 +20,7 @@ try:
     commit_desc = subprocess.check_output(["git", "log", "-1", "--pretty=format:%B"]).decode("utf-8").strip()
     commit_author = subprocess.check_output(["git", "log", "-1", "--pretty=%an"]).decode("utf-8").strip()
 except Exception:
-    commit_desc = "test build"
+    commit_desc = "release build"
     commit_author = "unknown"
 
 short_sha = commit_sha[:7] if commit_sha else "unknown"
@@ -64,8 +65,11 @@ if not artifact_lines:
 
 artifacts_str = "\n".join(artifact_lines)
 
-text = f"""[build:test] {tag}
-branch: test
+header = f"[build:test] {tag}" if is_test else f"[build:release] {tag}"
+branch_name = "test" if is_test else "master"
+
+text = f"""{header}
+branch: {branch_name}
 commit: {short_sha}
 author: {commit_author}
 url: {com_url}
@@ -103,6 +107,24 @@ req = urllib.request.Request(
 )
 try:
     with urllib.request.urlopen(req) as resp:
+        resp_data = json.loads(resp.read().decode("utf-8"))
         print("Telegram notification sent successfully:", resp.status)
+        if resp_data.get("ok") and "result" in resp_data and "message_id" in resp_data["result"]:
+            msg_id = resp_data["result"]["message_id"]
+            pin_payload = {
+                "chat_id": int(chat_id),
+                "message_id": msg_id,
+                "disable_notification": False
+            }
+            pin_req = urllib.request.Request(
+                f"https://api.telegram.org/bot{tg_token}/pinChatMessage",
+                data=json.dumps(pin_payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"}
+            )
+            try:
+                with urllib.request.urlopen(pin_req) as pin_resp:
+                    print("Telegram message pinned successfully:", pin_resp.status)
+            except Exception as pe:
+                print("Failed to pin Telegram message (bot may need admin rights to pin):", pe)
 except Exception as e:
     print("Failed to send Telegram notification:", e)

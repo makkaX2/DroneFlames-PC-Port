@@ -92,36 +92,13 @@ jobs:
           codesign --force --deep -s - dist/DroneFlames.app
           xattr -cr dist/DroneFlames.app
 
-          # Install create-dmg for standard macOS installer layout (app + Applications drop link)
-          brew install create-dmg || true
-
+          # Create DMG with standard macOS drag-to-Applications installer
           DMG_NAME="DroneFlames_macOS_v${VERSION}_good_boy_irl.dmg"
           DMG_PATH="dist/${DMG_NAME}"
           mkdir -p dist/dmg_src
           cp -R dist/DroneFlames.app dist/dmg_src/
-
-          # Try creating a styled DMG with drag-and-drop /Applications shortcut
-          if command -v create-dmg >/dev/null 2>&1; then
-            echo "Packaging styled DMG with create-dmg..."
-            create-dmg \
-              --volname "DroneFlames" \
-              --window-pos 200 120 \
-              --window-size 640 400 \
-              --icon-size 120 \
-              --icon "DroneFlames.app" 170 190 \
-              --app-drop-link 470 190 \
-              --hide-extension "DroneFlames.app" \
-              --no-internet-enable \
-              "$DMG_PATH" \
-              "dist/dmg_src" || true
-          fi
-
-          # Fallback if create-dmg was unavailable or failed
-          if [ ! -f "$DMG_PATH" ]; then
-            echo "Fallback to hdiutil with Applications symlink..."
-            ln -s /Applications dist/dmg_src/Applications || true
-            hdiutil create -volname "DroneFlames" -srcfolder dist/dmg_src -ov -format UDZO "$DMG_PATH"
-          fi
+          ln -s /Applications dist/dmg_src/Applications
+          hdiutil create -volname "DroneFlames" -srcfolder dist/dmg_src -ov -format UDZO "$DMG_PATH"
           rm -rf dist/dmg_src
 
           # Create Portable ZIP
@@ -319,11 +296,11 @@ jobs:
             - **Официальная иконка игры:** Заменена стандартная иконка Godot — теперь везде отображается официальная эмблема игры (в таскбаре, окне, Alt-Tab и при полноэкранном режиме).
 
       - name: Send Notification to Telegram
-        if: steps.version_info.outputs.IS_TEST == 'true'
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           TAG: "${{ steps.version_info.outputs.TAG_NAME }}"
           COMMIT_SHA: "${{ github.sha }}"
           RUN_ID: "${{ github.run_id }}"
+          IS_TEST: "${{ steps.version_info.outputs.IS_TEST }}"
         run: python3 scripts/notify_telegram.py

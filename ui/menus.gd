@@ -6,7 +6,7 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.10-test (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.5.11-test (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
 	"МУЛЬТИПЛЕЕР v0.33.4.9: позднее подключение к партии, возврат за свою страну и управление свободной страной ИИ",
