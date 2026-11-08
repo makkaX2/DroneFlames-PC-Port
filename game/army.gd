@@ -549,8 +549,6 @@ func _acquire(u: Unit) -> bool :
 	if me == null or (me.at_war.is_empty() and not grd):
 		u.target = null
 		return false
-		u.target = null
-		return
 	var r: float = range_of(u)
 	var best: Object = null
 	var bd: float = r * r
