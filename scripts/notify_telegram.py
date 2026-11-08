@@ -33,12 +33,36 @@ def dl_url(fname):
 
 apk_files = glob.glob("dist/*.apk")
 win_files = [f for f in glob.glob("dist/*.zip") if "PC" in f or "macOS" not in f]
+win_setups = glob.glob("dist/*.exe")
 mac_files = glob.glob("dist/*.dmg")
-ver = tag.lstrip("v")
 
-apk_name = os.path.basename(apk_files[0]) if apk_files else f"DroneFlames_v{ver}_good_boy_irl.apk"
-win_name = os.path.basename(win_files[0]) if win_files else f"DroneFlames_PC_v{ver}_good_boy_irl.zip"
-mac_name = os.path.basename(mac_files[0]) if mac_files else f"DroneFlames_macOS_v{ver}_good_boy_irl.dmg"
+artifact_lines = []
+dl_buttons = []
+
+if win_files:
+    wname = os.path.basename(win_files[0])
+    artifact_lines.append(f"- windows: {wname}")
+    dl_buttons.append({"text": "[windows zip]", "url": dl_url(win_files[0])})
+
+if win_setups:
+    sname = os.path.basename(win_setups[0])
+    artifact_lines.append(f"- win-installer: {sname}")
+    dl_buttons.append({"text": "[windows exe]", "url": dl_url(win_setups[0])})
+
+if mac_files:
+    mname = os.path.basename(mac_files[0])
+    artifact_lines.append(f"- macos: {mname}")
+    dl_buttons.append({"text": "[macos dmg]", "url": dl_url(mac_files[0])})
+
+if apk_files:
+    aname = os.path.basename(apk_files[0])
+    artifact_lines.append(f"- android: {aname}")
+    dl_buttons.append({"text": "[android apk]", "url": dl_url(apk_files[0])})
+
+if not artifact_lines:
+    artifact_lines.append("- (no files)")
+
+artifacts_str = "\n".join(artifact_lines)
 
 text = f"""[build:test] {tag}
 branch: test
@@ -50,29 +74,20 @@ commit description:
 {commit_desc}
 
 artifacts:
-- android: {apk_name}
-- windows: {win_name}
-- macos: {mac_name}"""
+{artifacts_str}"""
 
-apk_dl = dl_url(apk_files[0]) if apk_files else f"{base_url}/releases/download/{tag}/{apk_name}"
-win_dl = dl_url(win_files[0]) if win_files else f"{base_url}/releases/download/{tag}/{win_name}"
-mac_dl = dl_url(mac_files[0]) if mac_files else f"{base_url}/releases/download/{tag}/{mac_name}"
+buttons = []
+if dl_buttons:
+    buttons.append(dl_buttons)
 
-buttons = [
-    [
-        {"text": "[android apk]", "url": apk_dl},
-        {"text": "[windows zip]", "url": win_dl},
-        {"text": "[macos dmg]", "url": mac_dl}
-    ],
-    [
-        {"text": "[release notes]", "callback_data": "notes"},
-        {"text": "[check updates]", "callback_data": "check_now"}
-    ],
-    [
-        {"text": "[release url]", "url": rel_url},
-        {"text": "[commit url]", "url": com_url}
-    ]
-]
+buttons.append([
+    {"text": "[release notes]", "callback_data": "notes"},
+    {"text": "[check updates]", "callback_data": "check_now"}
+])
+buttons.append([
+    {"text": "[release url]", "url": rel_url},
+    {"text": "[commit url]", "url": com_url}
+])
 
 payload = {
     "chat_id": int(chat_id),
