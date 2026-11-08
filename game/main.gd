@@ -93,6 +93,30 @@ func _ready() -> void :
 			var v: RefCounted = (load("res://dev/verify_game.gd") as GDScript).new()
 			set_meta("verify_game", v)
 			v.call("run", self)
+		elif a == "--local-workshop-test":
+			var workshop_test: RefCounted = (load("res://dev/local_workshop_test.gd") as GDScript).new()
+			set_meta("local_workshop_test", workshop_test)
+			workshop_test.call("run", self)
+		elif a.begins_with("--lan-smoke="):
+			var lan_test: RefCounted = (load("res://dev/lan_smoke_test.gd") as GDScript).new()
+			set_meta("lan_smoke_test", lan_test)
+			lan_test.call("run", self, a.get_slice("=", 1))
+		elif a == "--graphics-test":
+			var gfx_test: RefCounted = (load("res://dev/graphics_test.gd") as GDScript).new()
+			set_meta("gfx_test", gfx_test)
+			gfx_test.call("run", self)
+		elif a == "--profile-saved-game":
+			var save_profile: RefCounted = (load("res://dev/profile_saved_game.gd") as GDScript).new()
+			set_meta("save_profile", save_profile)
+			save_profile.call("run", self)
+		elif a == "--combat-performance-test":
+			var combat_test: RefCounted = (load("res://dev/combat_performance_test.gd") as GDScript).new()
+			set_meta("combat_performance_test", combat_test)
+			combat_test.call("run", self)
+		elif a == "--police-test":
+			var police_test: RefCounted = (load("res://dev/police_test.gd") as GDScript).new()
+			set_meta("police_test", police_test)
+			police_test.call("run", self)
 		elif a == "--create-nuke-save":
 			var cns: RefCounted = (load("res://dev/create_nuke_save.gd") as GDScript).new()
 			set_meta("create_nuke_save", cns)
@@ -320,6 +344,9 @@ func _notification(what: int) -> void :
 		_pinch_d = 0.0
 		_pinch_mid = Vector2.INF
 		_dtz = false
+		_mouse_down = false
+		_rmb_down = false
+		_rmb_dragged = false
 		if net != null and net.in_match:
 
 			if OS.has_feature("mobile"):
@@ -654,7 +681,10 @@ func _on_action(nm: String) -> void :
 		"bar_4":
 			if selected_fac != null and selected_fac.kind == Facility.Kind.BARRACKS:
 				_sim("", "cmd_field", [selected_fac, "prod_type", 4])
-		"factory", "droneport", "tel", "mfactory", "refinery", "power", "airfield", "farm", "civ", "mine", "barracks", "ad_mfg", "ad_spaag", "ad_sam", "ad_patriot", "ad_int", "ad_radar", "ad_ew", "trench", "teeth", "dugout", "sawmill", "oil_rig", "port", "solar_farm", "navbase", "coastal_asm", "npp", "umine":
+		"police_patrol":
+			if selected_fac != null and selected_fac.kind == Facility.Kind.POLICE_STATION:
+				_sim("army", "toggle_police_patrol", [selected_fac])
+		"police_station", "factory", "droneport", "tel", "mfactory", "refinery", "power", "airfield", "farm", "civ", "mine", "barracks", "ad_mfg", "ad_spaag", "ad_sam", "ad_patriot", "ad_int", "ad_radar", "ad_ew", "trench", "teeth", "dugout", "sawmill", "oil_rig", "port", "solar_farm", "navbase", "coastal_asm", "npp", "umine":
 			var bm: int = BUILD_KEYS[nm]
 			if not _has_capital():
 				_set_mode(mode)

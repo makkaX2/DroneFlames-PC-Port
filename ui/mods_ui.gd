@@ -57,6 +57,9 @@ static func build(menus: Menus, parent: VBoxContainer) -> void:
 		return
 
 	_ensure_signals(menus, mm)
+	var workshop: Button = UiKit.big("МАСТЕРСКАЯ КАРТ · ЛОКАЛЬНО", "gold", "", 38.0, 11)
+	workshop.pressed.connect(func() -> void: menus.show_local_workshop())
+	parent.add_child(workshop)
 
 	# Предупреждение об экспериментальном режиме
 	var exp_badge: PanelContainer = PanelContainer.new()

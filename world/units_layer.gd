@@ -84,14 +84,16 @@ func _process(_delta: float) -> void :
 		busy = true
 	if not air and _sel_army() != null:
 		busy = true
-	for a: Aircraft in mil.air.aircraft:
-		if a.state != Aircraft.State.PARKED or a.service_t > 0.0:
-			busy = true
-			break
-	for d: Drone in mil.drones:
-		if d.state != Drone.State.PARKED:
-			busy = true
-			break
+	if not busy:
+		for a: Aircraft in mil.air.aircraft:
+			if a.state != Aircraft.State.PARKED or a.service_t > 0.0:
+				busy = true
+				break
+	if not busy:
+		for d: Drone in mil.drones:
+			if d.state != Drone.State.PARKED:
+				busy = true
+				break
 	if not busy:
 		for f: Facility in mil.facilities:
 			if f.producing or f.moving or not f.craters.is_empty() or gw.game_time < f.flash_until or f.restore_t > 0.0 or f.reload_t > 0.0 or f.lower_t > 0.0:
@@ -151,6 +153,8 @@ func _draw() -> void :
 		return
 	if not air:
 		for f: Facility in mil.facilities:
+			if f.craters.is_empty() and not f.moving:
+				continue
 			if not _see_fac(f):
 				continue
 			for c: Vector2 in f.craters:
@@ -642,6 +646,15 @@ func _ground_units(z: float) -> void :
 	for i in _nv:
 		var u: Unit = _vu[i]
 		var p: Vector2 = u.pos.round()
+		if u.type == Unit.Type.POLICE:
+			draw_set_transform(p, u.heading, Vector2.ONE)
+			draw_rect(Rect2(-5, -3, 11, 7), Color("17212e"))
+			draw_rect(Rect2(-4, -2, 9, 5), Color("e4e7db"))
+			draw_rect(Rect2(-1, -2, 3, 5), Color("345580"))
+			draw_rect(Rect2(-1, -2, 1, 2), Color("ed5745"))
+			draw_rect(Rect2(1, -2, 1, 2), Color("4c8fe5"))
+			draw_set_transform(Vector2.ZERO)
+			continue
 		_unit_sprite(u)
 		var ua: SpriteAtlas = _sa
 		var n: String = _sn
@@ -663,11 +676,10 @@ func _ground_units(z: float) -> void :
 		if z >= 1.0:
 
 			if u.hp < u.max_hp:
-				var c: Country = gw.country_by_id(u.country_id)
 				var w: int = (10 if _big == 2 else 8) if u.type == Unit.Type.TANK else (8 if _big == 2 else 6)
 				var by: float = -11.0 if _big == 2 else -8.0
 				draw_rect(Rect2(p + Vector2( - w / 2, by), Vector2(w, 1)), Palette.c("ui_rubber") * _km)
-				draw_rect(Rect2(p + Vector2( - w / 2, by), Vector2(maxf(1.0, w * u.hp / u.max_hp), 1)), (c.color_light if c != null else Color.WHITE) * _km)
+				draw_rect(Rect2(p + Vector2( - w / 2, by), Vector2(maxf(1.0, w * u.hp / u.max_hp), 1)), (oc.color_light if oc != null else Color.WHITE) * _km)
 		if u == sel and not night_pass:
 			_brackets(p, 9 if _big == 2 else 7)
 	var a6: SpriteAtlas = gw.atlas6
@@ -877,6 +889,8 @@ func _draw_outline() -> void :
 		_outline.draw_rect(Rect2(p.x - hw, y0 + 1.0, hw * 2.0, 2.0), plate)
 	for i2 in _nv:
 		var u2: Unit = _vu[i2]
+		if u2.type == Unit.Type.POLICE:
+			continue
 		var oc: Country = gw.country_by_id(u2.country_id)
 		if oc == null:
 			continue

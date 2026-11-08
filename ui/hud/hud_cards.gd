@@ -186,6 +186,11 @@ func show_facility(f: Facility, mil: Military, player: Country) -> void :
 			acts.append(_act(Loc.t("ВОССТАН.\n%d") % rc, "icon_restore", "fac_restore", player.money >= rc))
 	else:
 		match f.kind:
+			Facility.Kind.POLICE_STATION:
+				var count: int = gw.army.police_count(f)
+				info = "МАШИНЫ %d/4 · %s" % [count, "ПАТРУЛЬ" if f.police_patrol else "ОЖИДАНИЕ"]
+				detail = "Патрулируют свою территорию и защищаются от войск стран, с которыми идёт война."
+				acts.append(_act("ОСТАНОВИТЬ" if f.police_patrol else "ПАТРУЛЬ", "icon_barracks", "police_patrol", true))
 			Facility.Kind.DRONE_PORT:
 				var cap: int = 0
 				for k in f.spots.size():

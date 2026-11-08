@@ -17,9 +17,10 @@ const SPEC: Array = [
 	{"name": "ГАУБИЦА", "hp": 60.0, "speed": 9.0, "range": 700.0, "dmg": 50.0, "cd": 10.0, "cost": 600, "ti": 6, "food": 0, "time": 26.0, "sprite": "howitzer", "hit": 0, "min": 90.0, "blast": 13.0}, 
 	{"name": "РСЗО", "hp": 60.0, "speed": 14.0, "range": 950.0, "dmg": 22.0, "cd": 45.0, "cost": 900, "ti": 10, "food": 0, "time": 34.0, "sprite": "mlrs", "hit": 0, "min": 160.0, "blast": 11.0, "salvo": 12}, 
 	{"name": "РАЗВЕДКА", "hp": 8.0, "speed": 30.0, "range": 0.0, "dmg": 0.0, "cd": 0.0, "cost": 120, "ti": 0, "food": 0, "time": 8.0, "sprite": "recon_drone", "hit": 0}, 
+	{"name": "ПОЛИЦИЯ", "hp": 50.0, "speed": 20.0, "range": 80.0, "dmg": 6.0, "cd": 1.1, "cost": 100, "ti": 0, "food": 0, "time": 0.0, "sprite": "ifv", "hit": 55},
 ]
 
-const TYPE_KEY: Array[String] = ["tank", "infantry", "fpv", "atgm", "assault", "ifv", "mortar", "arty", "mlrs", "recon"]
+const TYPE_KEY: Array[String] = ["tank", "infantry", "fpv", "atgm", "assault", "ifv", "mortar", "arty", "mlrs", "recon", "police"]
 
 
 
@@ -81,7 +82,7 @@ const CAP_DRAIN: float = 2.0
 const CAP_DECAY_T: float = 40.0
 const REFILL_SLOW: float = 1.25
 
-const UNIT_ICONS: Array[String] = ["icon_tank", "icon_infantry", "icon_infantry", "icon_atgm", "icon_build_assault", "icon_build_motor", "icon_mortar", "icon_arty", "icon_mlrs", "icon_recon_drone"]
+const UNIT_ICONS: Array[String] = ["icon_tank", "icon_infantry", "icon_infantry", "icon_atgm", "icon_build_assault", "icon_build_motor", "icon_mortar", "icon_arty", "icon_mlrs", "icon_recon_drone", "icon_barracks"]
 
 const LOC_RES_GEN: Dictionary = {"money": "денег", "food": "еды", "titanium": "титана", "metal": "металла", "wood": "дерева", "oil": "нефти", 
 	"precious": "драгметаллов", "fuel": "топлива", "goods": "товаров"}
@@ -91,6 +92,7 @@ var units: Array[Unit] = []
 var arrows: Array = []
 var shells: Array = []
 var _next_id: int = 1
+var _police_tick_t: float = 0.0
 var _scan_t: float = 0.0
 var _siege_acc: float = 0.0
 var rockets: Array = []
@@ -390,10 +392,11 @@ func update(dt: float) -> void :
 		if u.indirect():
 			_advance(u, dt)
 		else:
+			var already_valid: bool = false
 			if scan:
-				_acquire(u)
+				already_valid = _acquire(u)
 			var tgt: Object = u.target
-			if tgt != null and not _valid(u, tgt):
+			if tgt != null and not already_valid and not _valid(u, tgt):
 				u.target = null
 				tgt = null
 			if tgt != null and not u.op_move and not (u.post != null and not u.entrenched and u.pi < u.path.size()):
@@ -422,6 +425,10 @@ func update(dt: float) -> void :
 	if _post_t >= 1.0:
 		_posts(_post_t)
 		_post_t = 0.0
+	_police_tick_t += dt
+	if _police_tick_t >= 1.0:
+		_police_tick_t = 0.0
+		_police_patrol_tick()
 	_siege_acc += dt
 	if _siege_acc >= 0.2:
 		_sieges(_siege_acc)
@@ -440,6 +447,65 @@ func _hostile(a: int, b: int) -> bool:
 		return false
 	var c: Country = gw.country_by_id(a)
 	return c != null and c.at_war.has(b)
+
+
+func police_count(station: Facility) -> int:
+	var count: int = 0
+	for unit: Unit in units:
+		if unit.type == Unit.Type.POLICE and unit.home == station and unit.country_id == station.country_id and unit.alive():
+			count += 1
+	return count
+
+
+func toggle_police_patrol(station: Facility) -> void:
+	if station == null or station.kind != Facility.Kind.POLICE_STATION or not gw.mil.alive(station):
+		return
+	station.police_patrol = not station.police_patrol
+	if station.police_patrol:
+		var missing: int = maxi(0, 4 - police_count(station))
+		for i: int in missing:
+			var unit: Unit = Unit.new()
+			unit.id = _next_id
+			_next_id += 1
+			unit.type = Unit.Type.POLICE
+			unit.country_id = station.country_id
+			unit.home = station
+			unit.max_hp = float(SPEC[Unit.Type.POLICE]["hp"])
+			unit.hp = unit.max_hp
+			unit.pos = Vector2((station.cell + Vector2i(station.size.x / 2, station.size.y + 1)) * GameWorld.CELL)
+			unit.heading = PI * 0.5
+			units.append(unit)
+	else:
+		for unit: Unit in units:
+			if unit.type == Unit.Type.POLICE and unit.home == station:
+				unit.path.clear()
+				unit.pi = 0
+
+
+func _police_patrol_tick() -> void:
+	if gw.data == null or gw.econ == null:
+		return
+	for unit: Unit in units:
+		if unit.type != Unit.Type.POLICE or not unit.alive():
+			continue
+		var station: Facility = unit.home
+		if station == null or not gw.mil.facilities.has(station) or station.country_id != unit.country_id or not gw.mil.alive(station) or not station.police_patrol:
+			unit.path.clear()
+			unit.pi = 0
+			continue
+		if unit.target != null or unit.pi < unit.path.size():
+			continue
+		for attempt: int in 12:
+			var cell: Vector2i = station.cell + Vector2i(randi_range(-24, 24), randi_range(-24, 24))
+			if not gw.data.inside(cell.x, cell.y) or gw.data.get_owner_id(cell.x, cell.y) != unit.country_id or Biome.is_water(gw.data.get_biome(cell.x, cell.y)):
+				continue
+			var destination: Vector2 = Vector2(cell * GameWorld.CELL)
+			var route: PackedVector2Array = gw.econ.nav_path(unit.pos, destination)
+			if not route.is_empty():
+				unit.path = route
+				unit.pi = 0
+				unit.state = Unit.State.MOVE
+				break
 
 
 func range_of(u: Unit) -> float:
@@ -475,12 +541,14 @@ func _hmask(cid: int) -> int:
 	return m
 
 
-func _acquire(u: Unit) -> void :
+func _acquire(u: Unit) -> bool :
 	if u.target != null and _valid(u, u.target):
-		return
+		return true
 	var me: Country = gw.country_by_id(u.country_id)
 	var grd: bool = gw.diplo != null and gw.diplo.rq != null and gw.diplo.rq.guarding(u.country_id)
 	if me == null or (me.at_war.is_empty() and not grd):
+		u.target = null
+		return false
 		u.target = null
 		return
 	var r: float = range_of(u)
@@ -557,6 +625,7 @@ func _acquire(u: Unit) -> void :
 								bd = d31
 								best = f
 	u.target = best
+	return best != null
 
 
 func _target_pos(t: Object, from: = Vector2.INF) -> Vector2:

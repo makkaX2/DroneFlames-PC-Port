@@ -99,6 +99,7 @@ const AF_TAXI_Y: float = 18.0
 const AF_SPOTS: Array = [Vector2(58, 25), Vector2(72, 25), Vector2(86, 25), Vector2(100, 25), Vector2(58, 38), Vector2(72, 38), Vector2(86, 38), Vector2(100, 38)]
 
 const SIZES: Dictionary = {
+	Facility.Kind.POLICE_STATION: Vector2i(6, 4),
 	Facility.Kind.NUCLEAR_PLANT: Vector2i(18, 11), Facility.Kind.URANIUM_MINE: Vector2i(6, 6), 
 	Facility.Kind.COASTAL_ASM: Vector2i(6, 2), 
 	Facility.Kind.NAVAL_BASE: Vector2i(24, 12), 
@@ -116,6 +117,7 @@ const SIZES: Dictionary = {
 	Facility.Kind.TEETH_H: Vector2i(6, 2), Facility.Kind.TEETH_V: Vector2i(2, 6), Facility.Kind.DUGOUT: Vector2i(4, 3), 
 }
 const COSTS: Dictionary = {
+	Facility.Kind.POLICE_STATION: 700,
 	Facility.Kind.NUCLEAR_PLANT: 9000, Facility.Kind.URANIUM_MINE: 3200, 
 	Facility.Kind.NAVAL_BASE: 3000, Facility.Kind.COASTAL_ASM: 2200, 
 	Facility.Kind.SAWMILL: 500, Facility.Kind.OIL_RIG: 900, Facility.Kind.PORT: 1500, Facility.Kind.PORT_CRANE: 600, Facility.Kind.SOLAR_FARM: 450, 
@@ -128,6 +130,7 @@ const COSTS: Dictionary = {
 	Facility.Kind.TRENCH_H: 5, Facility.Kind.TRENCH_V: 5, Facility.Kind.TEETH_H: 10, Facility.Kind.TEETH_V: 10, Facility.Kind.DUGOUT: 350, 
 }
 const TITLES: Dictionary = {
+	Facility.Kind.POLICE_STATION: "Полицейский участок",
 	Facility.Kind.NUCLEAR_PLANT: "АЭС", Facility.Kind.URANIUM_MINE: "Урановая шахта", 
 	Facility.Kind.NAVAL_BASE: "Морская база", Facility.Kind.COASTAL_ASM: "Береговой ПКР-комплекс", 
 	Facility.Kind.SAWMILL: "Лесопилка", Facility.Kind.OIL_RIG: "Нефтевышка", Facility.Kind.PORT: "Морской порт", Facility.Kind.PORT_CRANE: "Портовый кран", Facility.Kind.SOLAR_FARM: "Солнечная станция", 
@@ -143,6 +146,7 @@ const TITLES: Dictionary = {
 }
 
 const PURPOSE: Dictionary = {
+	Facility.Kind.POLICE_STATION: "ПАТРУЛЬ ДО ЧЕТЫРЁХ МАШИН, ЗАЩИТА ОТ ВРАЖЕСКОЙ АРМИИ",
 	Facility.Kind.NUCLEAR_PLANT: "+40 ЭНЕРГИИ НА УРАНЕ — СЕТКИ И БЕТОН НЕ ЗАЩИЩАЮТ, НУЖНА ПВО", 
 	Facility.Kind.URANIUM_MINE: "ДОБЫВАЕТ УРАН НА РЕДКОЙ ЗАЛЕЖИ: ТОПЛИВО АЭС, ДОРОГО ПРОДАЁТСЯ", 
 	Facility.Kind.SAWMILL: "ДЕРЕВО: РУБИТ ЛЕС ВОКРУГ СЕБЯ", Facility.Kind.OIL_RIG: "ДОБЫВАЕТ НЕФТЬ ИЗ МЕСТОРОЖДЕНИЯ", 
@@ -167,6 +171,7 @@ const PURPOSE: Dictionary = {
 	Facility.Kind.DUGOUT: "УКРЫТИЕ НА 3 БОЙЦОВ: ЛЕЧИТ, ЗАЩИТА x3", 
 }
 const SPRITES: Dictionary = {
+	Facility.Kind.POLICE_STATION: "barracks",
 	Facility.Kind.NUCLEAR_PLANT: "npp_core", Facility.Kind.URANIUM_MINE: "umine", 
 	Facility.Kind.NAVAL_BASE: "navbase", Facility.Kind.COASTAL_ASM: "coastal_asm", 
 	Facility.Kind.SAWMILL: "sawmill", Facility.Kind.OIL_RIG: "oil_rig", Facility.Kind.PORT: "port", Facility.Kind.PORT_CRANE: "port_crane", Facility.Kind.SOLAR_FARM: "solar", 

@@ -16,6 +16,7 @@ const Bar = preload("res://ui/ui24/bar_track.gd")
 const HT = preload("res://ui/ui24/hold_tip.gd")
 const ResSheet = preload("res://ui/ui24/res_sheet.gd")
 const ArmyBudget = preload("res://ui/ui24/army_budget.gd")
+const BulkInfrastructure = preload("res://game/bulk_infrastructure.gd")
 const AMBER: = Color("ffb000")
 const STATUS_COL: Dictionary = {"bad": UiKit.RED, "warn": AMBER, "ok": UiKit.GREEN, "none": Color("8f8a76")}
 const TABS: Array = [["ЦЕПОЧКИ", "icon_factory"], ["СКЛАД", "icon_inventory"], ["ДОХОДЫ", "icon_stats"]]
@@ -603,6 +604,10 @@ func _build_chains() -> void :
 		vb.remove_child(ch)
 		ch.queue_free()
 	_chain_rows.clear()
+	var bulk: Button = UiKit.big("УЛУЧШИТЬ ЗДАНИЯ", "gold", "", 36.0, 10)
+	bulk.name = "BulkInfrastructureButton"
+	bulk.pressed.connect(_bulk_infrastructure_preview)
+	vb.add_child(bulk)
 	var chains: Array = (_data.get("chains", []) as Array).duplicate()
 	var rank: Dictionary = {"alert": 0, "idle": 1, "ok": 2}
 	var order: Dictionary = {}
@@ -642,6 +647,40 @@ func _build_chains() -> void :
 	_plan_btn.pressed.connect( func() -> void : action.emit("plan_toggle"))
 	pr.add_child(_plan_btn)
 	_chain_sig = _chains_signature(_data)
+
+
+func _bulk_infrastructure_preview() -> void:
+	if hud == null or hud.gw == null or hud.gw.player == null or hud.gw.econ == null:
+		return
+	if hud.main_node != null and hud.main_node.net != null and hud.main_node.net.in_match:
+		hud.show_toast("Массовое улучшение доступно только в одиночной игре")
+		return
+	var gw: GameWorld = hud.gw
+	var owner: Country = gw.player
+	var preview: Dictionary = BulkInfrastructure.plan(gw.econ, gw.mil.facilities, owner)
+	var items: Array = preview["items"]
+	if items.is_empty():
+		hud.show_toast("Нет доступных улучшений или не хватает ресурсов")
+		return
+	var costs: PackedStringArray = PackedStringArray()
+	for resource: String in preview["cost"]:
+		costs.append("%s: %d" % [String(Country.RES_RU.get(resource, resource)), int(preview["cost"][resource])])
+	var confirm: ConfirmationDialog = ConfirmationDialog.new()
+	confirm.title = "Улучшение инфраструктуры"
+	confirm.dialog_text = "Улучшить на один уровень: %d из %d зданий.\nСтоимость: %s\n\nРесурсы и доступность проверяются ещё раз перед улучшением." % [items.size(), int(preview["eligible"]), ", ".join(costs)]
+	confirm.ok_button_text = "УЛУЧШИТЬ"
+	confirm.cancel_button_text = "ОТМЕНА"
+	add_child(confirm)
+	confirm.confirmed.connect(func() -> void:
+		if hud == null or hud.gw != gw or gw.player != owner or (hud.main_node != null and hud.main_node.net != null and hud.main_node.net.in_match):
+			return
+		var count: int = BulkInfrastructure.apply(gw.econ, gw.mil.facilities, owner, preview)
+		hud.show_toast("Улучшено зданий: %d" % count)
+	)
+	confirm.close_requested.connect(confirm.queue_free)
+	confirm.canceled.connect(confirm.queue_free)
+	confirm.confirmed.connect(confirm.queue_free)
+	confirm.popup_centered()
 
 
 func _chain_row(vb: VBoxContainer, c: Dictionary) -> void :

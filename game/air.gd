@@ -412,9 +412,14 @@ func update(dt: float) -> void :
 		_heli_sound()
 	_update_aams(dt)
 	_update_nars(dt)
-	for k in range(tracers.size() - 1, -1, -1):
-		if gw.game_time > float(tracers[k][2]):
-			tracers.remove_at(k)
+	var live_tracers: int = 0
+	for k in range(tracers.size()):
+		if gw.game_time <= float(tracers[k][2]):
+			if live_tracers != k:
+				tracers[live_tracers] = tracers[k]
+			live_tracers += 1
+	if live_tracers != tracers.size():
+		tracers.resize(live_tracers)
 	for k in range(aircraft.size() - 1, -1, -1):
 		if aircraft[k].state == Aircraft.State.DEAD and gw.game_time > aircraft[k].service_t:
 			aircraft.remove_at(k)

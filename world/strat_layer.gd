@@ -94,6 +94,11 @@ func _process(delta: float) -> void :
 	var cam: MapCamera = gw.camera
 	_lo_tick(delta, cam)
 	var k: float = cam.strat_k()
+	# At distant zoom, render the already available low-detail map instead of
+	# thousands of individual objects; keep camera and input zoom unchanged.
+	var detail_limit: float = [0.55, 0.35, 0.0, 0.80][clampi(GameConfig.performance_mode, 0, 3)] / MapCamera.ui_k
+	if cam.floor_z <= 0.0 and cam.zoom.x <= detail_limit:
+		k = 1.0
 	if lo_tex == null:
 		k = 0.0
 	if k <= 0.001:
@@ -113,8 +118,9 @@ func _process(delta: float) -> void :
 		visible = true
 		_lift(true)
 		_sync_t = 99.0
-	_k = k
-	mat.set_shader_parameter("fade", k)
+	if _k != k:
+		_k = k
+		mat.set_shader_parameter("fade", k)
 	var px: float = 1.0 / maxf(cam.zoom.x, 0.001)
 	if not is_equal_approx(px, _px):
 		_px = px

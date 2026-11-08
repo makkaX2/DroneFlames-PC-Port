@@ -126,7 +126,7 @@ func _set_mode(m: int) -> void :
 			hud.set_hint(RB.hint(self, m))
 		Mode.TRENCH_H, Mode.TEETH_H:
 			hud.set_hint(Loc.t("%s: ВЕДИТЕ ПАЛЬЦЕМ ПО СВОЕЙ ЗЕМЛЕ (%d/КЛЕТКА). КАРТА - ДВУМЯ ПАЛЬЦАМИ") % [Loc.t("ОКОП") if m == Mode.TRENCH_H else Loc.t("ЗУБЫ ДРАКОНА"), Military.cost_of(BUILD_KIND[m])])
-		Mode.FARM, Mode.CIV, Mode.MINE, Mode.BARRACKS, Mode.AD_MFG, Mode.AD_SPAAG, Mode.AD_SAM, Mode.AD_PATRIOT, Mode.AD_INT, Mode.AD_RADAR, Mode.AD_EW, Mode.DUGOUT, Mode.COASTAL_ASM:
+		Mode.POLICE_STATION, Mode.FARM, Mode.CIV, Mode.MINE, Mode.BARRACKS, Mode.AD_MFG, Mode.AD_SPAAG, Mode.AD_SAM, Mode.AD_PATRIOT, Mode.AD_INT, Mode.AD_RADAR, Mode.AD_EW, Mode.DUGOUT, Mode.COASTAL_ASM:
 			var kind2: int = BUILD_KIND[m]
 			var bc2: Dictionary = Economy.build_cost(kind2)
 			if world.player != null and world.mil.has_method("price_of") and bc2.has("money"):
@@ -183,7 +183,7 @@ func _on_zoom(z: float) -> void :
 	(world.territory_border.material as ShaderMaterial).set_shader_parameter("border_px", clampf(2.0 / z, 1.0, 4.0))
 	(world.territory.material as ShaderMaterial).set_shader_parameter("fill_scale", maxf(1.0, 1.0 / z))
 	world.objects.visible = z >= 0.5
-	world.objects.sway_enabled = z >= 1.0
+	world.objects.sway_enabled = z >= 1.0 and GameConfig.performance_mode != 0 and GameConfig.performance_mode != 3
 
 
 

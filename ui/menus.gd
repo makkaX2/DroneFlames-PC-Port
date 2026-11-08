@@ -6,7 +6,7 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.8-test (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.5.9-test (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
 	"МУЛЬТИПЛЕЕР v0.33.4.9: позднее подключение к партии, возврат за свою страну и управление свободной страной ИИ",
@@ -889,6 +889,9 @@ func _android_mp_lock(b: Button, label: String) -> void :
 
 
 func show_main() -> void :
+	if not GameConfig.graphics_chosen and not OS.has_environment("DF_SKIP_GRAPHICS_SETUP"):
+		show_graphics_first()
+		return
 	close()
 	current = "main"
 	var smb: float = _safe_tb().y
@@ -3066,6 +3069,39 @@ var _dev_taps: int = 0
 
 
 
+func show_local_workshop() -> void:
+	var vb: VBoxContainer = _screen("Мастерская карт", 0.55, false)
+	current = "local_workshop"
+	load("res://ui/local_workshop_ui.gd").build(self, vb)
+
+
+func _set_graphics_profile(i: int) -> void:
+	GameConfig.performance_mode = clampi(i, 0, 3)
+	var economical: bool = i == 0 or i == 3
+	GameConfig.fx_level = 0 if economical else i
+	GameConfig.clouds = not economical
+	GameConfig.ground_detail = not economical
+	GameConfig.econ_fx = not economical
+	GameConfig.day_grade = not economical
+	if gw != null and gw.objects != null and gw.camera != null:
+		gw.objects.sway_enabled = gw.camera.zoom.x >= 1.0 and not economical
+
+
+func show_graphics_first() -> void:
+	var vb: VBoxContainer = _screen("Выберите графику", 0.45)
+	current = "graphics_first"
+	_label(vb, "Настройку можно будет изменить в меню Настройки → Графика.", 11, UiKit.MUTED)
+	var names: Array = ["ПРОИЗВОДИТЕЛЬНОСТЬ", "БАЛАНС", "КАЧЕСТВО", "МАКС. ПРОИЗВОДИТЕЛЬНОСТЬ"]
+	for i in names.size():
+		var button: Button = UiKit.big(names[i], "green" if i == 1 else "stone", "", 44.0, 11)
+		vb.add_child(button)
+		button.pressed.connect(func() -> void:
+			_set_graphics_profile(i)
+			GameConfig.graphics_chosen = true
+			Save.save_prefs()
+			show_main())
+
+
 func show_settings_sub(kind: String) -> void :
 	if kind == "mods":
 		show_mods_settings(_from_pause)
@@ -3074,6 +3110,11 @@ func show_settings_sub(kind: String) -> void :
 	current = "settings_" + kind
 	_sheet = kind != "gfx"
 	if kind == "gfx":
+		_selector(vb, "ПРОФИЛЬ ГРАФИКИ", ["ПРОИЗВОДИТ.", "БАЛАНС", "КАЧЕСТВО", "МАКС. FPS"], func() -> int: return GameConfig.performance_mode, func(i: int) -> void:
+			_set_graphics_profile(i)
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), 110.0)
+		_label(vb, "Производительность: меньше эффектов, подробная карта скрывается раньше.", 9, UiKit.MUTED)
 		if not GameConfig.android:
 			var resolutions: Array[Vector2i] = Save.available_display_resolutions()
 			var resolution_labels: Array[String] = Save.display_resolution_labels(resolutions)
@@ -3114,11 +3155,14 @@ func show_settings_sub(kind: String) -> void :
 		_selector(vb, "ЧАСТОТА КАДРОВ", ["30", "60", "МАКС"], func() -> int: return GameConfig.fps_i, func(i: int) -> void :
 			GameConfig.fps_i = i
 			Save.apply_power_save(), VW_SHORT)
+		_selector(vb, "30 FPS НА ПАУЗЕ", ["ВЫКЛ", "ВКЛ"], func() -> int: return 1 if GameConfig.pause_fps_limit else 0, func(i: int) -> void:
+			GameConfig.pause_fps_limit = i == 1
+			Save.apply_power_save(), VW_SHORT)
 		_selector(vb, "ЭНЕРГОСБЕРЕЖЕНИЕ · 30 FPS" if GameConfig.android else "ЭНЕРГОСБЕРЕЖЕНИЕ · 45 FPS", ["ВЫКЛ", "ВКЛ"], func() -> int: return 1 if GameConfig.power_save else 0, func(i: int) -> void :
 			GameConfig.power_save = i == 1
 			Save.apply_power_save(), VW_SHORT)
+		_selector(vb, "СЧЁТЧИК FPS", ["ВЫКЛ", "ВКЛ"], func() -> int: return 1 if GameConfig.perf_hud else 0, func(i: int) -> void : GameConfig.perf_hud = i == 1, VW_SHORT)
 		if GameConfig.dev_mode:
-			_selector(vb, "СЧЁТЧИК FPS", ["ВЫКЛ", "ВКЛ"], func() -> int: return 1 if GameConfig.perf_hud else 0, func(i: int) -> void : GameConfig.perf_hud = i == 1, VW_SHORT)
 
 			_selector(vb, "ЯЗЫК · DEV", ["RU", "UK", "EN", "ES"], func() -> int: return maxi(0, Loc.LANGS.find(Loc.cur())), func(i: int) -> void : Loc.set_lang(Loc.LANGS[i]), VW_SHORT)
 			_selector(vb, "ПСЕВДОЯЗЫК +30%", ["ВЫКЛ", "ВКЛ"], func() -> int: return 1 if Loc.pseudo_on else 0, func(i: int) -> void : Loc.set_pseudo(i == 1), VW_SHORT)

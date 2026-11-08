@@ -178,7 +178,20 @@ func _coast_ok(p: Country) -> bool:
 
 
 func _forest_ok(p: Country) -> bool:
-	return bool(_cached("forest%d" % p.id, AVAIL_MS, func() -> bool: return _sawmill_site(p).x >= 0))
+	return bool(_cached("forest%d" % p.id, AVAIL_MS, func() -> bool: return _forest_site_exists(p)))
+
+
+func _forest_site_exists(p: Country) -> bool:
+	for cid in p.city_ids:
+		var city: City = gw.cities[cid]
+		for r in range(city.radius + 6, city.radius + 46, 6):
+			for a in range(0, 360, 30):
+				var q: Vector2i = city.center + Vector2i(roundi(cos(deg_to_rad(a)) * r), roundi(sin(deg_to_rad(a)) * r))
+				if not gw.data.inside(q.x, q.y) or gw.data.get_owner_id(q.x, q.y) != p.id:
+					continue
+				if gw.econ.count_trees(q, Economy.SAW_R, 2) >= Economy.SAW_MIN_TREES and gw.mil.check_place(Facility.Kind.SAWMILL, Military.nw_for(Facility.Kind.SAWMILL, q), p, null, false) == "":
+					return true
+	return false
 
 
 

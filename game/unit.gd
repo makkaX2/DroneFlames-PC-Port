@@ -2,7 +2,7 @@ class_name Unit
 extends RefCounted
 
 
-enum Type{TANK, INFANTRY, FPV, ATGM, ASSAULT, IFV, MORTAR, ARTY, MLRS, RECON}
+enum Type{TANK, INFANTRY, FPV, ATGM, ASSAULT, IFV, MORTAR, ARTY, MLRS, RECON, POLICE}
 enum State{IDLE, MOVE, FIGHT, SIEGE, DEAD}
 
 var id: int = 0
@@ -76,7 +76,7 @@ func indirect() -> bool:
 
 
 func vehicle() -> bool:
-	return type == Type.TANK or type == Type.IFV or type == Type.ARTY or type == Type.MLRS
+	return type == Type.TANK or type == Type.IFV or type == Type.ARTY or type == Type.MLRS or type == Type.POLICE
 
 
 func update_frame() -> void :

@@ -1,5 +1,8 @@
 extends "res://ui/hud/hud_kit.gd"
 
+const ORE_FILTERS: Array[String] = ["", "metal", "titanium", "precious", "oil", "uranium"]
+var _ore_filter: String = ""
+
 
 func _select_page(p: int, show_tip: bool) -> void :
 	if ops_panel != null and ops_panel.visible and not bottom_panel.visible and not _tab_quiet:
@@ -146,6 +149,18 @@ func _build_ores() -> void :
 	var x: Button = UiKit.close_btn(30.0)
 	x.pressed.connect( func() -> void : toggle_ores())
 	hr.add_child(x)
+	var filter: OptionButton = OptionButton.new()
+	filter.name = "OreResourceFilter"
+	filter.custom_minimum_size = Vector2(176, 30)
+	filter.add_item(Loc.t("Все ресурсы"))
+	for resource: String in ORE_FILTERS.slice(1):
+		filter.add_item(Loc.t(String(Economy.RES_SHORT.get(resource, resource))))
+	filter.select(maxi(0, ORE_FILTERS.find(_ore_filter)))
+	filter.item_selected.connect(func(index: int) -> void:
+		_ore_filter = ORE_FILTERS[clampi(index, 0, ORE_FILTERS.size() - 1)]
+		_refresh_ores()
+	)
+	vb.add_child(filter)
 	var sc: = ScrollContainer.new()
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	sc.custom_minimum_size = Vector2(176, 60)
@@ -383,21 +398,26 @@ func _refresh_ores() -> void :
 	ore_badge.text = str(list.size())
 	if not ore_panel.visible:
 		return
-	var sig: String = ""
+	var sig: String = _ore_filter + ";"
 	for it: Array in list:
-		sig += "%s%d;" % [str((it[0] as Dictionary)["cell"]), int((it[0] as Dictionary).get("left", 0))]
+		sig += "%s:%s:%d;" % [str((it[0] as Dictionary)["cell"]), str((it[0] as Dictionary).get("res", "")), int((it[0] as Dictionary).get("left", 0))]
 	if sig == _ore_sig:
 		return
 	_ore_sig = sig
 	for ch in ore_list.get_children():
 		ch.queue_free()
-	if list.is_empty():
-		var e: Label = UiKit.lbl("Все залежи на вашей земле уже добываются. Расширяйте границы городами.", 10, UiKit.MUTED, 1)
+	var shown: Array = []
+	for it: Array in list:
+		if _ore_filter == "" or String((it[0] as Dictionary).get("res", "")) == _ore_filter:
+			shown.append(it)
+	if shown.is_empty():
+		var msg: String = "Все залежи на вашей земле уже добываются. Расширяйте границы городами." if list.is_empty() else "Нет свободных залежей выбранного ресурса."
+		var e: Label = UiKit.lbl(Loc.t(msg), 10, UiKit.MUTED, 1)
 		e.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		e.custom_minimum_size = Vector2(170, 0)
 		ore_list.add_child(e)
 		return
-	for it: Array in list:
+	for it: Array in shown:
 		var dp: Dictionary = it[0]
 		var rk: String = String(dp.get("res", ""))
 		var c: Vector2i = dp["cell"]
@@ -471,7 +491,7 @@ func show_toast(text: String, reply: bool = true) -> void :
 
 
 func _perf_process(delta: float) -> void :
-	if not (GameConfig.perf_hud and GameConfig.dev_mode):
+	if not GameConfig.perf_hud:
 		if perf_lbl != null:
 			perf_lbl.visible = false
 		return

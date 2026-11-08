@@ -510,13 +510,14 @@ func update(dt: float) -> void :
 func _dev_tick() -> void :
 	var t_lv: int = Time.get_ticks_usec()
 	var up: Array = []
+	var enterprises: Dictionary = {}
+	for f: Facility in gw.mil.facilities:
+		if Economy.is_enterprise(f.kind) and gw.mil.alive(f):
+			enterprises[f.country_id] = int(enterprises.get(f.country_id, 0)) + 1
 	for c: Country in gw.countries:
 		if c.eliminated:
 			continue
-		var ent: int = 0
-		for f: Facility in gw.mil.facilities:
-			if f.country_id == c.id and Economy.is_enterprise(f.kind) and gw.mil.alive(f):
-				ent += 1
+		var ent: int = int(enterprises.get(c.id, 0))
 		var pts: int = c.earned + ENT_POINTS * ent
 		dev_pts[c.id] = pts
 		var lvl: int = 0

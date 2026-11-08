@@ -1,17 +1,17 @@
 extends Node
 
 
-enum Mode{NONE, CAPITAL, TOWN, STRIKE, FACTORY, DRONEPORT, TEL, MODULE, TARGET, MISSILE, MFACTORY, REFINERY, POWER, AIRFIELD, CR_TARGET, FARM, CIV, MINE, BARRACKS, AD_MFG, AD_SPAAG, AD_SAM, AD_PATRIOT, AD_INT, AD_RADAR, AD_EW, ATTACK, HYP_TARGET, TRENCH_H, TRENCH_V, TEETH_H, TEETH_V, DUGOUT, SAWMILL, OIL_RIG, PORT, SOLAR_FARM, SATELLITE, OPERATION, ORDER, RECON, GARRISON, MOVE_ALL, EXPEDITION, NAVBASE, SHIP_CR, COASTAL_ASM, NPP, UMINE, HOLD, JET_KAB, JET_CAS, RAIL_ST, RAIL_LINE}
+enum Mode{NONE, CAPITAL, TOWN, STRIKE, FACTORY, DRONEPORT, TEL, MODULE, TARGET, MISSILE, MFACTORY, REFINERY, POWER, AIRFIELD, CR_TARGET, FARM, CIV, MINE, BARRACKS, AD_MFG, AD_SPAAG, AD_SAM, AD_PATRIOT, AD_INT, AD_RADAR, AD_EW, ATTACK, HYP_TARGET, TRENCH_H, TRENCH_V, TEETH_H, TEETH_V, DUGOUT, SAWMILL, OIL_RIG, PORT, SOLAR_FARM, SATELLITE, OPERATION, ORDER, RECON, GARRISON, MOVE_ALL, EXPEDITION, NAVBASE, SHIP_CR, COASTAL_ASM, NPP, UMINE, HOLD, JET_KAB, JET_CAS, RAIL_ST, RAIL_LINE, POLICE_STATION}
 
 const SPEEDS: Array = [1.0, 2.0, 5.0, 10.0, 20.0, 0.5]
 const GRAB_R: float = 22.0
 const NavyStrike = preload("res://game/navy_strike.gd")
 const RB = preload("res://ui/ui24/rail_build.gd")
-const BUILD_KEYS: Dictionary = {"factory": Mode.FACTORY, "droneport": Mode.DRONEPORT, "tel": Mode.TEL, "mfactory": Mode.MFACTORY, "refinery": Mode.REFINERY, "power": Mode.POWER, "airfield": Mode.AIRFIELD, 
+const BUILD_KEYS: Dictionary = {"police_station": Mode.POLICE_STATION, "factory": Mode.FACTORY, "droneport": Mode.DRONEPORT, "tel": Mode.TEL, "mfactory": Mode.MFACTORY, "refinery": Mode.REFINERY, "power": Mode.POWER, "airfield": Mode.AIRFIELD, 
 	"farm": Mode.FARM, "civ": Mode.CIV, "mine": Mode.MINE, "barracks": Mode.BARRACKS, "ad_mfg": Mode.AD_MFG, "ad_spaag": Mode.AD_SPAAG, "ad_sam": Mode.AD_SAM, 
 	"ad_patriot": Mode.AD_PATRIOT, "ad_int": Mode.AD_INT, "ad_radar": Mode.AD_RADAR, "ad_ew": Mode.AD_EW, 
 	"trench": Mode.TRENCH_H, "teeth": Mode.TEETH_H, "dugout": Mode.DUGOUT, "sawmill": Mode.SAWMILL, "oil_rig": Mode.OIL_RIG, "port": Mode.PORT, "solar_farm": Mode.SOLAR_FARM, "navbase": Mode.NAVBASE, "coastal_asm": Mode.COASTAL_ASM, "npp": Mode.NPP, "umine": Mode.UMINE}
-const BUILD_KIND: Dictionary = {Mode.FACTORY: Facility.Kind.DRONE_FACTORY, Mode.DRONEPORT: Facility.Kind.DRONE_PORT, Mode.TEL: Facility.Kind.TEL, Mode.MFACTORY: Facility.Kind.MISSILE_FACTORY, Mode.REFINERY: Facility.Kind.REFINERY, Mode.POWER: Facility.Kind.POWER_PLANT, Mode.AIRFIELD: Facility.Kind.AIRFIELD, 
+const BUILD_KIND: Dictionary = {Mode.POLICE_STATION: Facility.Kind.POLICE_STATION, Mode.FACTORY: Facility.Kind.DRONE_FACTORY, Mode.DRONEPORT: Facility.Kind.DRONE_PORT, Mode.TEL: Facility.Kind.TEL, Mode.MFACTORY: Facility.Kind.MISSILE_FACTORY, Mode.REFINERY: Facility.Kind.REFINERY, Mode.POWER: Facility.Kind.POWER_PLANT, Mode.AIRFIELD: Facility.Kind.AIRFIELD, 
 	Mode.FARM: Facility.Kind.FARM, Mode.CIV: Facility.Kind.CIV_FACTORY, Mode.MINE: Facility.Kind.MINE, Mode.BARRACKS: Facility.Kind.BARRACKS, Mode.AD_MFG: Facility.Kind.AD_MFG, 
 	Mode.AD_SPAAG: Facility.Kind.AD_SPAAG, Mode.AD_SAM: Facility.Kind.AD_SAM, Mode.AD_PATRIOT: Facility.Kind.AD_PATRIOT, Mode.AD_INT: Facility.Kind.AD_INT, Mode.AD_RADAR: Facility.Kind.AD_RADAR, Mode.AD_EW: Facility.Kind.AD_EW, 
 	Mode.TRENCH_H: Facility.Kind.TRENCH_H, Mode.TEETH_H: Facility.Kind.TEETH_H, Mode.DUGOUT: Facility.Kind.DUGOUT, 

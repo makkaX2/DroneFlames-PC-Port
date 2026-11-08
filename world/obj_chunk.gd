@@ -237,6 +237,14 @@ func _find_guests() -> PackedInt32Array:
 	if picked.is_empty():
 		return out
 
+	var bands: Dictionary = {}
+	const BAND_HEIGHT: float = 32.0
+	for i in all_l.size():
+		var bounds: Rect2 = all_l[i][1]
+		for band in range(floori(bounds.position.y / BAND_HEIGHT), floori(bounds.end.y / BAND_HEIGHT) + 1):
+			if not bands.has(band):
+				bands[band] = []
+			bands[band].append(i)
 
 	var frontier: Array = picked.keys()
 	while not frontier.is_empty() and picked.size() < GUEST_MAX:
@@ -244,7 +252,14 @@ func _find_guests() -> PackedInt32Array:
 		for gid: int in frontier:
 			var gr: Rect2 = picked[gid]
 			var gk: int = gw.obj_sort_key(gid)
-			for c: Array in all_l:
+			var nearby: Dictionary = {}
+			for band in range(floori(gr.position.y / BAND_HEIGHT), floori(gr.end.y / BAND_HEIGHT) + 1):
+				for index: int in bands.get(band, []):
+					nearby[index] = true
+			var ordered: Array = nearby.keys()
+			ordered.sort()
+			for index: int in ordered:
+				var c: Array = all_l[index]
 				var cid: int = c[0]
 				if picked.has(cid) or gw.obj_sort_key(cid) <= gk:
 					continue

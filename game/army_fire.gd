@@ -143,13 +143,18 @@ func _spot() -> void :
 			eyes[cc.id].append([Vector2(city.center * GameWorld.CELL), cr * cr, false])
 	for cid: int in eyes:
 		var ey: Array = eyes[cid]
+		var hostility: Dictionary = {}
 		var box: = Rect2((ey[0][0] as Vector2), Vector2.ZERO)
 		for e: Array in ey:
 			box = box.expand(e[0])
 		box = box.grow(RECON_R)
 		var list: Array = []
 		for o: Unit in army.units:
-			if not o.alive() or o.air() or o.country_id == cid or not box.has_point(o.pos) or not army._hostile(cid, o.country_id):
+			if not o.alive() or o.air() or o.country_id == cid or not box.has_point(o.pos):
+				continue
+			if not hostility.has(o.country_id):
+				hostility[o.country_id] = army._hostile(cid, o.country_id)
+			if not hostility[o.country_id]:
 				continue
 			if army.in_smoke(o.pos):
 				continue
@@ -161,7 +166,11 @@ func _spot() -> void :
 		if gw.naval != null:
 			list.append_array(gw.naval.spotted_for(cid, ey))
 		for f: Facility in gw.mil.facilities:
-			if f.parent != null or not MIL_KINDS.has(f.kind) or f.moving or not army._hostile(cid, f.country_id):
+			if f.parent != null or not MIL_KINDS.has(f.kind) or f.moving:
+				continue
+			if not hostility.has(f.country_id):
+				hostility[f.country_id] = army._hostile(cid, f.country_id)
+			if not hostility[f.country_id]:
 				continue
 			var fc: Vector2 = f.center_px()
 			var ext: float = float(maxi(f.size.x, f.size.y)) * 2.0 + (float(f.cells.size()) * 2.0 if f.is_line() else 0.0)

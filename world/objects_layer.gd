@@ -77,7 +77,6 @@ func _process(delta: float) -> void :
 	var half: Vector2 = cam.view_size() * 0.5 / cam.zoom.x
 	var tl: Vector2 = (cam.position - half) / 4.0
 	var br: Vector2 = (cam.position + half) / 4.0
-	var vis: Array[ObjChunk] = chunks_in_rect(Rect2i(Vector2i(tl), Vector2i(br - tl)))
 	var budget: int = GUEST_BUDGET
 	for c: ObjChunk in chunks_in_rect(Rect2i(Vector2i(tl) - Vector2i(chunk_cells, chunk_cells), Vector2i(br - tl) + Vector2i(chunk_cells, chunk_cells) * 2)):
 		if c.need_guests and budget > 0:
@@ -85,7 +84,10 @@ func _process(delta: float) -> void :
 			c.need_guests = false
 			c.sorted = false
 			c.queue_redraw()
-	if not sway_enabled or vis.is_empty():
+	if not sway_enabled:
+		return
+	var vis: Array[ObjChunk] = chunks_in_rect(Rect2i(Vector2i(tl), Vector2i(br - tl)))
+	if vis.is_empty():
 		return
 	for k in 3:
 		_cursor = (_cursor + 1) % vis.size()

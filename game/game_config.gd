@@ -99,12 +99,15 @@ static var confirm_actions: bool = true
 static var fog: bool = true
 static var perf_hud: bool = false
 static var dev_mode: bool = false
-static var mods_enabled: bool = false
+static var mods_enabled: bool = true
 static var econ_fx: bool = true
 static var day_grade: bool = true
 static var ground_detail: bool = true
 static var clouds: bool = true
 static var fx_level: int = 1
+static var performance_mode: int = 1
+static var graphics_chosen: bool = false
+static var pause_fps_limit: bool = false
 
 
 const ORE_PRESET_NAMES: Array = ["БАЛАНС", "МАЛО", "МНОГО", "СВОИ"]
