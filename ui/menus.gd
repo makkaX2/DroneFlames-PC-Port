@@ -2912,7 +2912,15 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 		direct_installer_url = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [tag, tag]
 		file_label = "(.EXE)"
 
-	if dl_url == "" or dl_url.contains("/releases/tag/") or dl_url.contains("/releases/latest") or (not is_android and not is_mac and not dl_url.ends_with(".exe")):
+	var is_valid_url: bool = false
+	if is_mac:
+		is_valid_url = dl_url.ends_with(".dmg") or dl_url.ends_with(".zip")
+	elif is_android:
+		is_valid_url = dl_url.ends_with(".apk")
+	else:
+		is_valid_url = dl_url.ends_with(".exe") or dl_url.ends_with(".zip")
+
+	if dl_url == "" or dl_url.contains("/releases/tag/") or dl_url.contains("/releases/latest") or not is_valid_url:
 		dl_url = direct_installer_url
 
 	var bg: = ColorRect.new()
