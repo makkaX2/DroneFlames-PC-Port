@@ -173,6 +173,22 @@ func _input(event: InputEvent) -> void :
 		_held_m = (event as InputEventMouseButton).pressed
 
 
+func _unhandled_input(event: InputEvent) -> void :
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			var hovered := get_viewport().gui_get_hovered_control()
+			if hovered:
+				smooth_zoom_speed = 0.0
+			else:
+				smooth_zoom_speed = 15.0
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			var hovered := get_viewport().gui_get_hovered_control()
+			if hovered:
+				smooth_zoom_speed = 0.0
+			else:
+				smooth_zoom_speed = 15.0
+
+
 
 
 func _pos_range(z: float) -> Array:
@@ -263,6 +279,10 @@ func set_smooth_zoom_enabled(enabled: bool) -> void :
 	smooth_zoom_enabled = enabled
 
 func step_zoom(dir: float, focus: Vector2, factor_weight: float = 1.0) -> void :
+	if smooth_zoom_speed <= 0.0:
+		_target_z = 0.0
+		_settle_z = 0.0
+		return
 	if smooth_zoom_enabled:
 		smooth_step_zoom(dir, focus, factor_weight)
 		return
