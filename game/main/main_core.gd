@@ -588,6 +588,10 @@ func _pend_text() -> String:
 			return Loc.t("Движение: %s") % Loc.t(String(pv.get("text", "")))
 	if BUILD_KIND.has(m) or m == Mode.MODULE:
 		var kind: int = module_kind if m == Mode.MODULE else int(BUILD_KIND[m])
+		if kind == Facility.Kind.MINE and _pend.has("wp") and world.get("econ") != null:
+			var cell_pt: = Vector2i(floori((_pend["wp"] as Vector2).x / GameWorld.CELL), floori((_pend["wp"] as Vector2).y / GameWorld.CELL))
+			if not world.econ.deposit_near(cell_pt, 3, ["uranium"]).is_empty():
+				kind = Facility.Kind.URANIUM_MINE
 		var bc: Dictionary = Economy.build_cost(kind)
 		if world.player != null and world.mil.has_method("price_of") and m != Mode.MODULE:
 			var sp335: int = world.mil.price_of(kind, world.player)
@@ -671,6 +675,8 @@ func _pend_why() -> String:
 	var C: float = float(GameWorld.CELL)
 	var wp: Vector2 = _pend["wp"]
 	var cell: = Vector2i(floori(wp.x / C), floori(wp.y / C))
+	if kind == Facility.Kind.MINE and world.get("econ") != null and not world.econ.deposit_near(cell, 3, ["uranium"]).is_empty():
+		kind = Facility.Kind.URANIUM_MINE
 	if kind == Facility.Kind.NAVAL_BASE and world.get("navy") != null:
 		cell = _navy_snap(cell)
 	return String(world.mil.check_place(kind, Military.nw_for(kind, cell), world.player, module_port if m == Mode.MODULE else null, false))
@@ -766,6 +772,8 @@ func _draw_ghost() -> void :
 	var cell: = Vector2i(floori(wp.x / C), floori(wp.y / C))
 	if BUILD_KIND.has(m) or m == Mode.MODULE:
 		var kind: int = module_kind if m == Mode.MODULE else int(BUILD_KIND[m])
+		if kind == Facility.Kind.MINE and world.get("econ") != null and not world.econ.deposit_near(cell, 3, ["uranium"]).is_empty():
+			kind = Facility.Kind.URANIUM_MINE
 		if kind == Facility.Kind.NAVAL_BASE and world.get("navy") != null:
 			cell = _navy_snap(cell)
 		var nw: Vector2i = Military.nw_for(kind, cell)

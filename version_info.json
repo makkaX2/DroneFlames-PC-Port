@@ -1,5 +1,5 @@
 {
-  "version": "0.33.5.7-test",
+  "version": "0.33.5.8-test",
   "base_upstream_version": "0.33.4",
   "build_channel": "test",
   "apk_filename": "DroneFlames_v0.33.4_android.apk",

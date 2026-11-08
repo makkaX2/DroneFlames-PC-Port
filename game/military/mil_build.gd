@@ -76,6 +76,11 @@ func local_px(id: int, p: Array) -> Vector2:
 
 func check_place(kind: int, nw: Vector2i, country: Country, parent: Facility = null, pay: bool = true, roam: bool = false, detour_dry: bool = true) -> String:
 	var sz: Vector2i = size_of(kind)
+	if kind == Facility.Kind.MINE and gw.get("econ") != null:
+		var mid: Vector2i = nw + sz / 2
+		if not gw.econ.deposit_near(mid, 3, ["uranium"]).is_empty():
+			kind = Facility.Kind.URANIUM_MINE
+			sz = size_of(kind)
 	var d: WorldData = gw.data
 	if gw.diplo != null and gw.diplo.get("sky") != null:
 		var skw: String = gw.diplo.sky.place_why(kind, nw, sz, country)
@@ -262,12 +267,18 @@ func detour_note(kind: int, nw: Vector2i) -> String:
 
 
 func place_why(kind: int, center: Vector2i, country: Country, parent: Facility = null, pay: bool = true) -> String:
+	if kind == Facility.Kind.MINE and gw.get("econ") != null:
+		if not gw.econ.deposit_near(center, 3, ["uranium"]).is_empty():
+			kind = Facility.Kind.URANIUM_MINE
 	if kind == Facility.Kind.NAVAL_BASE and gw.get("navy") != null:
 		center = gw.navy.resolve_site(center, country)
 	return check_place(kind, nw_for(kind, center), country, parent, pay)
 
 
 func build(kind: int, center: Vector2i, country: Country, parent: Facility = null, free: bool = false) -> Facility:
+	if kind == Facility.Kind.MINE and gw.get("econ") != null:
+		if not gw.econ.deposit_near(center, 3, ["uranium"]).is_empty():
+			kind = Facility.Kind.URANIUM_MINE
 	if kind == Facility.Kind.NAVAL_BASE and gw.get("navy") != null:
 
 
