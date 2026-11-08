@@ -2,7 +2,8 @@ extends "res://ui/hud/hud_base.gd"
 
 
 func _safe_margins() -> Vector2:
-
+	if not OS.has_feature("mobile"):
+		return Vector2.ZERO
 	var win: Vector2 = Vector2(DisplayServer.window_get_size())
 	var vp: Vector2 = root.get_viewport_rect().size
 	if win.x <= 0.0:

@@ -519,6 +519,8 @@ func _dock() -> void :
 
 
 func _safe_top() -> float:
+	if not OS.has_feature("mobile"):
+		return 0.0
 	var win: Vector2 = Vector2(DisplayServer.window_get_size())
 	var safe: Rect2i = DisplayServer.get_display_safe_area()
 	if win.x <= 0.0 or safe.size.y <= 0:
