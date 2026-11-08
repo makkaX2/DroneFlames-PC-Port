@@ -58,12 +58,12 @@ var _refreshed: bool = false
 
 
 static func available() -> bool:
-	return relay_only() or ClassDB.class_exists("WebRTCPeerConnectionExtension") or OS.has_feature("web")
+	return true
 
 
 ## MultiplayerPeer packets use the WSS room relay when this build selects relay transport.
 static func relay_only() -> bool:
-	return OS.has_feature("mp_relay")
+	return OS.has_feature("mp_relay") or NetConfig.signal_url.contains("45.145.12.165") or not ClassDB.class_exists("WebRTCPeerConnectionExtension")
 
 
 func room_sealed() -> bool:

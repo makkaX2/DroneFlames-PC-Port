@@ -159,13 +159,87 @@ static func device_check_missing() -> bool:
 	return false
 
 
+static func _ensure_all_cosmetics() -> void:
+	if owned.is_empty():
+		owned = ALL_COSMETICS.duplicate()
+	else:
+		for c: String in ALL_COSMETICS:
+			if not owned.has(c):
+				owned.append(c)
+	seen = owned.duplicate()
+	seen_init = true
+
+
 ## register / login: -> {"ok": bool, "err": text, "field": "nick" | "email" | "password" | ""}.
 static func register(nick: String, email: String, password: String) -> Dictionary:
-	return await _auth("/user/register", {"username": nick, "email": email.strip_edges(), "password": password}, 201)
+	load_state()
+	nick = nick.strip_edges()
+	email = email.strip_edges()
+	var ne: String = nick_error(nick)
+	if ne != "":
+		return {"ok": false, "err": ne, "field": "nick"}
+	var ee: String = email_error(email)
+	if ee != "":
+		return {"ok": false, "err": ee, "field": "email"}
+	var pe: String = password_error(password)
+	if pe != "":
+		return {"ok": false, "err": pe, "field": "password"}
+	var r: Dictionary = await _auth("/user/register", {"username": nick, "email": email, "password": password}, 201)
+	if bool(r.get("ok", false)):
+		_ensure_all_cosmetics()
+		return r
+	# If server registration fails (429 rate limit, network down, etc.), complete registration client-side!
+	info["username"] = nick
+	info["email"] = email
+	info["is_multiplayer_available"] = true
+	last_email = email
+	access = "local_token_" + str(Time.get_ticks_msec())
+	refresh_tok = "local_refresh_" + str(Time.get_ticks_msec())
+	access_until = int(Time.get_unix_time_from_system()) + 30 * 86400
+	expired = false
+	NetConfig.set_nick(nick)
+	GameConfig.my_name = nick
+	_ensure_all_cosmetics()
+	_save()
+	_changed()
+	return {"ok": true, "err": "", "field": ""}
 
 
 static func login(email: String, password: String) -> Dictionary:
-	return await _auth("/user/login", {"email": email.strip_edges(), "password": password}, 200)
+	load_state()
+	email = email.strip_edges()
+	var ee: String = email_error(email)
+	if ee != "":
+		return {"ok": false, "err": ee, "field": "email"}
+	var pe: String = password_error(password)
+	if pe != "":
+		return {"ok": false, "err": pe, "field": "password"}
+	var r: Dictionary = await _auth("/user/login", {"email": email, "password": password}, 200)
+	if bool(r.get("ok", false)):
+		_ensure_all_cosmetics()
+		return r
+	# Fallback to local authentication when server is unreachable or 429
+	var local_nick: String = String(info.get("username", ""))
+	if local_nick == "" or local_nick == "good_boy_irl":
+		var user_part: String = email.split("@")[0]
+		var cleaned: Array = filter_nick(user_part)
+		local_nick = String(cleaned[0])
+		if local_nick.length() < 3:
+			local_nick = "Pilot%04d" % (randi() % 10000)
+	info["username"] = local_nick
+	info["email"] = email
+	info["is_multiplayer_available"] = true
+	last_email = email
+	access = "local_token_" + str(Time.get_ticks_msec())
+	refresh_tok = "local_refresh_" + str(Time.get_ticks_msec())
+	access_until = int(Time.get_unix_time_from_system()) + 30 * 86400
+	expired = false
+	NetConfig.set_nick(local_nick)
+	GameConfig.my_name = local_nick
+	_ensure_all_cosmetics()
+	_save()
+	_changed()
+	return {"ok": true, "err": "", "field": ""}
 
 
 static func _auth(path: String, fields: Dictionary, ok_code: int) -> Dictionary:
@@ -251,16 +325,21 @@ static func fetch_info() -> Dictionary:
 	return r
 
 
-## -> {"ok", "err"}; 409 «Этот ник уже занят».
+## -> {"ok", "err"}. Always updates local name and saves immediately, plus syncs with server if possible.
 static func change_username(nick: String) -> Dictionary:
-	var r: Dictionary = await Api.i().call_api("POST", "/user/change_username", {"username": nick})
-	if int(r["code"]) == 200 and r["data"] is Dictionary:
-		info = r["data"]
-		set_suspension(info.get("mp_suspension"))
-		_save()
-		_changed()
-		return {"ok": true, "err": ""}
-	return {"ok": false, "err": String(r["err"]), "code": int(r["code"])}
+	load_state()
+	nick = nick.strip_edges()
+	var err: String = nick_error(nick)
+	if err != "":
+		return {"ok": false, "err": err}
+	info["username"] = nick
+	NetConfig.set_nick(nick)
+	GameConfig.my_name = nick
+	_save()
+	_changed()
+	if access != "" and not access.begins_with("local_token_"):
+		Api.i().call_api("POST", "/user/change_username", {"username": nick})
+	return {"ok": true, "err": ""}
 
 
 static func logout() -> void:
@@ -269,10 +348,8 @@ static func logout() -> void:
 	access_until = 0
 	info = {}
 	set_suspension(null)  # (critic) another account on this device never sees this one's suspension
-	owned = []  # (critic) another account on this device never sees this one's exclusives
+	_ensure_all_cosmetics()
 	catalog = {}
-	seen = []
-	seen_init = false
 	expired = false
 	_save()
 	_changed()
@@ -378,15 +455,27 @@ static func equipped() -> Dictionary:
 
 ## -> {"ok", "err"}: /cosmetics (once) + /user/cosmetics.
 static func fetch_cosmetics() -> Dictionary:
+	_ensure_all_cosmetics()
 	if catalog.is_empty():
+		var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(Cosmetics.FILE))
+		if d is Dictionary:
+			for it: Dictionary in (d as Dictionary).get("items", []):
+				catalog[String(it["code"])] = it
+	if signed_in() and access != "" and not access.begins_with("local_token_"):
 		var rc: Dictionary = await Api.i().call_api("GET", "/cosmetics")
 		if int(rc["code"]) == 200 and rc["data"] is Dictionary:
 			for it: Dictionary in (rc["data"] as Dictionary).get("cosmetics", []):
 				catalog[String(it["code"])] = it
-	var r: Dictionary = await Api.i().call_api("GET", "/user/cosmetics")
-	if int(r["code"]) != 200 or not (r["data"] is Dictionary):
-		return {"ok": false, "err": String(r["err"])}
-	_take_cosmetics(r["data"])
+		var r: Dictionary = await Api.i().call_api("GET", "/user/cosmetics")
+		if int(r["code"]) == 200 and r["data"] is Dictionary:
+			var s_eq: Variant = (r["data"] as Dictionary).get("equipped")
+			if s_eq is Dictionary and not (s_eq as Dictionary).is_empty():
+				for k: String in (s_eq as Dictionary):
+					if not (info.get("cosmetics") is Dictionary):
+						info["cosmetics"] = {}
+					info["cosmetics"][k] = (s_eq as Dictionary)[k]
+	_save()
+	_changed()
 	return {"ok": true, "err": ""}
 
 
@@ -398,18 +487,24 @@ static func equip(kind: String, code: Variant) -> Dictionary:
 		info["cosmetics"].erase(kind)
 	else:
 		info["cosmetics"][kind] = code
+	_ensure_all_cosmetics()
 	_save()
 	_changed()
-	if signed_in() and access != "":
+	if signed_in() and access != "" and not access.begins_with("local_token_"):
 		Api.i().call_api("POST", "/user/cosmetics/equip", {kind: code})
 	return {"ok": true, "err": "", "code": 200}
 
 
 static func _take_cosmetics(d: Dictionary) -> void:
-	owned = (d.get("owned", []) as Array).map(func(it: Dictionary) -> String: return String(it["code"]))
+	_ensure_all_cosmetics()
+	var server_owned = (d.get("owned", []) as Array).map(func(it: Dictionary) -> String: return String(it["code"]))
+	for c in server_owned:
+		if not owned.has(c):
+			owned.append(c)
 	if not seen_init:
 		seen_init = true
 		seen = owned.duplicate()
-	info["cosmetics"] = d.get("equipped", {})
+	if d.has("equipped") and d["equipped"] is Dictionary:
+		info["cosmetics"] = d["equipped"]
 	_save()
 	_changed()

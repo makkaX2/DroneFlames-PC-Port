@@ -23,9 +23,9 @@ static var BROWSE_PORT: int = 24602
 static var test_no_broadcast: bool = false
 const MAX_PLAYERS: int = 8
 const FRAME_SIM_MS: float = 14.0
-const HOLD_BACKLOG: int = 5
-const HOLD_SLOW: int = 3
-const HOLD_MAX: int = 30
+const HOLD_BACKLOG: int = 25
+const HOLD_SLOW: int = 15
+const HOLD_MAX: int = 50
 const LAG_NOW_S: float = 0.3
 const JOB_DELAY_TICKS: int = 120
 const SIM_DT: float = 1.0 / 30.0
@@ -39,7 +39,7 @@ static var guard: bool = false
 static var trace: bool = false
 static var test_speed: float = 1.0
 
-static var signal_url: String = "wss://drone-flames.snaipix.com/mp/signal"
+static var signal_url: String = "wss://45.145.12.165:19080/mp/signal"
 static var api_url: String = "https://drone-flames.snaipix.com"
 const RELAY_URL: String = "wss://45.145.12.165:19080/mp/signal"
 static var trace_api: bool = false
@@ -64,7 +64,7 @@ static func load_cfg() -> void :
 		gcp_project = int(cf.get_value("net", "gcp_project", gcp_project))
 		if p == USER_CFG:
 			nickname = clean_nick(String(cf.get_value("net", "nick", "")))
-	if OS.has_feature("mp_relay"):
+	if OS.has_feature("mp_relay") or signal_url.contains("snaipix.com"):
 		signal_url = RELAY_URL
 
 

@@ -250,6 +250,12 @@ func _on_menu(req: String) -> void :
 				net.leave()
 				return
 			_new_game()
+		"quit":
+			if net != null and net.in_match:
+				net.leave()
+			elif not in_menu:
+				Save.save_game(self)
+			get_tree().quit()
 		"main_menu":
 			if net.in_match:
 				if net.reconnecting or net.rejoining:

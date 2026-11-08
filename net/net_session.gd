@@ -2302,7 +2302,7 @@ func _process(delta: float) -> void:
 		_capital_timeout()
 	if not _restoring and not rejoining:
 		_run(delta * float(speed), delta)
-		if not is_host and host_active and stall_t > 15.0 and not _rejoin.is_empty() and _snap.is_empty() and _snap_next.is_empty():
+		if not is_host and host_active and stall_t > 45.0 and not _rejoin.is_empty() and _snap.is_empty() and _snap_next.is_empty():
 			_start_reconnect()  # NET 32: the link is dead, ENet would notice only after 90 s
 
 
@@ -2314,8 +2314,9 @@ func _worst_backlog() -> Array:
 	var now: int = Time.get_ticks_msec()
 	for s: int in _lag_now:
 		var e: Array = _lag_now[s]
-		if s != local_slot and _live(s) and now - int(e[1]) <= 6000 and int(e[0]) > w:
-			w = int(e[0])
+		var bg: int = int(e[0])
+		if s != local_slot and _live(s) and now - int(e[1]) <= 6000 and bg < NetConfig.HOLD_MAX and bg > w:
+			w = bg
 			ws = s
 	return [w, ws]
 

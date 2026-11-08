@@ -6,7 +6,7 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.13-test (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.5.14-test (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
 	"МУЛЬТИПЛЕЕР v0.33.4.9: позднее подключение к партии, возврат за свою страну и управление свободной страной ИИ",
@@ -981,13 +981,15 @@ func show_main() -> void :
 
 	var items: Array = [["ИГРАТЬ", "green", "setup", 58.0, "mi_play"], ["МУЛЬТИПЛЕЕР", "gold", "mp", 48.0, "mi_mp"], 
 		["МОДИФИКАЦИИ", "stone", "mods", 46.0, "mi_mods"],
-		[["ОБУЧЕНИЕ", "stone", "tutorial", 48.0, "mi_tutorial"], ["НАСТРОЙКИ", "stone", "settings_main", 48.0, "mi_settings"]]]
+		[["ОБУЧЕНИЕ", "stone", "tutorial", 48.0, "mi_tutorial"], ["НАСТРОЙКИ", "stone", "settings_main", 48.0, "mi_settings"]],
+		["ВЫХОД", "red", "quit", 44.0, "icon_close"]]
 	var has_save: bool = Save.has_save()
 	if has_save:
 		items = [["ПРОДОЛЖИТЬ", "green", "load_save", 58.0, "mi_continue"], 
 			[["НОВАЯ ПАРТИЯ", "gold", "setup", 48.0, "mi_new"], ["МУЛЬТИПЛЕЕР", "gold", "mp", 48.0, "mi_mp"]], 
 			["МОДИФИКАЦИИ", "stone", "mods", 46.0, "mi_mods"],
-			[["ОБУЧЕНИЕ", "stone", "tutorial", 48.0, "mi_tutorial"], ["НАСТРОЙКИ", "stone", "settings_main", 48.0, "mi_settings"]]]
+			[["ОБУЧЕНИЕ", "stone", "tutorial", 48.0, "mi_tutorial"], ["НАСТРОЙКИ", "stone", "settings_main", 48.0, "mi_settings"]],
+			["ВЫХОД", "red", "quit", 44.0, "icon_close"]]
 	var i2: int = 0
 	for it: Array in items:
 		var b: Control = null
@@ -3288,7 +3290,13 @@ func show_pause() -> void :
 	elif GameConfig.no_save:
 		SavesUI.quit_button(self, vb)
 	else:
-		_button(vb, "ГЛАВНОЕ МЕНЮ", "red", "main_menu")
+		var exit_row: = HBoxContainer.new()
+		exit_row.add_theme_constant_override("separation", 8)
+		vb.add_child(exit_row)
+		var b_mm: Button = _button(exit_row, "ГЛАВНОЕ МЕНЮ", "stone", "main_menu")
+		b_mm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var b_q: Button = _button(exit_row, "ВЫЙТИ ИЗ ИГРЫ", "red", "quit")
+		b_q.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 
 func _mp_pause_row(vb: VBoxContainer) -> void :

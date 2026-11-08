@@ -87,7 +87,7 @@ func strat_floor() -> float:
 	var fw: float = maxf(64.0, vs.x - margin_left_px - margin_right_px)
 	var fh: float = maxf(64.0, vs.y - margin_top_px - margin_bottom_px)
 	var fit: float = minf(fw / maxf(1.0, world_px.x), fh / maxf(1.0, world_px.y)) * 0.97
-	return clampf(fit, 0.01, STRAT_FULL)
+	return clampf(fit, 0.01, strat_full_z())
 
 
 
@@ -95,11 +95,29 @@ func strat_k() -> float:
 	return strat_k_of(zoom.x) if floor_z <= 0.0 else 0.0
 
 
-static func strat_k_of(z: float) -> float:
+static func strat_top() -> float:
 	if zs.is_empty():
 		zs = ZOOMS.duplicate()
-	var t: float = (log(float(zs[0])) - log(maxf(z, 0.001))) / (log(float(zs[0])) - log(STRAT_FULL))
-	return smoothstep(0.0, 1.0, t)
+	return float(zs[0])
+
+
+static func strat_full_z() -> float:
+	var top: float = strat_top()
+	var full: float = STRAT_FULL / maxf(ui_k, 0.1)
+	if full >= top:
+		full = top * 0.68
+	return full
+
+
+static func strat_k_of(z: float) -> float:
+	var top: float = strat_top()
+	var bot: float = strat_full_z()
+	if z >= top:
+		return 0.0
+	if z <= bot or top <= bot:
+		return 1.0
+	var t: float = (log(top) - log(maxf(z, 0.001))) / (log(top) - log(bot))
+	return clampf(smoothstep(0.0, 1.0, t), 0.0, 1.0)
 
 
 func is_strategic() -> bool:
@@ -293,11 +311,12 @@ func step_zoom(dir: float, focus: Vector2, factor_weight: float = 1.0) -> void :
 	var idir: int = int(signf(dir))
 	if floor_z <= 0.0 and (zoom.x < float(zs[0]) - 0.001 or idir < 0):
 		var z0: float = zoom.x
+		var bot: float = strat_full_z()
 		if idir < 0 and z0 <= float(zs[0]) + 0.001:
-			set_zoom_at(maxf(min_zoom(), STRAT_FULL if z0 > STRAT_FULL + 0.001 else z0 * STRAT_WHEEL), focus)
+			set_zoom_at(maxf(min_zoom(), bot if z0 > bot + 0.001 else z0 * STRAT_WHEEL), focus)
 			return
 		if idir > 0 and z0 < float(zs[0]) - 0.001:
-			set_zoom_at(float(zs[0]) if z0 >= STRAT_FULL - 0.001 else minf(STRAT_FULL, z0 / STRAT_WHEEL), focus)
+			set_zoom_at(float(zs[0]) if z0 >= bot - 0.001 else minf(bot, z0 / STRAT_WHEEL), focus)
 			return
 	if min_zoom() < float(zs[0]):
 		if idir < 0 and zoom.x <= float(zs[0]) + 0.001:
@@ -319,15 +338,17 @@ func snap_zoom(focus: Vector2) -> void :
 
 func settle_zoom(focus: Vector2, dir: int) -> void :
 	var z: float = clampf(zoom.x, min_zoom(), float(zs[zs.size() - 1]))
-	if floor_z <= 0.0 and z < float(zs[0]) - 0.0001:
+	var top: float = strat_top()
+	var bot: float = strat_full_z()
+	if floor_z <= 0.0 and z < top - 0.0001:
 
 
-		if z <= STRAT_FULL + 0.0001:
+		if z <= bot + 0.0001:
 			set_zoom_at(z, focus)
 			return
-		var tb: float = (log(float(zs[0])) - log(z)) / (log(float(zs[0])) - log(STRAT_FULL))
+		var tb: float = (log(top) - log(z)) / (log(top) - log(bot))
 		var thb: float = 0.5 + 0.3 * float(signi(dir))
-		_settle_z = maxf(min_zoom(), STRAT_FULL) if tb >= thb else float(zs[0])
+		_settle_z = maxf(min_zoom(), bot) if tb >= thb else top
 		_settle_f = focus
 		return
 	if z < float(zs[0]) - 0.0001:
