@@ -6,7 +6,7 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.12-test (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.5.13-test (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
 	"МУЛЬТИПЛЕЕР v0.33.4.9: позднее подключение к партии, возврат за свою страну и управление свободной страной ИИ",
@@ -186,6 +186,9 @@ func _process(delta: float) -> void :
 			_cc.offset_top = top
 
 	var w: float = root.size.x
+	if _logo != null and is_instance_valid(_logo) and _logo.texture != null:
+		var lt_sz: Vector2 = _logo.texture.get_size()
+		_logo.position.x = (w - lt_sz.x) * 0.5
 	for c: Array in _clouds:
 		var tr: TextureRect = c[0]
 		if not is_instance_valid(tr):

@@ -488,10 +488,12 @@ func _follow() -> void :
 					continue
 				var gx: float = r.position.x - global_position.x - 6.0
 				x1 = gx if x1 < 0.0 else minf(x1, gx)
-	if absf(x1 - x_max) > 0.5:
+	var parent_w: float = get_parent_area_size().x
+	var size_changed: bool = absf(size.x - parent_w) > 0.5
+	if size_changed:
+		size.x = parent_w
+	if absf(x1 - x_max) > 0.5 or size_changed:
 		set_band(x_min, x1)
-	if absf(size.x - get_parent_area_size().x) > 0.5:
-		size.x = get_parent_area_size().x
 	if _vb.size.y != _last_h:
 		_last_h = _vb.size.y
 		_place_more()

@@ -661,6 +661,16 @@ func _show_pend() -> void :
 func _pend_why() -> String:
 	if String(_pend.get("kind", "")) == "rail" and world.player != null:
 		return RB.pend_why(self, _pend)
+	var m: int = int(_pend.get("mode", mode))
+	if m == Mode.CAPITAL and _pend.has("wp"):
+		var C: float = float(GameWorld.CELL)
+		var cell: Vector2i = Vector2i(floori((_pend["wp"] as Vector2).x / C), floori((_pend["wp"] as Vector2).y / C))
+		if world.get("data") != null and not world.data.inside(cell.x, cell.y):
+			return Loc.t("За пределами карты")
+		var pl: Dictionary = world.can_found_city(cell, City.Kind.CAPITAL, true)
+		if not bool(pl.get("ok", false)):
+			return Loc.t("Неподходящее место для столицы (вода или препятствия)")
+		return ""
 	if String(_pend.get("kind", "")) != "tap" or world.player == null:
 		return ""
 	var m: int = int(_pend.get("mode", mode))
@@ -741,15 +751,16 @@ func _ghost_why(kind: int, nw: Vector2i) -> String:
 
 
 func _draw_ghost() -> void :
-	if world.player == null:
+	var m: int = int(_pend.get("mode", mode))
+	if world.player == null and mode != Mode.CAPITAL and m != Mode.CAPITAL:
 		return
-	_ghost_own_rings()
+	if world.player != null:
+		_ghost_own_rings()
 	if RB.draw(self, _ghost):
 		return
 	if _pend.is_empty():
 		return
 	var C: float = float(GameWorld.CELL)
-	var m: int = int(_pend.get("mode", mode))
 	var ok_col: = Color(0.35, 1.0, 0.45, 0.45)
 	var bad_col: = Color(1.0, 0.3, 0.25, 0.45)
 	match String(_pend["kind"]):
@@ -807,7 +818,19 @@ func _draw_ghost() -> void :
 	match m:
 		Mode.CAPITAL, Mode.TOWN:
 			rad = float(GameWorld.CELL) * (34.0 if m == Mode.CAPITAL else 20.0)
-			_ghost.draw_circle(wp, rad, Color(0.35, 1.0, 0.45, 0.12))
+			if m == Mode.CAPITAL:
+				var why_cap: String = _pend_why()
+				var cap_ok: bool = why_cap == ""
+				var cap_fill: Color = Color(0.2, 0.9, 0.35, 0.22) if cap_ok else Color(0.9, 0.25, 0.2, 0.22)
+				var cap_ring: Color = Color(0.2, 0.95, 0.35, 0.95) if cap_ok else Color(0.95, 0.3, 0.2, 0.95)
+				_ghost.draw_circle(wp, rad, cap_fill)
+				_ghost.draw_arc(wp, rad, 0.0, TAU, 64, cap_ring, 2.5 / cam.zoom.x)
+				var k_cap: float = 12.0 / cam.zoom.x
+				_ghost.draw_line(wp - Vector2(k_cap, 0), wp + Vector2(k_cap, 0), cap_ring, 2.0 / cam.zoom.x)
+				_ghost.draw_line(wp - Vector2(0, k_cap), wp + Vector2(0, k_cap), cap_ring, 2.0 / cam.zoom.x)
+				return
+			else:
+				_ghost.draw_circle(wp, rad, Color(0.35, 1.0, 0.45, 0.12))
 		Mode.SATELLITE:
 			rad = 220.0
 		Mode.RECON:

@@ -46,19 +46,18 @@ func _on_match_tick(main: Node, _world: Node, delta: float) -> void:
 
 func _get_hud(main: Node) -> Node:
 	var hud: Variant = main.get("hud")
-	return hud as Node if hud is Node else null
+	if not hud is Node or not is_instance_valid(hud):
+		return null
+	var r: Variant = (hud as Node).get("root")
+	if r is Control and is_instance_valid(r):
+		return r as Control
+	return hud as Node
 
 
-func _ensure_overlay(main: Node) -> void:
-	var hud: Node = _get_hud(main)
-	if hud == null or not is_instance_valid(hud):
+func _reposition_label() -> void:
+	if _label == null or not is_instance_valid(_label):
 		return
-	var existing: Node = hud.get_node_or_null(LABEL_NAME)
-	if existing is Label:
-		_label = existing as Label
-		return
-	_label = Label.new()
-	_label.name = LABEL_NAME
+	var vp_w: float = _label.get_viewport_rect().size.x
 	_label.anchor_left = 1.0
 	_label.anchor_top = 0.0
 	_label.anchor_right = 1.0
@@ -67,6 +66,22 @@ func _ensure_overlay(main: Node) -> void:
 	_label.offset_top = 12.0
 	_label.offset_right = -14.0
 	_label.offset_bottom = 42.0
+	_label.position = Vector2(vp_w - 236.0, 12.0)
+	_label.size = Vector2(222.0, 30.0)
+
+
+func _ensure_overlay(main: Node) -> void:
+	var container: Node = _get_hud(main)
+	if container == null or not is_instance_valid(container):
+		return
+	var existing: Node = container.get_node_or_null(LABEL_NAME)
+	if existing is Label:
+		_label = existing as Label
+		_reposition_label()
+		return
+	_label = Label.new()
+	_label.name = LABEL_NAME
+	_reposition_label()
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -75,12 +90,15 @@ func _ensure_overlay(main: Node) -> void:
 	_label.add_theme_color_override("font_color", Color(0.55, 1.0, 0.62, 1.0))
 	_label.add_theme_color_override("font_outline_color", Color(0.02, 0.04, 0.03, 1.0))
 	_label.add_theme_constant_override("outline_size", 3)
-	hud.add_child(_label)
+	container.add_child(_label)
+	if not _label.get_viewport().size_changed.is_connected(_reposition_label):
+		_label.get_viewport().size_changed.connect(_reposition_label)
 
 
 func _update_stats(main: Node) -> void:
 	if _label == null or not is_instance_valid(_label):
 		return
+	_reposition_label()
 	var fps: int = Engine.get_frames_per_second()
 	_label.text = "FPS: %d | PING: %s" % [fps, _ping_text(main)]
 

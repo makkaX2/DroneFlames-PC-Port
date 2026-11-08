@@ -542,10 +542,7 @@ func _process(delta: float) -> void :
 
 func _on_action(nm: String) -> void :
 	_auto_card = null
-	if decorator_sprite != "" and not (nm in ["decor_tree", "decor_bush", "decor_flower", "decor_home", "decor_shop", "decor_road", "decor_erase"]):
-		decorator_sprite = ""
-		for decor_key: String in ["decor_tree", "decor_bush", "decor_flower", "decor_home", "decor_shop", "decor_road", "decor_erase"]:
-			hud.set_key_pressed(decor_key, false)
+	decorator_sprite = ""
 	if world.player != null and world.player.eliminated and not in_menu and not (nm in SPECTATOR_OK or nm.begins_with("page_") or nm.begins_with("dipx:")):
 		hud.show_toast("Наблюдение: ваша страна выбыла. «Новая партия» — в меню")
 		return
@@ -559,15 +556,6 @@ func _on_action(nm: String) -> void :
 		_speed_picker()
 		return
 	match nm:
-		"decor_tree", "decor_bush", "decor_flower", "decor_home", "decor_shop", "decor_road", "decor_erase":
-			var decor_options: Dictionary = {"decor_tree": "tree_oak_a_green", "decor_bush": "bush_s0", "decor_flower": "flower_yellow_a", "decor_home": "house_a", "decor_shop": "kiosk", "decor_road": "__road__", "decor_erase": "__erase__"}
-			var chosen: String = String(decor_options[nm])
-			decorator_sprite = "" if decorator_sprite == chosen else chosen
-			for decor_key: String in decor_options:
-				hud.set_key_pressed(decor_key, decorator_sprite == String(decor_options[decor_key]))
-			if decorator_sprite != "":
-				_set_mode(Mode.NONE)
-				hud.show_tip("ДЕКОР ГОРОДА", "Выберите дерево, куст, цветы, дом, магазин, улицу или ластик и нажимайте по клеткам своего города. Декор не меняет экономику. Повторный клик выключает инструмент.", "")
 		"pause":
 			_paused = not _paused
 			_apply_speed()

@@ -48,52 +48,6 @@ func _tap(pos: Vector2) -> void :
 			return
 	if not world.data.inside(cell.x, cell.y):
 		return
-	if decorator_sprite != "":
-		if world.player == null:
-			return
-		var data_cell: WorldData = world.data
-		if decorator_sprite == "__erase__":
-			if data_cell.get_owner_id(cell.x, cell.y) != world.player.id or not data_cell.has_flag(cell.x, cell.y, WorldData.F_CITY):
-				hud.show_toast("Редактировать можно только свой город")
-				return
-			var removed: bool = false
-			for obj_id: int in range(world.obj_spr.size()):
-				if world.obj_state[obj_id] == 0 and world.obj_x[obj_id] == cell.x and world.obj_y[obj_id] == cell.y and world.obj_kind[obj_id] == GameWorld.KIND_PROP:
-					world.remove_object(obj_id)
-					data_cell.clear_flag(cell.x, cell.y, WorldData.F_OCCUPIED)
-					removed = true
-					break
-			var removed_road: bool = false
-			if data_cell.has_flag(cell.x, cell.y, WorldData.F_ROAD):
-				data_cell.clear_flag(cell.x, cell.y, WorldData.F_ROAD)
-				removed = true
-				removed_road = true
-			if removed:
-				if removed_road:
-					data_cell.set_biome(cell.x, cell.y, Biome.GRASS)
-				world.objects.chunk_at_cell(cell.x, cell.y).mark()
-				UiKit.snd("ui_close")
-			else:
-				hud.show_toast("На этой клетке нет декора")
-			return
-		var blocked_flags: int = WorldData.F_OCCUPIED | WorldData.F_BRIDGE
-		if decorator_sprite != "__road__":
-			blocked_flags |= WorldData.F_ROAD
-		if data_cell.get_owner_id(cell.x, cell.y) != world.player.id or not data_cell.has_flag(cell.x, cell.y, WorldData.F_CITY) or data_cell.has_flag(cell.x, cell.y, blocked_flags) or Biome.is_water(data_cell.get_biome(cell.x, cell.y)):
-			hud.show_toast("Украшать можно только свободные клетки своего города")
-			return
-		if decorator_sprite == "__road__":
-			data_cell.set_biome(cell.x, cell.y, Biome.STREET)
-			data_cell.add_flag(cell.x, cell.y, WorldData.F_ROAD)
-			world.objects.chunk_at_cell(cell.x, cell.y).mark()
-			UiKit.snd("ui_build")
-			return
-		var decor_id: int = world.add_object(decorator_sprite, cell, GameWorld.KIND_PROP)
-		if decor_id >= 0:
-			data_cell.add_flag(cell.x, cell.y, WorldData.F_OCCUPIED)
-			world.objects.chunk_at_cell(cell.x, cell.y).mark()
-			UiKit.snd("ui_build")
-		return
 
 
 	if mode == Mode.NONE and _far_zoom() and world.player != null and follow == null and selected_fac == null:
