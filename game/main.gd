@@ -115,17 +115,18 @@ func _main_menu() -> void :
 	if not loading.visible:
 		loading.show_screen("Создаём мир...")
 	loading.set_progress(0.1, "Рельеф, реки и леса...")
-	await get_tree().process_frame
-	await get_tree().process_frame
+	for _i in 3:
+		await get_tree().process_frame
 	var s: = WorldSettings.new()
 	s.world_seed = randi() % 100000000
-	s.size = 512
+	s.size = 256
 	settings = s
 	_deselect()
 	_clear_plan()
 	world.new_world(s)
 	loading.set_progress(0.7, "Страны и города...")
-	await get_tree().process_frame
+	for _i in 2:
+		await get_tree().process_frame
 	world.spawn_ai_countries(4)
 	world._flush_territory()
 	world.time_scale = 2.0

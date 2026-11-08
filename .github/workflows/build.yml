@@ -47,7 +47,6 @@ jobs:
     name: Build macOS Universal Port
     runs-on: macos-latest
     continue-on-error: true
-    if: false
 
     steps:
       - name: Checkout Repository (with Git LFS)
@@ -110,7 +109,6 @@ jobs:
     name: Build Android APK
     runs-on: ubuntu-latest
     continue-on-error: true
-    if: false
 
     steps:
       - name: Checkout Repository

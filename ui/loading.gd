@@ -183,7 +183,7 @@ func show_screen(text: String) -> void :
 	for c: Array in clouds:
 		(c[0] as CanvasItem).modulate.a = 0.0
 	for n: CanvasItem in ui_nodes:
-		n.modulate.a = 0.0
+		n.modulate.a = 1.0
 	_set_stage(text)
 	tip.text = Loc.t("Совет: %s") % Loc.t(String(TIPS[randi() % TIPS.size()]))
 	_layout()
@@ -232,20 +232,39 @@ func _layout() -> void :
 	var o: Vector2 = cv[2]
 	bg.position = Vector2.ZERO
 	bg.size = vs
-	logo.scale = Vector2(SPLASH_K * s, SPLASH_K * s)
-	logo.position = o + SPLASH_LOGO * s
-	var lb: float = o.y + (SPLASH_LOGO.y + 60.0 * SPLASH_K) * s
-	var bw: float = minf(270.0, vs.x - 60.0)
-	var by: float = roundf(lb + 104.0)
-	bar_frame.size = Vector2(bw, 18)
-	bar_frame.position = Vector2(roundf((vs.x - bw) * 0.5), by)
-	stage.position = Vector2(bar_frame.position.x, by - 24.0)
-	stage.size = Vector2(bw, 20)
-	tip.position = Vector2(28.0, by + 34.0)
-	tip.size = Vector2(vs.x - 56.0, 40)
-	var gs: = Vector2(vs.x * 1.1, 200.0 * SPLASH_K * s / 1.6)
-	glow.size = gs
-	glow.position = Vector2(vs.x * 0.5, o.y + (SPLASH_LOGO.y + 30.0 * SPLASH_K) * s) - gs * 0.5
+	if vs.x > vs.y:
+		var lsz: Vector2 = logo.texture.get_size() if logo.texture != null else Vector2(230, 60)
+		var lk: float = floorf(minf(2.5, (vs.x - 40.0) / lsz.x) * 2.0) / 2.0
+		if lk < 1.0:
+			lk = 1.0
+		logo.scale = Vector2(lk, lk)
+		logo.position = Vector2((vs.x - lsz.x * lk) * 0.5, maxf(20.0, vs.y * 0.14))
+		var bw: float = minf(320.0, vs.x - 60.0)
+		var by: float = roundf(vs.y * 0.72)
+		bar_frame.size = Vector2(bw, 18)
+		bar_frame.position = Vector2(roundf((vs.x - bw) * 0.5), by)
+		stage.position = Vector2(bar_frame.position.x, by - 24.0)
+		stage.size = Vector2(bw, 20)
+		tip.position = Vector2(28.0, by + 30.0)
+		tip.size = Vector2(vs.x - 56.0, 40)
+		var gs: = Vector2(vs.x * 1.1, 200.0 * lk / 1.6)
+		glow.size = gs
+		glow.position = Vector2(vs.x * 0.5, logo.position.y + lsz.y * lk * 0.5) - gs * 0.5
+	else:
+		logo.scale = Vector2(SPLASH_K * s, SPLASH_K * s)
+		logo.position = o + SPLASH_LOGO * s
+		var lb: float = o.y + (SPLASH_LOGO.y + 60.0 * SPLASH_K) * s
+		var bw: float = minf(270.0, vs.x - 60.0)
+		var by: float = roundf(lb + 104.0)
+		bar_frame.size = Vector2(bw, 18)
+		bar_frame.position = Vector2(roundf((vs.x - bw) * 0.5), by)
+		stage.position = Vector2(bar_frame.position.x, by - 24.0)
+		stage.size = Vector2(bw, 20)
+		tip.position = Vector2(28.0, by + 34.0)
+		tip.size = Vector2(vs.x - 56.0, 40)
+		var gs: = Vector2(vs.x * 1.1, 200.0 * SPLASH_K * s / 1.6)
+		glow.size = gs
+		glow.position = Vector2(vs.x * 0.5, o.y + (SPLASH_LOGO.y + 30.0 * SPLASH_K) * s) - gs * 0.5
 
 
 func _process(delta: float) -> void :
@@ -256,10 +275,10 @@ func _process(delta: float) -> void :
 	_shown = move_toward(_shown, _target, delta * 0.8)
 	_draw_bar()
 	var vs: Vector2 = get_viewport().get_visible_rect().size
-	var intro: float = clampf((_t - 0.12) / 0.45, 0.0, 1.0)
+	var intro: float = clampf(_t / 0.3, 0.0, 1.0)
 	intro = intro * intro * (3.0 - 2.0 * intro)
 	for n: CanvasItem in ui_nodes:
-		n.modulate.a = intro
+		n.modulate.a = maxf(n.modulate.a, intro)
 	stage.text = _stage_base + ".".repeat(1 + int(_t * 2.5) % 3) if _stage_base != "" else ""
 	for c: Array in clouds:
 		var tr: TextureRect = c[0]
