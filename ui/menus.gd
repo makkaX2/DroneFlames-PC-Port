@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5 (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.5.1 (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
+	"ХОТФИКС v0.33.5.1: восстановлено сетевое подключение к мультиплееру через выделенный сервер",
 	"ОБНОВЛЕНИЕ v0.33.5: исправление зума на Mac M4, устранены зазоры экрана и стилизован macOS DMG",
 	"СЕТЬ v0.33.5: ликвидация просадок TPS в Radmin VPN / Hamachi / LAN, стабильный выделенный сервер",
 	"СТАБИЛЬНОСТЬ v0.33.5: исправление синтаксических ошибок в армии и ядре, устранение серых экранов",
@@ -2903,7 +2904,7 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 	elif changelog == "" and up != null:
 		changelog = String(up.get("latest_changelog"))
 	if tag == "":
-		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.5"
+		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.5.1"
 	var is_android: bool = OS.has_feature("mobile") or OS.get_name() == "Android"
 	var is_mac: bool = OS.get_name() == "macOS"
 	var direct_installer_url: String = ""

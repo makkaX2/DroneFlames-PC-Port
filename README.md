@@ -1,7 +1,7 @@
 # 🎮 DroneFlames — PC Port by @good_boy_irl
 
 [![Build & Release](https://github.com/makkaX2/DroneFlames-PC-Port/actions/workflows/build.yml/badge.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-0.33.5-blue.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/releases)
+[![Version](https://img.shields.io/badge/version-0.33.5.1-blue.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Android-0078d7.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/releases)
 [![Telegram Community](https://img.shields.io/badge/Telegram-Порты%20и%20моды-2CA5E0?logo=telegram)](https://t.me/droneflamesmod)
 [![Engine](https://img.shields.io/badge/engine-Godot%204.3%2B-478cbf.svg)](https://godotengine.org)
@@ -92,7 +92,7 @@
 
 * **Играть без установки:** запустите `Play_DroneFlames.bat`.
 * **Запуск с отладочной консолью:** запустите `Play_DroneFlames_Debug.bat`.
-* **Установка инсталлером:** скачайте готовый `DroneFlames_PC_Setup_v0.33.5_good_boy_irl.exe` из [Releases](https://github.com/makkaX2/DroneFlames-PC-Port/releases).
+* **Установка инсталлером:** скачайте готовый `DroneFlames_PC_Setup_v0.33.5.1_good_boy_irl.exe` из [Releases](https://github.com/makkaX2/DroneFlames-PC-Port/releases).
 
 ---
 
@@ -100,9 +100,9 @@
 
 В репозитории настроен автоматический CI/CD пайплайн (`.github/workflows/build.yml`):
 * При любом изменении кода и пуше в `master` / `main` автоматически:
-  1. Собирается переносимый архив **Windows Portable ZIP** (`DroneFlames_PC_v0.33.5_good_boy_irl.zip`).
-  2. Через **Inno Setup 6** компилируется полноценный установщик **Windows Setup EXE** (`DroneFlames_PC_Setup_v0.33.5_good_boy_irl.exe`).
-  3. Собирается нативная **macOS Universal** сборка (Apple Silicon M-серии + Intel) в виде установщика **macOS DMG** (`DroneFlames_macOS_v0.33.5_good_boy_irl.dmg`) и переносимого **macOS ZIP** (`DroneFlames_macOS_v0.33.5_good_boy_irl.zip`).
+  1. Собирается переносимый архив **Windows Portable ZIP** (`DroneFlames_PC_v0.33.5.1_good_boy_irl.zip`).
+  2. Через **Inno Setup 6** компилируется полноценный установщик **Windows Setup EXE** (`DroneFlames_PC_Setup_v0.33.5.1_good_boy_irl.exe`).
+  3. Собирается нативная **macOS Universal** сборка (Apple Silicon M-серии + Intel) в виде установщика **macOS DMG** (`DroneFlames_macOS_v0.33.5.1_good_boy_irl.dmg`) и переносимого **macOS ZIP** (`DroneFlames_macOS_v0.33.5.1_good_boy_irl.zip`).
   4. Собирается **Android APK** с актуальным кодом.
   5. Создаётся или обновляется релиз во вкладке **Releases**, куда загружаются готовые файлы под все платформы.
 
