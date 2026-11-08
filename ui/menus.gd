@@ -6,9 +6,15 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.17-test (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.5 (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
+	"ОБНОВЛЕНИЕ v0.33.5: исправление зума на Mac M4, устранены зазоры экрана и стилизован macOS DMG",
+	"СЕТЬ v0.33.5: ликвидация просадок TPS в Radmin VPN / Hamachi / LAN, стабильный выделенный сервер",
+	"СТАБИЛЬНОСТЬ v0.33.5: исправление синтаксических ошибок в армии и ядре, устранение серых экранов",
+	"ГЕЙМПЛЕЙ v0.33.5: постройка урановых шахт в режиме Mine, исправление круга столицы, убран лишний декор",
+	"ОПТИМИЗАЦИЯ v0.33.5: оптимизации Korbitus 0.3, пакетное улучшение инфраструктуры, битовые маски войск",
+	"МОДЫ v0.33.5: встроенный локальный воркшоп, термо-батарея и обновлённый ядерный удар",
 	"МУЛЬТИПЛЕЕР v0.33.4.9: позднее подключение к партии, возврат за свою страну и управление свободной страной ИИ",
 	"ЧЁТКОСТЬ v0.33.4.8: исправлено размытие шрифтов и 2D-графики при масштабировании окна",
 	"ПВО v0.33.4.8: окно целей и кнопки по размеру панели, без обрезания на широком экране",
@@ -2897,7 +2903,7 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 	elif changelog == "" and up != null:
 		changelog = String(up.get("latest_changelog"))
 	if tag == "":
-		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.9"
+		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.5"
 	var is_android: bool = OS.has_feature("mobile") or OS.get_name() == "Android"
 	var is_mac: bool = OS.get_name() == "macOS"
 	var direct_installer_url: String = ""
