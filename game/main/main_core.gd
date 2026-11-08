@@ -673,7 +673,6 @@ func _pend_why() -> String:
 		return ""
 	if String(_pend.get("kind", "")) != "tap" or world.player == null:
 		return ""
-	var m: int = int(_pend.get("mode", mode))
 	if m == Mode.RAIL_ST:
 		return RB.station_why(self, _pend["wp"])
 	if m == Mode.EXPEDITION and exp_port != null:
