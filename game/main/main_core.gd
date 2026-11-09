@@ -908,15 +908,6 @@ func _draw_ghost() -> void :
 				return
 			else:
 				_ghost.draw_circle(wp, rad, Color(0.35, 1.0, 0.45, 0.12))
-				var cap_ring: Color = Color(0.2, 0.95, 0.35, 0.95) if cap_ok else Color(0.95, 0.3, 0.2, 0.95)
-				_ghost.draw_circle(wp, rad, cap_fill)
-				_ghost.draw_arc(wp, rad, 0.0, TAU, 64, cap_ring, 2.5 / cam.zoom.x)
-				var k_cap: float = 12.0 / cam.zoom.x
-				_ghost.draw_line(wp - Vector2(k_cap, 0), wp + Vector2(k_cap, 0), cap_ring, 2.0 / cam.zoom.x)
-				_ghost.draw_line(wp - Vector2(0, k_cap), wp + Vector2(0, k_cap), cap_ring, 2.0 / cam.zoom.x)
-				return
-			else:
-				_ghost.draw_circle(wp, rad, Color(0.35, 1.0, 0.45, 0.12))
 		Mode.SATELLITE:
 			rad = 220.0
 		Mode.RECON:
