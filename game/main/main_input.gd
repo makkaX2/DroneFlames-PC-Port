@@ -99,7 +99,8 @@ func _tap(pos: Vector2) -> void :
 				var t: City = r as City
 				if t != null:
 					hud.show_toast(Loc.msg(Loc.mk("Основан город %s (-%d)", [Loc.name(t.name), Military.COST_TOWN])))
-					_set_mode(Mode.NONE)
+					var is_shift_town: bool = Input.is_key_pressed(KEY_SHIFT)
+					_set_mode(Mode.TOWN if is_shift_town else Mode.NONE)
 					hud.refresh()
 			if net.in_match:
 				net.issue({"k": "town", "cell": cell}, on_town)
@@ -220,6 +221,8 @@ func _tap(pos: Vector2) -> void :
 			var kind: int = BUILD_KIND[mode]
 			if kind == Facility.Kind.MINE and not world.econ.deposit_near(cell, 3, ["uranium"]).is_empty():
 				kind = Facility.Kind.URANIUM_MINE
+			if kind == Facility.Kind.NAVAL_BASE and world.get("navy") != null:
+				cell = _navy_snap(cell)
 			var bcost: Dictionary = Economy.build_cost(kind)
 			var pl: Country = world.player
 			var shift_held: bool = Input.is_key_pressed(KEY_SHIFT)
@@ -250,9 +253,11 @@ func _tap(pos: Vector2) -> void :
 			_sim("mil", "build", [mk, cell, world.player, mport], func(r: Variant) -> void :
 				if r != null:
 					hud.show_toast(Loc.msg(Loc.mk("Модуль: %s", [Loc.t(Military.title_of(mk))])))
-					selected_fac = mport
 					if not (repeat_building or shift_held or Input.is_key_pressed(KEY_SHIFT)):
-						_set_mode(Mode.NONE))
+						selected_fac = mport
+						_set_mode(Mode.NONE)
+					elif _ghost != null:
+						_ghost.queue_redraw())
 		Mode.TARGET:
 			_plan_tap(pos, wp)
 		Mode.CR_TARGET:
@@ -590,7 +595,7 @@ func _begin_press(pos: Vector2) -> void :
 	_press_ms = Time.get_ticks_msec()
 	_moved = false
 
-	_dtz = _press_ms - _last_tap_ms < 320 and _last_tap_pos.is_finite() and pos.distance_to(_last_tap_pos) < 50.0 and line_cells.is_empty() and not _on_plan_point(pos)
+	_dtz = (mode == Mode.NONE and not Input.is_key_pressed(KEY_SHIFT)) and _press_ms - _last_tap_ms < 320 and _last_tap_pos.is_finite() and pos.distance_to(_last_tap_pos) < 50.0 and line_cells.is_empty() and not _on_plan_point(pos)
 	if _dtz:
 		_strat_tap = Vector2.INF
 		_dtz_y0 = pos.y

@@ -17,8 +17,8 @@ func _build_confirm() -> void :
 	confirm_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	confirm_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hb.add_child(confirm_lbl)
-	var ok: Button = _small_btn("✓ ДА", "pend_ok", true, "green")
-	ok.custom_minimum_size = Vector2(76, 44)
+	var ok: Button = _small_btn("✓ ДА (E)", "pend_ok", true, "green")
+	ok.custom_minimum_size = Vector2(88, 44)
 	hb.add_child(ok)
 	confirm_ok = ok
 	var x: Button = UiKit.close_btn(40.0)

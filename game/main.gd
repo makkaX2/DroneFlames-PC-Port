@@ -529,7 +529,7 @@ func _process(delta: float) -> void :
 		cam.margin_top_px = mt
 		cam.margin_bottom_px = mb
 		cam.center_on(cam.position)
-	var g_live: bool = not _pend.is_empty() or mode == Mode.TARGET or BUILD_KIND.has(mode) or mode == Mode.RAIL_ST or mode == Mode.RAIL_LINE
+	var g_live: bool = not _pend.is_empty() or mode == Mode.TARGET or BUILD_KIND.has(mode) or mode == Mode.RAIL_ST or mode == Mode.RAIL_LINE or ((Input.is_key_pressed(KEY_SHIFT) or repeat_building) and (BUILD_KIND.has(mode) or mode == Mode.MODULE or mode == Mode.CAPITAL or mode == Mode.TOWN))
 	if (g_live or _ghost_live) and _ghost != null:
 		_ghost.queue_redraw()
 	_ghost_live = g_live
@@ -1292,6 +1292,11 @@ func _unhandled_input(event: InputEvent) -> void :
 			return
 	if in_menu:
 		return
+	if event is InputEventKey:
+		var k_shift: int = (event as InputEventKey).keycode
+		if k_shift == KEY_SHIFT:
+			if _ghost != null:
+				_ghost.queue_redraw()
 	if event is InputEventKey and event.pressed and not event.echo:
 		var kc: int = (event as InputEventKey).keycode
 		if kc == KEY_ESCAPE or kc == KEY_BACK:
@@ -1433,10 +1438,13 @@ func _unhandled_input(event: InputEvent) -> void :
 				cam_lock = false
 			return
 		if not _mouse_down:
+			if (Input.is_key_pressed(KEY_SHIFT) or repeat_building) and (BUILD_KIND.has(mode) or mode == Mode.MODULE or mode == Mode.CAPITAL or mode == Mode.TOWN):
+				if _ghost != null:
+					_ghost.queue_redraw()
 			return
 		if _dtz:
 			_dtz_drag(mm.position)
-		elif _moved or mm.position.distance_to(_press_pos) > 6.0:
+		elif _moved or mm.position.distance_to(_press_pos) > (20.0 if (Input.is_key_pressed(KEY_SHIFT) and (BUILD_KIND.has(mode) or mode == Mode.MODULE)) else 6.0):
 			_moved = true
 			_drag_or_pan(mm.position, mm.relative)
 
@@ -1485,6 +1493,13 @@ func _handle_pc_shortcut(k: int, ev: InputEventKey) -> bool :
 	var fo: Control = get_viewport().gui_get_focus_owner()
 	if fo is LineEdit or fo is TextEdit:
 		return false
+	if (k == KEY_E or ev.keycode == KEY_E or k == KEY_ENTER or ev.keycode == KEY_ENTER) and not _pend.is_empty():
+		if _pend_why() == "":
+			_pend_ok()
+		else:
+			hud.show_toast(_pend_why())
+			UiKit.snd("ui_error")
+		return true
 	if KeybindManager.is_event_match(ev, "cam_up") \
 		or KeybindManager.is_event_match(ev, "cam_down") \
 		or KeybindManager.is_event_match(ev, "cam_left") \
