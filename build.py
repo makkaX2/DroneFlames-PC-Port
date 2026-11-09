@@ -2,7 +2,7 @@
 """
 DroneFlames PC Port - Automated Build & Packaging Script
 Prepares clean distribution, packages Portable ZIP, and compiles Inno Setup installer.
-Author: @good_boy_irl
+Author: @droneflamesmod
 """
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ if sys.platform == "win32":
     except Exception:
         pass
 APP_NAME = "DroneFlames"
-PUBLISHER = "good_boy_irl"
+PUBLISHER = "droneflamesmod"
 
 BUILD_DIR = ROOT_DIR / "build"
 STAGE_NAME = f"{APP_NAME}_PC_v{VERSION}_{PUBLISHER}"

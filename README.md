@@ -1,11 +1,11 @@
-# 🎮 DroneFlames — PC Port by @good_boy_irl
+# 🎮 DroneFlames — PC Port by @droneflamesmod
 
 [![Build & Release](https://github.com/makkaX2/DroneFlames-PC-Port/actions/workflows/build.yml/badge.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/actions/workflows/build.yml)
 [![Version](https://img.shields.io/badge/version-0.33.4.9-blue.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Android-0078d7.svg)](https://github.com/makkaX2/DroneFlames-PC-Port/releases)
 [![Telegram Community](https://img.shields.io/badge/Telegram-Порты%20и%20моды-2CA5E0?logo=telegram)](https://t.me/droneflamesmod)
 [![Engine](https://img.shields.io/badge/engine-Godot%204.3%2B-478cbf.svg)](https://godotengine.org)
-[![Author](https://img.shields.io/badge/port%20by-%40good__boy__irl-brightgreen.svg)](https://github.com/good_boy_irl)
+[![Author](https://img.shields.io/badge/port%20by-%40droneflamesmod-brightgreen.svg)](https://t.me/droneflamesmod)
 
 > **Полноценный нативный кроссплатформенный порт игры DroneFlames на ПК (Windows x64, macOS Universal) и Android с открытым кодом, оптимизированным управлением и автоматической сборкой релизов.**
 

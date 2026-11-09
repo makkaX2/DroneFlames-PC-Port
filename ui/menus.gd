@@ -6,7 +6,7 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.21-test (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.5.24-test (PC Port by @droneflamesmod)"
 
 const WHATS_NEW: Array = [
 	"СТРОИТЕЛЬСТВО v0.33.5.21-test: живой предпросмотр (обложка) постройки при зажатом Shift в реальном времени под курсором, непрерывное размещение по клику и мгновенное подтверждение по клавише E",

@@ -23,7 +23,7 @@ AppId={#MyAppId}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} v{#MyAppVersion} (PC Port by {#MyAppPublisher})
-AppPublisher={#MyAppPublisher}
+AppPublisher=droneflamesmod
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
@@ -72,19 +72,19 @@ Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [CustomMessages]
-russian.LaunchProgramTitle=Запустить DroneFlames (PC Port by @good_boy_irl)
+russian.LaunchProgramTitle=Запустить DroneFlames (PC Port by @droneflamesmod)
 russian.CreditsTitle=Авторство и особенности порта (@good_boy_irl)
 russian.DebugModeTitle=DroneFlames (Консоль и логи отладки)
 russian.DesktopShortcut=Создать ярлык на Рабочем столе
-russian.WelcomeTitle=Вас приветствует установка DroneFlames (PC Port by @good_boy_irl)
+russian.WelcomeTitle=Вас приветствует установка DroneFlames (PC Port by @droneflamesmod)
 russian.WelcomeSubtitle=Программа установит DroneFlames v{#MyAppVersion} на ваш компьютер.%n%nПорт на ПК полностью подготовлен и проверен автором @good_boy_irl.%n%n• Разблокированы все 99 предметов кастомизации%n• Включён режим разработчика (Dev Mode) и Perf Probe%n• Нативная поддержка мультиплеера по WebRTC%n• Чистый и безопасный исходный код%n• Поддержка полноэкранного режима по F11, WASD, плавного зума%n%nДля продолжения нажмите «Далее».
 
-english.LaunchProgramTitle=Launch DroneFlames (PC Port by @good_boy_irl)
+english.LaunchProgramTitle=Launch DroneFlames (PC Port by @droneflamesmod)
 english.CreditsTitle=Port Credits & Information (@good_boy_irl)
 english.DebugModeTitle=DroneFlames (Debug Console Mode)
 english.DesktopShortcut=Create a desktop shortcut
-english.WelcomeTitle=Welcome to DroneFlames Setup (PC Port by @good_boy_irl)
-english.WelcomeSubtitle=Setup will install DroneFlames v{#MyAppVersion} on your computer.%n%nNative PC Port prepared and verified by @good_boy_irl.%n%n• All 99 cosmetics & Dev titles unlocked%n• Developer Mode & Perf Probe enabled%n• Windows Native WebRTC multiplayer%n• 100% clean and safe decompiled code%n• F11 fullscreen, WASD camera, smooth zoom%n%nClick Next to continue.
+english.WelcomeTitle=Welcome to DroneFlames Setup (PC Port by @droneflamesmod)
+english.WelcomeSubtitle=Setup will install DroneFlames v{#MyAppVersion} on your computer.%n%nNative PC Port prepared and verified by @droneflamesmod.%n%n• All 99 cosmetics & Dev titles unlocked%n• Developer Mode & Perf Probe enabled%n• Windows Native WebRTC multiplayer%n• 100% clean and safe decompiled code%n• F11 fullscreen, WASD camera, smooth zoom%n%nClick Next to continue.
 
 [Messages]
 russian.WelcomeLabel1={cm:WelcomeTitle}
@@ -142,8 +142,8 @@ begin
   OldVer := GetInstalledVersion();
   if OldVer <> '' then
   begin
-    WizardForm.Caption := 'Обновление DroneFlames (PC Port by @good_boy_irl)';
-    WizardForm.WelcomeLabel1.Caption := 'Обновление DroneFlames (PC Port by @good_boy_irl)';
+    WizardForm.Caption := 'Обновление DroneFlames (PC Port by @droneflamesmod)';
+    WizardForm.WelcomeLabel1.Caption := 'Обновление DroneFlames (PC Port by @droneflamesmod)';
     WizardForm.WelcomeLabel2.Caption := 
       'На компьютере обнаружена установленная версия игры (' + OldVer + ').' + #13#10 + #13#10 +
       'Этот установщик обновит существующую версию DroneFlames до актуальной v{#MyAppVersion}.' + #13#10 + #13#10 +

@@ -1,5 +1,5 @@
 extends Node
-## Watermark and PC Port Branding by @CryptoAngelazaz
+## Watermark and PC Port Branding by @droneflamesmod
 ## Keeps subtle, clean branding: window title, menu version string, and F11 fullscreen.
 
 var _base_title: String = ""
@@ -26,7 +26,7 @@ func _ready() -> void:
 
 func _init_title_string() -> void:
 	var ver: String = _get_game_version()
-	_base_title = "DroneFlames " + ver + " — PC Port by @CryptoAngelazaz"
+	_base_title = "DroneFlames " + ver + " — PC Port by @droneflamesmod"
 
 func _get_game_version() -> String:
 	if ResourceLoader.exists("res://version_info.json"):
@@ -72,7 +72,7 @@ func _on_update_available(new_version: String, _changelog: String, _dl_url: Stri
 		if up.get_script().compare_versions(new_v, cur_v) <= 0:
 			return
 	print("[PC Port] New version available on GitHub: v" + new_version)
-	_base_title = "DroneFlames " + _get_game_version() + " — PC Port by @CryptoAngelazaz (Обновление v" + new_version + " доступно!)"
+	_base_title = "DroneFlames " + _get_game_version() + " — PC Port by @droneflamesmod (Обновление v" + new_version + " доступно!)"
 	_update_title()
 
 func _process(_delta: float) -> void:
@@ -132,5 +132,5 @@ func _update_title() -> void:
 
 func _on_node_added(node: Node) -> void:
 	if node is Label:
-		if node.text.begins_with("v0.") and not node.text.contains("@CryptoAngelazaz"):
-			node.text = node.text + " · PC Port by @CryptoAngelazaz"
+		if node.text.begins_with("v0.") and not node.text.contains("@droneflamesmod"):
+			node.text = node.text + " · PC Port by @droneflamesmod"

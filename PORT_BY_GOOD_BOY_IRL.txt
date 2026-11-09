@@ -1,8 +1,8 @@
 =============================================================
-         DRONEFLAMES — PC PORT BY @good_boy_irl
+         DRONEFLAMES — PC PORT BY @droneflamesmod
 =============================================================
 
-This PC port was created and verified by @good_boy_irl.
+This PC port was created and verified by @droneflamesmod.
 
 Features:
 - Native Windows x86_64 build with Direct3D 12 renderer
@@ -11,6 +11,6 @@ Features:
 - Developer Mode (dev_mode) & Perf Probe enabled
 - Persistent In-Game Watermark & Window Title attribution
 
-Contact / Author: @good_boy_irl
+Contact / Author: @droneflamesmod
 Date: 2026-10-31
 =============================================================
