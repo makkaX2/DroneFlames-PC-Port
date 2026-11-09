@@ -66,6 +66,11 @@ func _tap(pos: Vector2) -> void :
 			hud.open_my_state()
 			UiKit.snd("ui_open")
 			return
+	if not _pend.is_empty() and (not _confirming or Input.is_key_pressed(KEY_SHIFT)):
+		_pend = {}
+		hud.hide_confirm()
+		if _ghost != null:
+			_ghost.queue_redraw()
 	if not _confirming and _confirm_mode(mode):
 
 		_pend = {"kind": "tap", "wp": wp, "mode": mode}
@@ -217,14 +222,15 @@ func _tap(pos: Vector2) -> void :
 				kind = Facility.Kind.URANIUM_MINE
 			var bcost: Dictionary = Economy.build_cost(kind)
 			var pl: Country = world.player
+			var shift_held: bool = Input.is_key_pressed(KEY_SHIFT)
 			if not pl.has_res(bcost) and world.econ.has_method("can_substitute") and world.econ.can_substitute(bcost, pl):
 
 				var placing: String = world.mil.place_why(kind, cell, pl, null, false)
 				if placing != "":
 					hud.show_toast(placing)
-				elif _confirming or (_sub_confirm.size() == 3 and int(_sub_confirm[0]) == kind and (_sub_confirm[1] as Vector2i).distance_to(cell) < 3.0 and Time.get_ticks_msec() - int(_sub_confirm[2]) < 8000):
+				elif _confirming or shift_held or (_sub_confirm.size() == 3 and int(_sub_confirm[0]) == kind and (_sub_confirm[1] as Vector2i).distance_to(cell) < 3.0 and Time.get_ticks_msec() - int(_sub_confirm[2]) < 8000):
 					_sub_confirm = []
-					_sim("", "cmd_build_sub", [kind, cell, pl], _on_built.bind(kind))
+					_sim("", "cmd_build_sub", [kind, cell, pl], _on_built.bind(kind, shift_held))
 				else:
 					_sub_confirm = [kind, cell, Time.get_ticks_msec()]
 					hud.show_toast(Loc.msg(Loc.mk("Не хватает: %s. Тапните ещё раз — %s", [pl.missing_res(bcost), world.econ.substitute_note(bcost, pl).to_lower()])))
@@ -233,18 +239,20 @@ func _tap(pos: Vector2) -> void :
 				_sim("mil", "build", [kind, cell, world.player], func(r: Variant) -> void :
 					if r == null and not pl.has_res(bcost):
 						_offer_buy(bcost)
-					_on_built(r, kind))
+					_on_built(r, kind, shift_held))
 		Mode.MODULE:
 			if module_port == null or not world.mil.alive(module_port):
 				_set_mode(Mode.NONE)
 				return
 			var mk: int = module_kind
 			var mport: Facility = module_port
+			var shift_held: bool = Input.is_key_pressed(KEY_SHIFT)
 			_sim("mil", "build", [mk, cell, world.player, mport], func(r: Variant) -> void :
 				if r != null:
 					hud.show_toast(Loc.msg(Loc.mk("Модуль: %s", [Loc.t(Military.title_of(mk))])))
 					selected_fac = mport
-					_set_mode(Mode.NONE))
+					if not (repeat_building or shift_held or Input.is_key_pressed(KEY_SHIFT)):
+						_set_mode(Mode.NONE))
 		Mode.TARGET:
 			_plan_tap(pos, wp)
 		Mode.CR_TARGET:

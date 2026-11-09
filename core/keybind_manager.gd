@@ -25,6 +25,9 @@ const ACTIONS: Array = [
 	"tab_5",
 	"tab_6",
 	"tab_7",
+	"build_barracks",
+	"build_trench",
+	"cancel_action",
 ]
 
 const ACTION_TITLES: Dictionary = {
@@ -49,6 +52,9 @@ const ACTION_TITLES: Dictionary = {
 	"tab_5": "5 • Армия",
 	"tab_6": "6 • Политика",
 	"tab_7": "7 • Флот",
+	"build_barracks": "Постройка: Казармы",
+	"build_trench": "Постройка: Окопы",
+	"cancel_action": "Отмена / Снять выбор",
 }
 
 const DEFAULTS: Dictionary = {
@@ -73,6 +79,9 @@ const DEFAULTS: Dictionary = {
 	"tab_5": {"type": "key", "code": KEY_5, "alt": KEY_KP_5},
 	"tab_6": {"type": "key", "code": KEY_6, "alt": KEY_KP_6},
 	"tab_7": {"type": "key", "code": KEY_7, "alt": KEY_KP_7},
+	"build_barracks": {"type": "key", "code": KEY_B, "alt": 0},
+	"build_trench": {"type": "key", "code": KEY_T, "alt": 0},
+	"cancel_action": {"type": "key", "code": KEY_ESCAPE, "alt": 0},
 }
 
 static var _bindings: Dictionary = {}

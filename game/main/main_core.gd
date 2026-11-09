@@ -554,6 +554,8 @@ func _res_go(nm: String) -> void :
 func _confirm_mode(m: int) -> bool:
 	if not GameConfig.confirm_actions:
 		return false
+	if Input.is_key_pressed(KEY_SHIFT) and (BUILD_KIND.has(m) or m == Mode.MODULE):
+		return false
 	if m == Mode.TRENCH_H or m == Mode.TEETH_H:
 		return false
 	if m == Mode.RAIL_ST:
@@ -1007,15 +1009,17 @@ func _why(r: Variant) -> String:
 
 
 
-func _on_built(r: Variant, kind: int) -> void :
+func _on_built(r: Variant, kind: int, shift_was_pressed: bool = false) -> void :
 	var f: Facility = r as Facility
 	if f == null:
 		return
 	hud.show_toast(Loc.msg(Loc.mk("Построено: %s", [Loc.t(Military.title_of(kind))])))
 	UiKit.snd("ui_build")
-	var keep_mode: int = mode if repeat_building and BUILD_KIND.has(mode) and int(BUILD_KIND[mode]) == kind else Mode.NONE
+	var is_shift: bool = shift_was_pressed or Input.is_key_pressed(KEY_SHIFT)
+	var keep_mode: int = mode if (repeat_building or is_shift) and BUILD_KIND.has(mode) and int(BUILD_KIND[mode]) == kind else Mode.NONE
 	_set_mode(keep_mode)
-	if kind == Facility.Kind.DRONE_PORT or kind == Facility.Kind.MISSILE_FACTORY or kind == Facility.Kind.AIRFIELD or kind == Facility.Kind.BARRACKS or kind == Facility.Kind.PORT or kind == Facility.Kind.DRONE_FACTORY:
-		selected_fac = f
-		_auto_card = f
-		_auto_card_t = 15.0
+	if keep_mode == Mode.NONE:
+		if kind == Facility.Kind.DRONE_PORT or kind == Facility.Kind.MISSILE_FACTORY or kind == Facility.Kind.AIRFIELD or kind == Facility.Kind.BARRACKS or kind == Facility.Kind.PORT or kind == Facility.Kind.DRONE_FACTORY:
+			selected_fac = f
+			_auto_card = f
+			_auto_card_t = 15.0

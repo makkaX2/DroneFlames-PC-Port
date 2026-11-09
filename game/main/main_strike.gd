@@ -47,10 +47,12 @@ func _end_drag() -> void :
 		_drag_pt = -2
 		_set_mode(mode)
 		if cells.size() >= 2 and world.player != null:
-			if GameConfig.confirm_actions:
+			if GameConfig.confirm_actions and not Input.is_key_pressed(KEY_SHIFT):
 				_pend = {"kind": "line", "cells": cells, "mode": mode}
 				_show_pend()
 			else:
+				if not _pend.is_empty():
+					_pend_cancel()
 				_build_line_now(int(BUILD_KIND[mode]), cells)
 		return
 	if (_drag_pt == -3 or _drag_pt == -4) and _moved:

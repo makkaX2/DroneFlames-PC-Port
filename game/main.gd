@@ -1250,6 +1250,16 @@ func _unhandled_input(event: InputEvent) -> void :
 			if hud != null and hud.has_method("ui24_open_now") and hud.ui24_open_now():
 				hud.close_panel()
 				return
+			if not _pend.is_empty():
+				_pend_cancel()
+				return
+			if mode != Mode.NONE:
+				_set_mode(Mode.NONE)
+				hud.refresh()
+				return
+			if selected_fac != null:
+				_deselect()
+				return
 			if not menus.is_open() and _army_back():
 				return
 			if menus.is_open():
@@ -1497,11 +1507,24 @@ func _handle_pc_shortcut(k: int, ev: InputEventKey) -> bool :
 		if hud != null and hud.has_method("select_page"):
 			hud.select_page(6)
 		return true
+	if KeybindManager.is_event_match(ev, "build_barracks"):
+		_on_action("barracks")
+		return true
+	if KeybindManager.is_event_match(ev, "build_trench"):
+		_on_action("trench")
+		return true
+	if KeybindManager.is_event_match(ev, "cancel_action"):
+		if not _pend.is_empty():
+			_pend_cancel()
+			return true
+		if mode != Mode.NONE:
+			_set_mode(Mode.NONE)
+			hud.refresh()
+			return true
+		if selected_fac != null:
+			_deselect()
+			return true
 	match k:
-		KEY_B:
-			if hud != null and hud.has_method("select_page"):
-				hud.select_page(1)
-				return true
 		KEY_R:
 			if world != null and world.player != null and world.player.capital != null:
 				cam.center_on(world.player.capital.pos)
@@ -1517,7 +1540,7 @@ func _handle_pc_shortcut(k: int, ev: InputEventKey) -> bool :
 			return true
 		KEY_H:
 			if hud != null:
-				hud.show_toast("ПК: WASD/Стрелки - Камера | Колесо/+/- - Зум | F11 - Экран | Пробел/P - Пауза | Tab/F - Скорость | 1-7 - Вкладки")
+				hud.show_toast("ПК: WASD - Камера | Shift - Постройка/окопы без подтверждения | B - Казармы | T - Окопы | F11 - Экран | Пробел/P - Пауза | Tab/F - Скорость | 1-7 - Вкладки")
 			return true
 	return false
 
