@@ -270,7 +270,7 @@ func _lo_tick(delta: float, cam: MapCamera) -> void :
 		lo_tex = null
 		if visible or _lifted or _full:
 			_leave()
-	if not _lo_dirty or (lo_tex != null and (_lo_t < LO_DT or cam.zoom.x > 0.3)):
+	if not _lo_dirty or (lo_tex != null and (_lo_t < LO_DT or cam.zoom.x > MapCamera.strat_top() + 0.1)):
 		return
 	var tv: Variant = gw.get("terrain")
 	if not (tv is TerrainView) or (tv as TerrainView).image == null:

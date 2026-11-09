@@ -5,6 +5,10 @@ const KeybindManager = preload("res://core/keybind_manager.gd")
 var _rmb_down: bool = false
 var _rmb_dragged: bool = false
 var _rmb_start_pos: Vector2 = Vector2.ZERO
+var _dyn_fps_stage: int = 0
+var _dyn_fps_timer: float = 0.0
+var _dyn_fps_low_time: float = 0.0
+var _dyn_fps_high_time: float = 0.0
 
 
 
@@ -541,9 +545,53 @@ func _process(delta: float) -> void :
 	_perf_t += delta
 	if _perf_t >= 5.0:
 		_perf_t = 0.0
-		print("[Perf] fps=%d draw_calls=%d objects=%d cities=%d zoom=%.2f" % [Engine.get_frames_per_second(), int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)), world.obj_spr.size() - world._free_ids.size(), world.cities.size(), cam.zoom.x])
+		var dyn_tag: String = " dyn_stage=%d" % _dyn_fps_stage if GameConfig.dynamic_fps_target > 0 else ""
+		print("[Perf] fps=%d draw_calls=%d objects=%d cities=%d zoom=%.2f%s" % [Engine.get_frames_per_second(), int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)), world.obj_spr.size() - world._free_ids.size(), world.cities.size(), cam.zoom.x, dyn_tag])
+	_adaptive_perf_tick(delta)
 	if has_node("/root/ModManager") and not in_menu:
 		get_node("/root/ModManager").call_hook("on_match_tick", [self, world, delta])
+
+
+func _adaptive_perf_tick(delta: float) -> void :
+	if GameConfig.dynamic_fps_target <= 0 or in_menu or _paused:
+		if _dyn_fps_stage != 0:
+			_dyn_fps_stage = 0
+			GameConfig.apply_adaptive_stage(0)
+		return
+	_dyn_fps_timer += delta
+	if _dyn_fps_timer < 0.5:
+		return
+	_dyn_fps_timer = 0.0
+
+	var cur_fps: int = Engine.get_frames_per_second()
+	var targets: Array[int] = [0, 30, 45, 60]
+	var target: int = targets[clampi(GameConfig.dynamic_fps_target, 0, 3)]
+
+	if cur_fps < target - 5:
+		_dyn_fps_low_time += 0.5
+		_dyn_fps_high_time = 0.0
+		if _dyn_fps_low_time >= 1.5:
+			_dyn_fps_low_time = 0.0
+			var next_stage: int = _dyn_fps_stage
+			if cur_fps <= 12 or _dyn_fps_stage >= 2:
+				next_stage = 3
+			elif cur_fps < target - 12 or _dyn_fps_stage >= 1:
+				next_stage = 2
+			elif _dyn_fps_stage == 0:
+				next_stage = 1
+			if next_stage != _dyn_fps_stage:
+				_dyn_fps_stage = next_stage
+				GameConfig.apply_adaptive_stage(_dyn_fps_stage)
+				print("[AdaptivePerf] FPS drop (%d < %d) -> Enabled Stage %d" % [cur_fps, target, _dyn_fps_stage])
+	elif cur_fps >= target + 5:
+		_dyn_fps_high_time += 0.5
+		_dyn_fps_low_time = 0.0
+		if _dyn_fps_high_time >= 5.0:
+			_dyn_fps_high_time = 0.0
+			if _dyn_fps_stage > 0:
+				_dyn_fps_stage -= 1
+				GameConfig.apply_adaptive_stage(_dyn_fps_stage)
+				print("[AdaptivePerf] FPS recovered (%d >= %d) -> Reduced to Stage %d" % [cur_fps, target, _dyn_fps_stage])
 
 
 func _on_action(nm: String) -> void :

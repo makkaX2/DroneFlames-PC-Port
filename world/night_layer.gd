@@ -576,6 +576,8 @@ func _dark_mesh(wa: PackedVector2Array) -> ArrayMesh:
 	var ix: = PackedInt32Array()
 	for p: Vector2 in wa:
 		_quad(v, uv, cl, ix, Rect2(p, Vector2.ONE), Color.WHITE, false)
+	if v.is_empty() or ix.is_empty():
+		return null
 	var arr: Array = []
 	arr.resize(Mesh.ARRAY_MAX)
 	arr[Mesh.ARRAY_VERTEX] = v
@@ -584,7 +586,7 @@ func _dark_mesh(wa: PackedVector2Array) -> ArrayMesh:
 	arr[Mesh.ARRAY_INDEX] = ix
 	var m: = ArrayMesh.new()
 	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-	return m
+	return m if m.get_surface_count() > 0 else null
 
 
 
@@ -598,11 +600,14 @@ func _draw_dark(view: Rect2) -> void :
 	var mc: Color = Color.WHITE.lerp(Color(0.42, 0.44, 0.52), factor)
 	for c: City in gw.cities:
 		var e: Dictionary = _cells.get(c.id, {})
-		if not e.has("sc") or (e["sc"] as Dictionary).get("dark") == null:
+		if not e.has("sc"):
+			continue
+		var dark_m: Mesh = (e["sc"] as Dictionary).get("dark") as Mesh
+		if dark_m == null or dark_m.get_surface_count() == 0:
 			continue
 		var rr: float = float(c.radius + 4) * GameWorld.CELL
 		if view.grow(rr).has_point(Vector2(c.center * GameWorld.CELL)):
-			draw_mesh(e["sc"]["dark"], _glow, Transform2D.IDENTITY, mc)
+			draw_mesh(dark_m, _glow, Transform2D.IDENTITY, mc)
 
 
 func _quad(v: PackedVector2Array, uv: PackedVector2Array, cl: PackedColorArray, ix: PackedInt32Array, r: Rect2, col: Color, tex: bool) -> void :
@@ -644,7 +649,7 @@ func _build_mesh(sc: Dictionary, hour: int, poor: bool) -> ArrayMesh:
 		_quad(v, uv, cl, ix, Rect2(lp - Vector2(7, 4), Vector2(14, 9)), Color(LAMP_POOL.r, LAMP_POOL.g, LAMP_POOL.b, 0.42), true)
 		_quad(v, uv, cl, ix, Rect2(lp + Vector2(0, -3), Vector2.ONE), LAMP_HEAD, false)
 		_quad(v, uv, cl, ix, Rect2(lp + Vector2(0, -2), Vector2(1, 2)), Color(0.45, 0.32, 0.16, 0.5), false)
-	if v.is_empty():
+	if v.is_empty() or ix.is_empty():
 		return null
 	var arr: Array = []
 	arr.resize(Mesh.ARRAY_MAX)
@@ -654,7 +659,7 @@ func _build_mesh(sc: Dictionary, hour: int, poor: bool) -> ArrayMesh:
 	arr[Mesh.ARRAY_INDEX] = ix
 	var m: = ArrayMesh.new()
 	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-	return m
+	return m if m.get_surface_count() > 0 else null
 
 
 
@@ -792,8 +797,9 @@ func _draw_lights2() -> void :
 			continue
 		if gw.camera.zoom.x >= 0.75:
 			var cl: Dictionary = _city_lights(c, budget)
-			if cl.get("mesh") != null:
-				lights.draw_mesh(cl["mesh"], _glow, Transform2D.IDENTITY, Color(1, 1, 1, a))
+			var lm: Mesh = cl.get("mesh") as Mesh
+			if lm != null and lm.get_surface_count() > 0:
+				lights.draw_mesh(lm, _glow, Transform2D.IDENTITY, Color(1, 1, 1, a))
 			if bon and cl.has("sc"):
 				for bp: Vector2 in (cl["sc"]["beacons"] as PackedVector2Array):
 					if view.has_point(bp):

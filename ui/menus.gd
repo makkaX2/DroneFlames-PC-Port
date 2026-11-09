@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.18-test (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.5.19-test (PC Port by @good_boy_irl)"
 
 const WHATS_NEW: Array = [
+	"ОПТИМИЗАЦИЯ v0.33.5.19-test: многоуровневая система оптимизации, батчинг деревьев (сокращение Draw Calls в разы), отсечение невидимых чанков, авто-FPS при просадках, фикс ночных мешей и детальная настройка в меню Графика",
 	"КЕЙБИНДЫ v0.33.5.18-test: постройка зданий и копание окопов без подтверждения по Shift, моментальная установка нескольких казарм подряд, клавиши B (казармы) и T (окопы), умный Esc",
 	"МУЛЬТИПЛЕЕР v0.33.4.9: позднее подключение к партии, возврат за свою страну и управление свободной страной ИИ",
 	"ЧЁТКОСТЬ v0.33.4.8: исправлено размытие шрифтов и 2D-графики при масштабировании окна",
@@ -3090,15 +3091,48 @@ func show_local_workshop() -> void:
 
 
 func _set_graphics_profile(i: int) -> void:
-	GameConfig.performance_mode = clampi(i, 0, 3)
+	GameConfig.performance_mode = clampi(i, 0, 4)
+	if i == 4:
+		return
 	var economical: bool = i == 0 or i == 3
-	GameConfig.fx_level = 0 if economical else i
+	GameConfig.fx_level = 0 if economical else (1 if i == 1 else 2)
 	GameConfig.clouds = not economical
 	GameConfig.ground_detail = not economical
 	GameConfig.econ_fx = not economical
 	GameConfig.day_grade = not economical
+
+	match i:
+		0:
+			GameConfig.chunk_culling = true
+			GameConfig.tree_batching = true
+			GameConfig.tree_sway_mode = 1
+			GameConfig.object_lod = 1
+			GameConfig.simple_cover = true
+			GameConfig.strat_lod_z = 2
+		1:
+			GameConfig.chunk_culling = true
+			GameConfig.tree_batching = true
+			GameConfig.tree_sway_mode = 1
+			GameConfig.object_lod = 1
+			GameConfig.simple_cover = false
+			GameConfig.strat_lod_z = 1
+		2:
+			GameConfig.chunk_culling = true
+			GameConfig.tree_batching = false
+			GameConfig.tree_sway_mode = 2
+			GameConfig.object_lod = 0
+			GameConfig.simple_cover = false
+			GameConfig.strat_lod_z = 0
+		3:
+			GameConfig.chunk_culling = true
+			GameConfig.tree_batching = true
+			GameConfig.tree_sway_mode = 0
+			GameConfig.object_lod = 2
+			GameConfig.simple_cover = true
+			GameConfig.strat_lod_z = 3
+
 	if gw != null and gw.objects != null and gw.camera != null:
-		gw.objects.sway_enabled = gw.camera.zoom.x >= 1.0 and not economical
+		gw.objects.sway_enabled = GameConfig.tree_sway_mode != 0
 
 
 func show_graphics_first() -> void:
@@ -3124,11 +3158,59 @@ func show_settings_sub(kind: String) -> void :
 	current = "settings_" + kind
 	_sheet = kind != "gfx"
 	if kind == "gfx":
-		_selector(vb, "ПРОФИЛЬ ГРАФИКИ", ["ПРОИЗВОДИТ.", "БАЛАНС", "КАЧЕСТВО", "МАКС. FPS"], func() -> int: return GameConfig.performance_mode, func(i: int) -> void:
+		_selector(vb, "ПРОФИЛЬ ГРАФИКИ", ["ПРОИЗВОДИТ.", "БАЛАНС", "КАЧЕСТВО", "МАКС. FPS", "СВОЙ"], func() -> int: return GameConfig.performance_mode, func(i: int) -> void:
 			_set_graphics_profile(i)
 			Save.save_prefs()
 			call_deferred("show_settings_sub", "gfx"), 110.0)
-		_label(vb, "Производительность: меньше эффектов, подробная карта скрывается раньше.", 9, UiKit.MUTED)
+		_label(vb, "Готовые профили. Ниже можно настроить каждый параметр вручную.", 9, UiKit.MUTED)
+
+		_selector(vb, "АВТО-FPS (АДАПТИВНО)", ["ВЫКЛ", "30 FPS", "45 FPS", "60 FPS"], func() -> int: return GameConfig.dynamic_fps_target, func(i: int) -> void:
+			GameConfig.dynamic_fps_target = i
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), VW_SHORT)
+		_label(vb, "При просадках FPS ниже порога автоматически включает ступени оптимизации и возвращает графику обратно.", 9, UiKit.MUTED)
+
+		_selector(vb, "ОТСЕЧЕНИЕ ЧАНКОВ", ["ВЫКЛ", "ВКЛ"], func() -> int: return 1 if GameConfig.chunk_culling else 0, func(i: int) -> void:
+			GameConfig.chunk_culling = i == 1
+			GameConfig.performance_mode = 4
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), VW_SHORT)
+		_label(vb, "Не рендерит скрытые за экраном части карты, экономя вызовы GPU.", 9, UiKit.MUTED)
+
+		_selector(vb, "БАТЧИНГ ДЕРЕВЬЕВ", ["ВЫКЛ", "ВКЛ"], func() -> int: return 1 if GameConfig.tree_batching else 0, func(i: int) -> void:
+			GameConfig.tree_batching = i == 1
+			GameConfig.performance_mode = 4
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), VW_SHORT)
+		_label(vb, "Объединяет растительность одного атласа в единый вызов, снижая Draw Calls в 5-8 раз.", 9, UiKit.MUTED)
+
+		_selector(vb, "ПОКАЧИВАНИЕ ДЕРЕВЬЕВ", ["ВЫКЛ", "ВБЛИЗИ", "ВСЕГДА"], func() -> int: return GameConfig.tree_sway_mode, func(i: int) -> void:
+			GameConfig.tree_sway_mode = i
+			GameConfig.performance_mode = 4
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), VW_SHORT)
+		_label(vb, "Вблизи: не перерисовывает деревья при отдалении камеры.", 9, UiKit.MUTED)
+
+		_selector(vb, "LOD РАСТИТЕЛЬНОСТИ", ["ВЫКЛ", "МЯГКИЙ", "АГРЕССИВНЫЙ"], func() -> int: return GameConfig.object_lod, func(i: int) -> void:
+			GameConfig.object_lod = i
+			GameConfig.performance_mode = 4
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), VW_SHORT)
+		_label(vb, "Прореживает густые леса при общем обзоре континента.", 9, UiKit.MUTED)
+
+		_selector(vb, "ПЕРЕХОД В СТРАТ. КАРТУ", ["СТАНДАРТ (0.17)", "БАЛАНС (0.28)", "РАННИЙ (0.40)", "МАКС (0.50)"], func() -> int: return GameConfig.strat_lod_z, func(i: int) -> void:
+			GameConfig.strat_lod_z = i
+			GameConfig.performance_mode = 4
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), 110.0)
+		_label(vb, "Масштаб зума камеры, на котором включается быстрая упрощённая карта.", 9, UiKit.MUTED)
+
+		_selector(vb, "ПЕРЕКРЫТИЕ ТЕХНИКИ", ["ТОЧНОЕ", "БЫСТРОЕ"], func() -> int: return 1 if GameConfig.simple_cover else 0, func(i: int) -> void:
+			GameConfig.simple_cover = i == 1
+			GameConfig.performance_mode = 4
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), VW_SHORT)
+		_label(vb, "Быстрое: рисует технику целиком без нарезки полосками.", 9, UiKit.MUTED)
 		if not GameConfig.android:
 			var resolutions: Array[Vector2i] = Save.available_display_resolutions()
 			var resolution_labels: Array[String] = Save.display_resolution_labels(resolutions)
