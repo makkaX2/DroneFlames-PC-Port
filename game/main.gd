@@ -284,6 +284,10 @@ func _on_menu(req: String) -> void :
 				hud.show_toast("Сохранение повреждено")
 			else:
 				_plan_refresh()
+				if has_node("/root/ModManager"):
+					var mod_manager: Node = get_node("/root/ModManager")
+					mod_manager.set_active_world(self, world)
+					mod_manager.call_hook("on_world_started", [self, world])
 
 
 func _new_game() -> void :
@@ -779,11 +783,33 @@ func _on_action(nm: String) -> void :
 			plan_count = maxi(1, plan_count - 1)
 			_plan_per_all()
 		"plan_plus":
-			if plan_list.is_empty():
-				plan_count = mini(maxi(1, int(_plan_info.get("available", 1))), plan_count + 1)
+			var is_mod_weapon: bool = strike.active and (strike.cur == "thermo" or strike.cur == "nuke")
+			var av: int = int(_plan_info.get("available", 0)) if is_mod_weapon else int(_plan_info.get("available", 1))
+			if is_mod_weapon:
+				var cur_targets: Array = _plan_targets()
+				var tot: int = 0
+				for t: Dictionary in cur_targets:
+					tot += int(t["n"])
+				if tot >= av or av <= 0:
+					var w_name: String = "залпы" if strike.cur == "thermo" else "МБР"
+					hud.show_toast(Loc.msg(Loc.mk("Все %s распределены: %d", [w_name, av])))
+					if ClassDB.class_exists("UiKit"):
+						UiKit.snd("ui_error")
+					return
+				if plan_list.is_empty():
+					plan_count = mini(av, plan_count + 1)
+				else:
+					if tot + plan_list.size() + 1 <= av:
+						plan_count = mini(av, plan_count + 1)
+						_plan_per_all()
+					else:
+						plan_count = mini(av - (tot - plan_count), plan_count + 1)
 			else:
-				plan_count = mini(12, plan_count + 1)
-				_plan_per_all()
+				if plan_list.is_empty():
+					plan_count = mini(maxi(1, int(_plan_info.get("available", 1))), plan_count + 1)
+				else:
+					plan_count = mini(12, plan_count + 1)
+					_plan_per_all()
 		"plan_back":
 			if mode == Mode.JET_KAB or mode == Mode.JET_CAS:
 				_jet_back()

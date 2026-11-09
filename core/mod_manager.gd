@@ -691,11 +691,20 @@ func get_full_catalog() -> Array:
 			result.append(c.duplicate(true))
 			seen_ids[cid] = true
 		else:
-			# Если в онлайне версия новее встроенной, обновляем данные в каталоге
 			for i in range(result.size()):
 				if result[i].get("id") == cid:
+					# Дополняем URL на случай, если встроенный мод имеет онлайн-копию (fallback)
+					if String(result[i].get("url", "")) == "" and String(c.get("url", "")) != "":
+						result[i]["url"] = c.get("url", "")
+					if String(result[i].get("download_url", "")) == "" and String(c.get("download_url", "")) != "":
+						result[i]["download_url"] = c.get("download_url", "")
+					if String(result[i].get("icon_url", "")) == "" and String(c.get("icon_url", "")) != "":
+						result[i]["icon_url"] = c.get("icon_url", "")
+					# Если в онлайне версия новее встроенной, обновляем данные в каталоге
 					if _is_version_greater(String(c.get("version", "")), String(result[i].get("version", ""))):
+						var is_b: bool = bool(result[i].get("_is_builtin", false))
 						result[i] = c.duplicate(true)
+						result[i]["_is_builtin"] = is_b
 					break
 
 	return result
@@ -720,12 +729,21 @@ func _scan_builtin_catalog() -> void:
 							d["id"] = item
 						d["_is_builtin"] = true
 						var icon_file: String = BUILTIN_MODS_DIR.path_join(item).path_join(String(d.get("icon", "icon.png")))
-						if FileAccess.file_exists(icon_file):
-							var img: Image = Image.load_from_file(ProjectSettings.globalize_path(icon_file))
-							if img and not img.is_empty():
-								var tex: Texture2D = ImageTexture.create_from_image(img)
-								cached_icons[d["id"]] = tex
-								d["_icon_tex"] = tex
+						if ResourceLoader.exists(icon_file):
+							var res_tex = load(icon_file)
+							if res_tex is Texture2D:
+								cached_icons[d["id"]] = res_tex
+								d["_icon_tex"] = res_tex
+						elif FileAccess.file_exists(icon_file):
+							var fa_icon: FileAccess = FileAccess.open(icon_file, FileAccess.READ)
+							if fa_icon:
+								var buf: PackedByteArray = fa_icon.get_buffer(fa_icon.get_length())
+								fa_icon.close()
+								var img: Image = Image.new()
+								if img.load_png_from_buffer(buf) == OK and not img.is_empty():
+									var tex: Texture2D = ImageTexture.create_from_image(img)
+									cached_icons[d["id"]] = tex
+									d["_icon_tex"] = tex
 						_builtin_catalog_cache.append(d)
 					fa.close()
 		item = da.get_next()
@@ -859,10 +877,20 @@ func install_catalog_mod(cat_mod: Dictionary) -> void:
 	# Если мод доступен локально во встроенных ресурсах (res://mods):
 	var src_folder: String = BUILTIN_MODS_DIR.path_join(mod_id)
 	var src_dfmod: String = BUILTIN_MODS_DIR.path_join(mod_id + ".dfmod")
-	var has_builtin: bool = FileAccess.file_exists(src_dfmod) or DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(src_folder))
+	var is_builtin: bool = bool(cat_mod.get("_is_builtin", false))
+	var has_builtin_folder: bool = FileAccess.file_exists(src_folder.path_join("mod.json")) or DirAccess.dir_exists_absolute(src_folder) or DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(src_folder))
+	var has_builtin_archive: bool = FileAccess.file_exists(src_dfmod) or FileAccess.file_exists(ProjectSettings.globalize_path(src_dfmod))
 
-	if has_builtin:
-		install_builtin_mod(mod_id)
+	if is_builtin or has_builtin_folder or has_builtin_archive:
+		if install_builtin_mod(mod_id):
+			return
+		# Если локальная распаковка почему-то не удалась, но есть fallback URL из онлайна:
+		var dl_url: String = String(cat_mod.get("url", cat_mod.get("download_url", "")))
+		if dl_url != "":
+			print("[ModManager] Local install failed, falling back to download for: ", mod_id)
+			download_and_install_mod(cat_mod)
+			return
+		mod_download_failed.emit(mod_id, "Не удалось скопировать встроенный мод")
 		return
 
 	# Иначе скачиваем из сети
@@ -874,13 +902,19 @@ func install_builtin_mod(mod_id: String) -> bool:
 	var src_folder: String = BUILTIN_MODS_DIR.path_join(mod_id)
 	var src_dfmod: String = BUILTIN_MODS_DIR.path_join(mod_id + ".dfmod")
 	var install_result: Dictionary = {}
-	if FileAccess.file_exists(src_dfmod):
-		install_result = _stage_mod_archive(src_dfmod, mod_id)
-	elif DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(src_folder)):
+	# Приоритетно копируем папку мода, если найден manifest mod.json (работает в editor и внутри .pck)
+	if FileAccess.file_exists(src_folder.path_join("mod.json")) or DirAccess.dir_exists_absolute(src_folder) or DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(src_folder)):
 		install_result = _stage_mod_folder(src_folder, mod_id)
+	elif FileAccess.file_exists(src_dfmod) or FileAccess.file_exists(ProjectSettings.globalize_path(src_dfmod)):
+		install_result = _stage_mod_archive(src_dfmod, mod_id)
+	else:
+		push_error("[ModManager] %s: встроенный мод не найден в %s" % [mod_id, BUILTIN_MODS_DIR])
+		return false
+
 	if not bool(install_result.get("ok", false)):
 		var reason: String = String(install_result.get("error", "Не удалось скопировать встроенный мод"))
 		push_error("[ModManager] %s: %s" % [mod_id, reason])
+		mod_download_failed.emit(mod_id, reason)
 		return false
 	var backup_path: String = String(install_result.get("backup", ""))
 	var loaded: bool = _activate_promoted_mod(mod_id, backup_path)
@@ -888,6 +922,8 @@ func install_builtin_mod(mod_id: String) -> bool:
 		mod_installed.emit(mod_id)
 		mods_updated.emit()
 		print("[ModManager] Installed and enabled mod from catalog: ", mod_id)
+	else:
+		mod_download_failed.emit(mod_id, "Мод скопирован, но не удалось его загрузить")
 	return loaded
 
 func fetch_catalog() -> void:

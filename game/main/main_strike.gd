@@ -379,6 +379,31 @@ func _strike_enter(wid: String) -> void :
 			plan_has_target = true
 			plan_count = int(t["n"])
 			plan_wps.assign(t.get("wps", []))
+	if wid == "thermo" or wid == "nuke":
+		var rdy_map: Dictionary = strike.ready_all(world)
+		var av_w: int = int((rdy_map.get(wid, [0, ""]) as Array)[0])
+		_plan_info = {"available": av_w}
+		var cur_tot: int = 0
+		var valid_list: Array = []
+		for t: Dictionary in plan_list:
+			var tn: int = int(t["n"])
+			if cur_tot + tn <= av_w:
+				valid_list.append(t)
+				cur_tot += tn
+			elif cur_tot < av_w:
+				t["n"] = av_w - cur_tot
+				valid_list.append(t)
+				cur_tot = av_w
+		plan_list = valid_list
+		if plan_has_target:
+			if cur_tot >= av_w:
+				if plan_list.is_empty():
+					plan_count = maxi(1, av_w)
+				else:
+					plan_has_target = false
+					plan_count = 1
+			else:
+				plan_count = clampi(plan_count, 1, av_w - cur_tot)
 	hud.set_hint(Loc.t("%s: ТАП ПО КАРТЕ = ЦЕЛЬ") % Loc.t(StrikeHubScript.title(wid)).to_upper())
 
 
@@ -403,7 +428,13 @@ func _strike_update(delta: float) -> void :
 			_danger_t = 1.0
 			_danger = world.mil.danger_cells(world.player.id) if world.mil.has_method("smart_of") and world.mil.smart_of(world.player.id) else []
 	elif mode == Mode.MISSILE:
-		_plan_info = world.mil.missile_plan(world.player, plan_target, plan_has_target)
+		if strike.active and (strike.cur == "thermo" or strike.cur == "nuke"):
+			_plan_info = StrikeHubScript.plan_single(world, strike.cur, plan_target, plan_has_target)
+			var av_m: int = int(_plan_info.get("available", 0))
+			if plan_list.is_empty():
+				plan_count = clampi(plan_count, 1, maxi(1, av_m))
+		else:
+			_plan_info = world.mil.missile_plan(world.player, plan_target, plan_has_target)
 	var op: PanelContainer = hud.ops_panel
 	if strike_ui.get_parent() != op:
 		if strike_ui.get_parent() != null:

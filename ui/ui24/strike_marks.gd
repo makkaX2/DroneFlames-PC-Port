@@ -47,7 +47,7 @@ func _draw() -> void :
 			for t: Dictionary in hub.plans[w]:
 				_mark(cam.world_to_screen(t["pos"]), w, int(t["n"]), font, true, "")
 		for t2: Dictionary in main._plan_targets():
-			_mark(cam.world_to_screen(t2["pos"]) + Vector2(-15, -15), hub.cur, 0, font, false, "")
+			_mark(cam.world_to_screen(t2["pos"]) + Vector2(-15, -15), hub.cur, int(t2.get("n", 1)), font, false, "")
 	if hub.active and hub.cur == "art" and gw.navy != null:
 		_art_rings(cam, gw)
 	var marks: Array = hub.pending_marks(gw)
@@ -64,13 +64,13 @@ func _mark(sp: Vector2, w: String, n: int, font: Font, full: bool, cd: String) -
 	if sp.x < -30.0 or sp.y < -30.0 or sp.x > size.x + 30.0 or sp.y > size.y + 30.0:
 		return
 	var col: Color = Hub.colour(w)
-	var r: float = 11.0 if full else 8.0
+	var r: float = 12.0 if full else 10.0
 	draw_circle(sp, r + 2.0, UiKit.OUTLINE)
-	draw_circle(sp, r, Color(0.08, 0.06, 0.04, 0.82))
-	draw_arc(sp, r - 1.0, 0.0, TAU, 28, col, 3.0 if full else 2.0, true)
+	draw_circle(sp, r, Color(0.08, 0.06, 0.04, 0.88))
+	draw_arc(sp, r - 1.0, 0.0, TAU, 28, col, 3.0 if full else 2.5, true)
 	var tx: Texture2D = _icon(Hub.icon(w))
 	if tx != null:
-		var s: float = 14.0 if full else 10.0
+		var s: float = 14.0 if full else 12.0
 		draw_texture_rect(tx, Rect2(sp - Vector2(s, s) * 0.5, Vector2(s, s)), false)
 	if full:
 		draw_line(sp + Vector2( - r - 5.0, 0), sp + Vector2( - r - 1.0, 0), col, 2.0)

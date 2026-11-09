@@ -24,6 +24,8 @@ var _warn: Label
 var _extras: GridContainer
 var _ex_btn: Dictionary = {}
 var _cnt: Label
+var _minus: Button
+var _plus: Button
 var _back: Button
 var _sync: Array[Button] = []
 var _fire: Button
@@ -74,7 +76,7 @@ func _build_rail() -> Control:
 	g.add_theme_constant_override("h_separation", 4)
 	g.add_theme_constant_override("v_separation", 4)
 	g.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	for w: String in Hub.W_IDS:
+	for w: String in Hub.active_w_ids(main.world if main != null else null):
 		var b: = Button.new()
 		b.custom_minimum_size = CELL
 		b.focus_mode = Control.FOCUS_NONE
@@ -83,9 +85,15 @@ func _build_rail() -> Control:
 		var ic: TextureRect = UiKit.icon_rect(Hub.icon(w), 26.0)
 		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_child(ic)
-		var nm: Label = UiKit.lbl(Hub.short(w), 9, UiKit.TEXT, 2, 3)
+		var txt: String = Hub.short(w)
+		var fs: int = 9
+		if UiKit.f_bold != null:
+			while fs > 6 and UiKit.f_bold.get_string_size(txt, HORIZONTAL_ALIGNMENT_CENTER, -1, fs).x > CELL.x - 4.0:
+				fs -= 1
+		var nm: Label = UiKit.lbl(txt, fs, UiKit.TEXT, 2, 3)
 		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		nm.clip_text = true
 		b.add_child(nm)
 		var rd: Label = UiKit.lbl("0", 10, UiKit.GOLD, 2, 3)
 		rd.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -112,8 +120,8 @@ func _build_rail() -> Control:
 		var lay: = func() -> void :
 			var dy: float = 1.0 if b.button_pressed else 0.0
 			ic.position = Vector2(roundf((b.size.x - ic.size.x) * 0.5), 4.0 + dy)
-			nm.position = Vector2(0, b.size.y - 19.0 + dy)
-			nm.size = Vector2(b.size.x, 14)
+			nm.position = Vector2(1, b.size.y - 18.0 + dy)
+			nm.size = Vector2(b.size.x - 2.0, 14)
 			rd.position = Vector2(b.size.x - 28.0, 1.0)
 			rd.size = Vector2(25, 14)
 			bar.position = Vector2(5, b.size.y - 5.0)
@@ -203,6 +211,7 @@ func _build_right() -> Control:
 	minus.pressed.connect( func() -> void : main._on_action("plan_minus"))
 	HT.tip(minus, "МЕНЬШЕ — на одну единицу меньше на каждую цель")
 	row.add_child(minus)
+	_minus = minus
 	_cnt = UiKit.lbl("×1", 13, UiKit.GOLD, 3, 3)
 	_cnt.custom_minimum_size = Vector2(34, 0)
 	_cnt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -213,6 +222,7 @@ func _build_right() -> Control:
 	plus.pressed.connect( func() -> void : main._on_action("plan_plus"))
 	HT.tip(plus, "БОЛЬШЕ — на одну единицу больше на каждую цель")
 	row.add_child(plus)
+	_plus = plus
 	_back = UiKit.big("НАЗАД", "stone", "", 44.0, 11)
 	_back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_back.pressed.connect( func() -> void : main._on_action("plan_back"))
@@ -393,13 +403,13 @@ func refresh(delta: float) -> void :
 		_sig = tsig
 		_cur_mp = Hub.plan(gw, cur, cur_t) if not cur_t.is_empty() else {}
 		var av: int = int((rdy.get(cur, [0, ""]) as Array)[0])
-		if cur == "ship" or cur == "art" or cur == "bomber" or cur == "hyper":
-			main._plan_info = {"available": maxi(1, av)}
+		if cur == "ship" or cur == "art" or cur == "bomber" or cur == "hyper" or cur == "thermo" or cur == "nuke":
+			main._plan_info = {"available": av}
 
 	var all_n: int = 0
 	var n_w: int = 0
 	var all_t: Array = []
-	for w: String in Hub.W_IDS:
+	for w: String in _rail:
 		var r: Dictionary = _rail[w]
 		var ts: Array = cur_t if w == cur else hub.plans.get(w, [])
 		var npt: int = ts.size()
@@ -471,6 +481,15 @@ func refresh(delta: float) -> void :
 		_extras.visible = drone
 	if drone:
 		_ex_sync()
+	if cur == "thermo" or cur == "nuke":
+		var av_mod: int = int((rdy.get(cur, [0, ""]) as Array)[0])
+		var tot_mod: int = Hub.n_of(cur_t)
+		if _plus != null:
+			_plus.disabled = (tot_mod >= av_mod or av_mod <= 0)
+		if _minus != null:
+			_minus.disabled = (main.plan_count <= 1 and (cur_t.is_empty() or tot_mod <= cur_t.size()))
+		if av_mod > 0 and main.plan_count > av_mod:
+			main.plan_count = av_mod
 	_set_txt(_cnt, "×%d" % int(main.plan_count))
 	_back.disabled = cur_t.is_empty()
 

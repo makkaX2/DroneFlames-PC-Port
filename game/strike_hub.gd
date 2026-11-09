@@ -11,7 +11,24 @@ extends RefCounted
 
 
 const NavyStrike = preload("res://game/navy_strike.gd")
-const W_IDS: Array[String] = ["drone", "jet", "tel", "ship", "art", "bomber", "hyper"]
+const BASE_W_IDS: Array[String] = ["drone", "jet", "tel", "ship", "art", "bomber", "hyper"]
+const W_IDS: Array[String] = ["drone", "jet", "tel", "ship", "art", "bomber", "hyper", "thermo", "nuke"]
+
+static func active_w_ids(gw: GameWorld = null) -> Array[String]:
+	var out: Array[String] = BASE_W_IDS.duplicate()
+	var root = Engine.get_main_loop().root if Engine.get_main_loop() != null else null
+	var mm = root.get_node_or_null("ModManager") if root != null else null
+	if mm != null and mm.has_method("is_mod_loaded"):
+		if mm.is_mod_loaded("thermo_battery"):
+			out.append("thermo")
+		if mm.is_mod_loaded("nuclear_strike"):
+			out.append("nuke")
+	elif gw != null:
+		if gw.has_meta("thermo_battery_mod"):
+			out.append("thermo")
+		if gw.has_meta("nuclear_strike_mod"):
+			out.append("nuke")
+	return out
 const W_INFO: Dictionary = {
 	"drone": {"short": "БПЛА", "title": "Ударные БПЛА", "sub": "дронопорты", "icon": "icon_launch", "col": Color("ffb000"), "unit": "БПЛА"}, 
 	"jet": {"short": "РЕАКТ.", "title": "Реактивные БПЛА", "sub": "ВПП", "icon": "icon_jet_uav", "col": Color("7cccff"), "unit": "БПЛА"}, 
@@ -20,6 +37,8 @@ const W_INFO: Dictionary = {
 	"art": {"short": "АРТ. УДАР", "title": "Артбатареи", "sub": "по берегу, до 400 м вглубь", "icon": "icon_ship_art", "col": Color("ffd166"), "unit": "залпов"}, 
 	"bomber": {"short": "КР АВИА", "title": "КР с самолётов", "sub": "носители", "icon": "icon_bomber", "col": Color("c69cff"), "unit": "КР"}, 
 	"hyper": {"short": "ГИПЕР", "title": "Гиперзвук", "sub": "истребители", "icon": "icon_m_hyper", "col": Color("ff72d6"), "unit": "ракет"}, 
+	"thermo": {"short": "СОЛНЦЕПЁК", "title": "Батарея «Солнцепёк»", "sub": "ТОС-1А · термобар", "icon": "icon_mlrs", "col": Color("ff8c3c"), "unit": "залпов"}, 
+	"nuke": {"short": "МБР", "title": "Шахта МБР «Сармат»", "sub": "стратегический ядерный", "icon": "icon_m_ballistic", "col": Color("ff3333"), "unit": "ракет"}, 
 }
 
 const AIR_TAKEOFF: float = 4.5
@@ -130,7 +149,7 @@ func ready_all(gw: GameWorld) -> Dictionary:
 	if now - _ready_t < 500 and not _ready_c.is_empty():
 		return _ready_c
 	_ready_t = now
-	for w: String in W_IDS:
+	for w: String in active_w_ids(gw):
 		_ready_c[w] = _ready(gw, w)
 	return _ready_c
 
@@ -170,6 +189,37 @@ func _ready(gw: GameWorld, wid: String) -> Array:
 				why = (Loc.t("Нет истребителя с гиперзвуком: аэродром › истребитель › подвес «ГИПЕР»") if wid == "hyper"
 					else Loc.t("Нет КР на носителях: аэродром › бомбардировщик (или подвес КР)"))
 			return [int(ap["available"]), why]
+		"thermo":
+			var cnt: int = 0
+			var why: String = ""
+			if mil != null:
+				for f in mil.facilities:
+					if f != null and is_instance_valid(f) and f.country_id == p.id and (f.army_build == "thermo_battery" or bool(f.get_meta("is_thermo", false))) and f.hp > 0.0:
+						if int(f.get_meta("state", 0)) == 0:
+							cnt += 1
+						elif why == "":
+							why = Loc.t("Батарея «Солнцепёк» перезаряжается")
+			var max_by_res: int = mini(p.money / 500, p.metal / 6) if (p.money >= 0 and p.metal >= 0) else 0
+			if cnt > 0 and max_by_res < cnt:
+				cnt = max_by_res
+				if cnt == 0 and why == "":
+					why = Loc.t("Не хватает ресурсов: нужно 500 $ и 6 металла на залп")
+			if cnt == 0 and why == "":
+				why = Loc.t("Нет батареи «Солнцепёк»: АРМИЯ › СОЛНЦЕПЁК")
+			return [cnt, why]
+		"nuke":
+			var cnt: int = 0
+			var why: String = ""
+			if mil != null:
+				for f in mil.facilities:
+					if f != null and is_instance_valid(f) and f.country_id == p.id and (f.army_build == "nuclear_silo" or bool(f.get_meta("is_nuclear_silo", false))) and f.hp > 0.0:
+						if bool(f.get_meta("has_warhead", false)):
+							cnt += 1
+						elif why == "":
+							why = Loc.t("В шахте МБР нет собранной боеголовки")
+			if cnt == 0 and why == "":
+				why = Loc.t("Нет шахты МБР: АРМИЯ › ЯДЕРНЫЙ УДАР")
+			return [cnt, why]
 	return [0, ""]
 
 
@@ -191,8 +241,181 @@ static func plan(gw: GameWorld, wid: String, targets: Array) -> Dictionary:
 			mp = gw.navy.art.plan(p.id, targets) if gw.navy != null else {}
 		"bomber", "hyper":
 			mp = gw.mil.air.multi_plan(p, targets, wid == "hyper")
+		"thermo":
+			mp = _thermo_plan(gw, p, targets)
+		"nuke":
+			mp = _nuke_plan(gw, p, targets)
 	return mp
 
+
+static func _strike_pts(targets: Array) -> Array:
+	var out: Array = []
+	for e: Variant in targets:
+		if e is Vector2:
+			out.append([e, 1])
+		elif e is Dictionary:
+			out.append([(e as Dictionary).get("pos", Vector2.ZERO), clampi(int((e as Dictionary).get("n", 1)), 1, 99)])
+	return out
+
+
+static func plan_single(gw: GameWorld, wid: String, target: Vector2, has_target: bool) -> Dictionary:
+	var p: Country = _p(gw)
+	var info: Dictionary = {"tel": null, "from": Vector2.ZERO, "launch": Vector2.ZERO, "dist": 0.0, "in_range": false, "available": 0, "flight": 0.0, "alt0": 0.0}
+	if p == null or gw == null:
+		return info
+	if wid == "thermo":
+		var best: Facility = null
+		var bd: float = INF
+		var avail: int = 0
+		if gw.mil != null:
+			for f: Facility in gw.mil.facilities:
+				if f != null and is_instance_valid(f) and f.country_id == p.id and (f.army_build == "thermo_battery" or bool(f.get_meta("is_thermo", false))) and f.hp > 0.0:
+					if int(f.get_meta("state", 0)) == 0:
+						avail += 1
+						var d: float = f.center_px().distance_to(target) if has_target else 0.0
+						if d < bd:
+							bd = d
+							best = f
+		var max_by_res: int = mini(p.money / 500, p.metal / 6) if (p.money >= 0 and p.metal >= 0) else 0
+		avail = mini(avail, max_by_res)
+		info["available"] = avail
+		info["tel"] = best
+		if best != null:
+			info["from"] = best.center_px()
+			info["launch"] = best.center_px()
+			if has_target:
+				info["dist"] = bd
+				info["in_range"] = bd >= 90.0 and bd <= 640.0
+				info["flight"] = 4.0
+		return info
+	elif wid == "nuke":
+		var best: Facility = null
+		var bd: float = INF
+		var avail: int = 0
+		if gw.mil != null:
+			for f: Facility in gw.mil.facilities:
+				if f != null and is_instance_valid(f) and f.country_id == p.id and (f.army_build == "nuclear_silo" or bool(f.get_meta("is_nuclear_silo", false))) and f.hp > 0.0:
+					if bool(f.get_meta("has_warhead", false)):
+						avail += 1
+						var d: float = f.center_px().distance_to(target) if has_target else 0.0
+						if d < bd:
+							bd = d
+							best = f
+		info["available"] = avail
+		info["tel"] = best
+		if best != null:
+			info["from"] = best.center_px()
+			info["launch"] = best.center_px()
+			if has_target:
+				info["dist"] = bd
+				info["in_range"] = true
+				info["flight"] = clampf(5.5 + bd * 0.002, 6.5, 9.5)
+		return info
+	return info
+
+
+static func _thermo_plan(gw: GameWorld, p: Country, targets: Array) -> Dictionary:
+	var out: Dictionary = {"ok": false, "total": 0, "available": 0, "assigned": 0, "per_target": [], "plan": [], "why": ""}
+	if p == null or gw == null:
+		return out
+	var free: Array[Facility] = []
+	if gw.mil != null:
+		for f: Facility in gw.mil.facilities:
+			if f != null and is_instance_valid(f) and f.country_id == p.id and (f.army_build == "thermo_battery" or bool(f.get_meta("is_thermo", false))) and f.hp > 0.0:
+				if int(f.get_meta("state", 0)) == 0:
+					free.append(f)
+	var max_by_res: int = mini(p.money / 500, p.metal / 6) if (p.money >= 0 and p.metal >= 0) else 0
+	var avail: int = mini(free.size(), max_by_res)
+	out["available"] = avail
+	var used: Dictionary = {}
+	var pts: Array = _strike_pts(targets)
+	for e: Array in pts:
+		var tp: Vector2 = e[0]
+		var n: int = int(e[1])
+		out["total"] = int(out["total"]) + n
+		var got: int = 0
+		for i in n:
+			if int(out["assigned"]) >= avail:
+				break
+			var best: Facility = null
+			var bd: float = INF
+			for f: Facility in free:
+				if used.has(f):
+					continue
+				var d: float = f.center_px().distance_to(tp)
+				if d >= 90.0 and d <= 640.0:
+					if d < bd:
+						bd = d
+						best = f
+			if best == null:
+				break
+			used[best] = true
+			(out["plan"] as Array).append([best, tp])
+			got += 1
+			out["assigned"] = int(out["assigned"]) + 1
+		var why: String = ""
+		if got < n:
+			if free.is_empty():
+				why = Loc.t("Нет готовых батарей «Солнцепёк»")
+			elif max_by_res < free.size() and int(out["assigned"]) >= max_by_res:
+				why = Loc.t("Не хватает ресурсов на залп: 500 $ и 6 металла")
+			else:
+				why = Loc.t("Цель вне зоны досягаемости (90–640)")
+		(out["per_target"] as Array).append({"ok": got == n, "reason": why, "n": n, "got": got, "pos": tp})
+	out["ok"] = int(out["assigned"]) > 0
+	if int(out["assigned"]) == 0 and not targets.is_empty():
+		if free.is_empty():
+			out["why"] = Loc.t("Нет готовых батарей «Солнцепёк»")
+		elif max_by_res == 0:
+			out["why"] = Loc.t("Не хватает ресурсов: нужно 500 $ и 6 металла на залп")
+		else:
+			out["why"] = Loc.t("Цели вне досягаемости батарей «Солнцепёк» (90–640)")
+	return out
+
+
+static func _nuke_plan(gw: GameWorld, p: Country, targets: Array) -> Dictionary:
+	var out: Dictionary = {"ok": false, "total": 0, "available": 0, "assigned": 0, "per_target": [], "plan": [], "why": ""}
+	if p == null or gw == null:
+		return out
+	var free: Array[Facility] = []
+	if gw.mil != null:
+		for f: Facility in gw.mil.facilities:
+			if f != null and is_instance_valid(f) and f.country_id == p.id and (f.army_build == "nuclear_silo" or bool(f.get_meta("is_nuclear_silo", false))) and f.hp > 0.0:
+				if bool(f.get_meta("has_warhead", false)):
+					free.append(f)
+	var avail: int = free.size()
+	out["available"] = avail
+	var used: Dictionary = {}
+	var pts: Array = _strike_pts(targets)
+	for e: Array in pts:
+		var tp: Vector2 = e[0]
+		var n: int = int(e[1])
+		out["total"] = int(out["total"]) + n
+		var got: int = 0
+		for i in n:
+			var best: Facility = null
+			var bd: float = INF
+			for f: Facility in free:
+				if used.has(f):
+					continue
+				var d: float = f.center_px().distance_to(tp)
+				if d < bd:
+					bd = d
+					best = f
+			if best == null:
+				break
+			used[best] = true
+			(out["plan"] as Array).append([best, tp])
+			got += 1
+			out["assigned"] = int(out["assigned"]) + 1
+		var why: String = ""
+		if got < n:
+			why = Loc.t("Не хватает снаряжённых МБР «Сармат»")
+		(out["per_target"] as Array).append({"ok": got == n, "reason": why, "n": n, "got": got, "pos": tp})
+	out["ok"] = int(out["assigned"]) > 0
+	if int(out["assigned"]) == 0 and not targets.is_empty():
+		out["why"] = Loc.t("Нет снаряжённых шахт МБР «Сармат»")
+	return out
 
 
 static func eta(gw: GameWorld, wid: String, mp: Dictionary) -> float:
@@ -257,6 +480,16 @@ static func eta(gw: GameWorld, wid: String, mp: Dictionary) -> float:
 				for i in k3:
 					sum += t0 + fl + (0.0 if hyper else float(i) * Air.CR_GAP)
 					n += 1
+		"thermo":
+			for e5: Array in mp.get("plan", []):
+				sum += 4.0
+				n += 1
+		"nuke":
+			for e6: Array in mp.get("plan", []):
+				var f6: Facility = e6[0]
+				var d6: float = f6.center_px().distance_to(e6[1])
+				sum += clampf(5.5 + d6 * 0.002, 6.5, 9.5)
+				n += 1
 	return sum / float(n) if n > 0 else 0.0
 
 
@@ -287,7 +520,7 @@ func fire(gw: GameWorld, all: Dictionary, arrive_together: bool) -> Dictionary:
 	var res: Dictionary = {"now": {}, "later": {}, "eta": {}, "text": "", "failed": []}
 	last_drones = []
 	var etas: Dictionary = {}
-	for w: String in W_IDS:
+	for w: String in active_w_ids(gw):
 		var ts: Array = all.get(w, [])
 		if ts.is_empty():
 			continue
@@ -372,6 +605,10 @@ func _launch_now(gw: GameWorld, wid: String, targets: Array, eta_s: float) -> in
 			n = _art_launch(gw, p, targets)
 		"bomber", "hyper":
 			n = int(gw.mil.air.multi_launch(p, targets, wid == "hyper")["launched"])
+		"thermo":
+			n = _thermo_launch(gw, p, targets)
+		"nuke":
+			n = _nuke_launch(gw, p, targets)
 	if n > 0:
 		log.append({"wid": wid, "t": gw.game_time, "n": n, "eta": eta_s})
 	return n
@@ -393,6 +630,36 @@ func _art_launch(gw: GameWorld, p: Country, targets: Array) -> int:
 		gw.say(p, Loc.t("Артудар с кораблей: %d залп. (%d снар., кораблей: %d)%s") % [n, int(rd.get("shells", 0)), int(rd.get("ships", 0)), 
 			(Loc.t(" · война: %s") % [", ".join(PackedStringArray(wars))]) if not wars.is_empty() else ""])
 	return n
+
+
+func _thermo_launch(gw: GameWorld, p: Country, targets: Array) -> int:
+	var mp: Dictionary = _thermo_plan(gw, p, targets)
+	var tmod: Object = gw.get_meta("thermo_battery_mod", null)
+	var launched: int = 0
+	for e: Array in mp.get("plan", []):
+		var f: Facility = e[0]
+		var tp: Vector2 = e[1]
+		if tmod != null and tmod.has_method("launch_salvo_at"):
+			if tmod.launch_salvo_at(f, tp):
+				launched += 1
+	if launched > 0 and not bool(gw.get_meta("strike_quiet", false)):
+		gw.say(p, Loc.mk("Батарея «Солнцепёк»: произведено залпов: %d", [launched]))
+	return launched
+
+
+func _nuke_launch(gw: GameWorld, p: Country, targets: Array) -> int:
+	var mp: Dictionary = _nuke_plan(gw, p, targets)
+	var nmod: Object = gw.get_meta("nuclear_strike_mod", null)
+	var launched: int = 0
+	for e: Array in mp.get("plan", []):
+		var f: Facility = e[0]
+		var tp: Vector2 = e[1]
+		if nmod != null and nmod.has_method("launch_strike_from_silo"):
+			if nmod.launch_strike_from_silo(f, tp):
+				launched += 1
+	if launched > 0 and not bool(gw.get_meta("strike_quiet", false)):
+		gw.say(p, Loc.mk("РВСН: произведён запуск стратегических МБР: %d!", [launched]))
+	return launched
 
 
 
