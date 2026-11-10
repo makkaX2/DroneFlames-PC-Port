@@ -65,30 +65,51 @@ func _draw() -> void :
 	var ng: int = guests.size()
 	var taken: PackedInt32Array = right.guests if right != null else PackedInt32Array()
 	var nt: int = taken.size()
-	if nt == 0 and ng == 0:
-		for id in _list:
-			gw.draw_object(self, id, phase)
-		return
-
 
 	var tk: Dictionary = {}
-	for id in taken:
-		tk[id] = true
+	if nt > 0:
+		for id in taken:
+			tk[id] = true
 	var gs: Dictionary = {}
-	for id in guests:
-		gs[id] = true
+	if ng > 0:
+		for id in guests:
+			gs[id] = true
 	var lids: Dictionary = {}
 	if ng > 0 and left != null:
 		for id in left.ids:
 			lids[id] = true
 	var llp: int = left.left.phase if left != null and left.left != null else lp
+
+	if not GameConfig.eff_tree_batching():
+		for id in _list:
+			if nt > 0 and tk.has(id):
+				continue
+			if ng > 0 and gs.has(id):
+				gw.draw_object(self, id, lp if left == null or lids.has(id) else llp)
+			else:
+				gw.draw_object(self, id, phase)
+		return
+
+	# Batched 2-pass rendering:
+	# Pass 1: Trees & flora on atlas_world (single texture atlas, 1 draw call)
 	for id in _list:
 		if nt > 0 and tk.has(id):
 			continue
-		if ng > 0 and gs.has(id):
-			gw.draw_object(self, id, lp if left == null or lids.has(id) else llp)
-		else:
-			gw.draw_object(self, id, phase)
+		if gw.obj_kind[id] == gw.KIND_TREE:
+			if ng > 0 and gs.has(id):
+				gw.draw_object(self, id, lp if left == null or lids.has(id) else llp)
+			else:
+				gw.draw_object(self, id, phase)
+
+	# Pass 2: Structures, facilities, and props
+	for id in _list:
+		if nt > 0 and tk.has(id):
+			continue
+		if gw.obj_kind[id] != gw.KIND_TREE:
+			if ng > 0 and gs.has(id):
+				gw.draw_object(self, id, lp if left == null or lids.has(id) else llp)
+			else:
+				gw.draw_object(self, id, phase)
 
 
 

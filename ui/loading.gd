@@ -54,6 +54,7 @@ var tip: Label
 var logo: TextureRect
 var drone: TextureRect
 var embers_node: Control
+var credits_row: HBoxContainer
 var ui_nodes: Array = []
 var clouds: Array = []
 var embers: Array = []
@@ -165,7 +166,22 @@ func _ready() -> void :
 	drone.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	drone.scale = Vector2(2, 2)
 	root.add_child(drone)
-	ui_nodes = [stage, bar_frame, tip, drone]
+	credits_row = HBoxContainer.new()
+	credits_row.add_theme_constant_override("separation", 6)
+	credits_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(credits_row)
+	var clbl: Label = UiKit.lbl("Порт создан: @droneflamesmod   Главный разработчик: @nufxa", 10, UiKit.MUTED, 1, 1)
+	clbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	credits_row.add_child(clbl)
+	var c_duck: TextureRect = TextureRect.new()
+	c_duck.texture = UiKit.tex("duck_dev")
+	c_duck.custom_minimum_size = Vector2(18, 16)
+	c_duck.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	c_duck.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	c_duck.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	c_duck.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	credits_row.add_child(c_duck)
+	ui_nodes = [stage, bar_frame, tip, drone, credits_row]
 	for n: CanvasItem in ui_nodes:
 		n.modulate.a = 0.0
 	visible = false
@@ -265,6 +281,9 @@ func _layout() -> void :
 		var gs: = Vector2(vs.x * 1.1, 200.0 * SPLASH_K * s / 1.6)
 		glow.size = gs
 		glow.position = Vector2(vs.x * 0.5, o.y + (SPLASH_LOGO.y + 30.0 * SPLASH_K) * s) - gs * 0.5
+	if credits_row != null:
+		var c_sz: Vector2 = credits_row.get_combined_minimum_size()
+		credits_row.position = Vector2(roundf((vs.x - c_sz.x) * 0.5), vs.y - 28.0)
 
 
 func _process(delta: float) -> void :

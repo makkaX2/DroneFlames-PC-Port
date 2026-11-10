@@ -1,5 +1,5 @@
 {
-  "version": "0.33.5.1",
+  "version": "0.33.5.2",
   "base_upstream_version": "0.33.4",
   "build_channel": "release",
   "apk_filename": "DroneFlames_v0.33.4_android.apk",

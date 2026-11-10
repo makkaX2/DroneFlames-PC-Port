@@ -5,6 +5,10 @@ const KeybindManager = preload("res://core/keybind_manager.gd")
 var _rmb_down: bool = false
 var _rmb_dragged: bool = false
 var _rmb_start_pos: Vector2 = Vector2.ZERO
+var _dyn_fps_stage: int = 0
+var _dyn_fps_timer: float = 0.0
+var _dyn_fps_low_time: float = 0.0
+var _dyn_fps_high_time: float = 0.0
 
 
 
@@ -280,6 +284,10 @@ func _on_menu(req: String) -> void :
 				hud.show_toast("Сохранение повреждено")
 			else:
 				_plan_refresh()
+				if has_node("/root/ModManager"):
+					var mod_manager: Node = get_node("/root/ModManager")
+					mod_manager.set_active_world(self, world)
+					mod_manager.call_hook("on_world_started", [self, world])
 
 
 func _new_game() -> void :
@@ -525,7 +533,7 @@ func _process(delta: float) -> void :
 		cam.margin_top_px = mt
 		cam.margin_bottom_px = mb
 		cam.center_on(cam.position)
-	var g_live: bool = not _pend.is_empty() or mode == Mode.TARGET or BUILD_KIND.has(mode) or mode == Mode.RAIL_ST or mode == Mode.RAIL_LINE
+	var g_live: bool = not _pend.is_empty() or mode == Mode.TARGET or BUILD_KIND.has(mode) or mode == Mode.RAIL_ST or mode == Mode.RAIL_LINE or ((Input.is_key_pressed(KEY_SHIFT) or repeat_building) and (BUILD_KIND.has(mode) or mode == Mode.MODULE or mode == Mode.CAPITAL or mode == Mode.TOWN))
 	if (g_live or _ghost_live) and _ghost != null:
 		_ghost.queue_redraw()
 	_ghost_live = g_live
@@ -541,9 +549,53 @@ func _process(delta: float) -> void :
 	_perf_t += delta
 	if _perf_t >= 5.0:
 		_perf_t = 0.0
-		print("[Perf] fps=%d draw_calls=%d objects=%d cities=%d zoom=%.2f" % [Engine.get_frames_per_second(), int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)), world.obj_spr.size() - world._free_ids.size(), world.cities.size(), cam.zoom.x])
+		var dyn_tag: String = " dyn_stage=%d" % _dyn_fps_stage if GameConfig.dynamic_fps_target > 0 else ""
+		print("[Perf] fps=%d draw_calls=%d objects=%d cities=%d zoom=%.2f%s" % [Engine.get_frames_per_second(), int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)), world.obj_spr.size() - world._free_ids.size(), world.cities.size(), cam.zoom.x, dyn_tag])
+	_adaptive_perf_tick(delta)
 	if has_node("/root/ModManager") and not in_menu:
 		get_node("/root/ModManager").call_hook("on_match_tick", [self, world, delta])
+
+
+func _adaptive_perf_tick(delta: float) -> void :
+	if GameConfig.dynamic_fps_target <= 0 or in_menu or _paused:
+		if _dyn_fps_stage != 0:
+			_dyn_fps_stage = 0
+			GameConfig.apply_adaptive_stage(0)
+		return
+	_dyn_fps_timer += delta
+	if _dyn_fps_timer < 0.5:
+		return
+	_dyn_fps_timer = 0.0
+
+	var cur_fps: int = Engine.get_frames_per_second()
+	var targets: Array[int] = [0, 30, 45, 60]
+	var target: int = targets[clampi(GameConfig.dynamic_fps_target, 0, 3)]
+
+	if cur_fps < target - 5:
+		_dyn_fps_low_time += 0.5
+		_dyn_fps_high_time = 0.0
+		if _dyn_fps_low_time >= 1.5:
+			_dyn_fps_low_time = 0.0
+			var next_stage: int = _dyn_fps_stage
+			if cur_fps <= 12 or _dyn_fps_stage >= 2:
+				next_stage = 3
+			elif cur_fps < target - 12 or _dyn_fps_stage >= 1:
+				next_stage = 2
+			elif _dyn_fps_stage == 0:
+				next_stage = 1
+			if next_stage != _dyn_fps_stage:
+				_dyn_fps_stage = next_stage
+				GameConfig.apply_adaptive_stage(_dyn_fps_stage)
+				print("[AdaptivePerf] FPS drop (%d < %d) -> Enabled Stage %d" % [cur_fps, target, _dyn_fps_stage])
+	elif cur_fps >= target + 5:
+		_dyn_fps_high_time += 0.5
+		_dyn_fps_low_time = 0.0
+		if _dyn_fps_high_time >= 5.0:
+			_dyn_fps_high_time = 0.0
+			if _dyn_fps_stage > 0:
+				_dyn_fps_stage -= 1
+				GameConfig.apply_adaptive_stage(_dyn_fps_stage)
+				print("[AdaptivePerf] FPS recovered (%d >= %d) -> Reduced to Stage %d" % [cur_fps, target, _dyn_fps_stage])
 
 
 func _on_action(nm: String) -> void :
@@ -731,11 +783,33 @@ func _on_action(nm: String) -> void :
 			plan_count = maxi(1, plan_count - 1)
 			_plan_per_all()
 		"plan_plus":
-			if plan_list.is_empty():
-				plan_count = mini(maxi(1, int(_plan_info.get("available", 1))), plan_count + 1)
+			var is_mod_weapon: bool = strike.active and (strike.cur == "thermo" or strike.cur == "nuke" or strike.cur == "iskander")
+			var av: int = int(_plan_info.get("available", 0)) if is_mod_weapon else int(_plan_info.get("available", 1))
+			if is_mod_weapon:
+				var cur_targets: Array = _plan_targets()
+				var tot: int = 0
+				for t: Dictionary in cur_targets:
+					tot += int(t["n"])
+				if tot >= av or av <= 0:
+					var w_name: String = "залпы" if strike.cur == "thermo" else ("ракеты «Искандер»" if strike.cur == "iskander" else "МБР")
+					hud.show_toast(Loc.msg(Loc.mk("Все %s распределены: %d", [w_name, av])))
+					if ClassDB.class_exists("UiKit"):
+						UiKit.snd("ui_error")
+					return
+				if plan_list.is_empty():
+					plan_count = mini(av, plan_count + 1)
+				else:
+					if tot + plan_list.size() + 1 <= av:
+						plan_count = mini(av, plan_count + 1)
+						_plan_per_all()
+					else:
+						plan_count = mini(av - (tot - plan_count), plan_count + 1)
 			else:
-				plan_count = mini(12, plan_count + 1)
-				_plan_per_all()
+				if plan_list.is_empty():
+					plan_count = mini(maxi(1, int(_plan_info.get("available", 1))), plan_count + 1)
+				else:
+					plan_count = mini(12, plan_count + 1)
+					_plan_per_all()
 		"plan_back":
 			if mode == Mode.JET_KAB or mode == Mode.JET_CAS:
 				_jet_back()
@@ -1244,11 +1318,26 @@ func _unhandled_input(event: InputEvent) -> void :
 			return
 	if in_menu:
 		return
+	if event is InputEventKey:
+		var k_shift: int = (event as InputEventKey).keycode
+		if k_shift == KEY_SHIFT:
+			if _ghost != null:
+				_ghost.queue_redraw()
 	if event is InputEventKey and event.pressed and not event.echo:
 		var kc: int = (event as InputEventKey).keycode
 		if kc == KEY_ESCAPE or kc == KEY_BACK:
 			if hud != null and hud.has_method("ui24_open_now") and hud.ui24_open_now():
 				hud.close_panel()
+				return
+			if not _pend.is_empty():
+				_pend_cancel()
+				return
+			if mode != Mode.NONE:
+				_set_mode(Mode.NONE)
+				hud.refresh()
+				return
+			if selected_fac != null:
+				_deselect()
 				return
 			if not menus.is_open() and _army_back():
 				return
@@ -1375,10 +1464,13 @@ func _unhandled_input(event: InputEvent) -> void :
 				cam_lock = false
 			return
 		if not _mouse_down:
+			if (Input.is_key_pressed(KEY_SHIFT) or repeat_building) and (BUILD_KIND.has(mode) or mode == Mode.MODULE or mode == Mode.CAPITAL or mode == Mode.TOWN):
+				if _ghost != null:
+					_ghost.queue_redraw()
 			return
 		if _dtz:
 			_dtz_drag(mm.position)
-		elif _moved or mm.position.distance_to(_press_pos) > 6.0:
+		elif _moved or mm.position.distance_to(_press_pos) > (20.0 if (Input.is_key_pressed(KEY_SHIFT) and (BUILD_KIND.has(mode) or mode == Mode.MODULE)) else 6.0):
 			_moved = true
 			_drag_or_pan(mm.position, mm.relative)
 
@@ -1427,6 +1519,13 @@ func _handle_pc_shortcut(k: int, ev: InputEventKey) -> bool :
 	var fo: Control = get_viewport().gui_get_focus_owner()
 	if fo is LineEdit or fo is TextEdit:
 		return false
+	if (k == KEY_E or ev.keycode == KEY_E or k == KEY_ENTER or ev.keycode == KEY_ENTER) and not _pend.is_empty():
+		if _pend_why() == "":
+			_pend_ok()
+		else:
+			hud.show_toast(_pend_why())
+			UiKit.snd("ui_error")
+		return true
 	if KeybindManager.is_event_match(ev, "cam_up") \
 		or KeybindManager.is_event_match(ev, "cam_down") \
 		or KeybindManager.is_event_match(ev, "cam_left") \
@@ -1497,11 +1596,24 @@ func _handle_pc_shortcut(k: int, ev: InputEventKey) -> bool :
 		if hud != null and hud.has_method("select_page"):
 			hud.select_page(6)
 		return true
+	if KeybindManager.is_event_match(ev, "build_barracks"):
+		_on_action("barracks")
+		return true
+	if KeybindManager.is_event_match(ev, "build_trench"):
+		_on_action("trench")
+		return true
+	if KeybindManager.is_event_match(ev, "cancel_action"):
+		if not _pend.is_empty():
+			_pend_cancel()
+			return true
+		if mode != Mode.NONE:
+			_set_mode(Mode.NONE)
+			hud.refresh()
+			return true
+		if selected_fac != null:
+			_deselect()
+			return true
 	match k:
-		KEY_B:
-			if hud != null and hud.has_method("select_page"):
-				hud.select_page(1)
-				return true
 		KEY_R:
 			if world != null and world.player != null and world.player.capital != null:
 				cam.center_on(world.player.capital.pos)
@@ -1517,7 +1629,7 @@ func _handle_pc_shortcut(k: int, ev: InputEventKey) -> bool :
 			return true
 		KEY_H:
 			if hud != null:
-				hud.show_toast("ПК: WASD/Стрелки - Камера | Колесо/+/- - Зум | F11 - Экран | Пробел/P - Пауза | Tab/F - Скорость | 1-7 - Вкладки")
+				hud.show_toast("ПК: WASD - Камера | Shift - Постройка/окопы без подтверждения | B - Казармы | T - Окопы | F11 - Экран | Пробел/P - Пауза | Tab/F - Скорость | 1-7 - Вкладки")
 			return true
 	return false
 

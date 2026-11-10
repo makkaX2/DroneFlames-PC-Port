@@ -14,9 +14,6 @@ var world_ref: Node = null
 var world_layer: Node2D = null
 var flash_layer: CanvasLayer = null
 var flash_rect: ColorRect = null
-var ctl_layer: CanvasLayer = null
-var ctl_panel: PanelContainer = null
-var ctl_btns: Dictionary = {}
 
 var is_placing: bool = false
 var is_targeting: bool = false
@@ -38,8 +35,31 @@ const SILO_REPAIR_COST: int = 400
 var active_missiles: Array = []
 var active_explosions: Array = []
 
+const BuildPanel = preload("res://ui/ui24/build_panel.gd")
+
+func close_all() -> void:
+	is_placing = false
+	is_targeting = false
+	targeting_silo = null
+	target_point = Vector2.INF
+	selected_fac = null
+	if main_ref != null:
+		if "selected_fac" in main_ref:
+			main_ref.selected_fac = null
+		if main_ref.has_method("_deselect"):
+			main_ref._deselect()
+		if main_ref.hud != null:
+			main_ref.hud.hide_ops()
+			main_ref.hud.set_key_pressed("nuclear_silo", false)
+	if ClassDB.class_exists("UiKit"):
+		UiKit.snd("ui_close")
+
 func init_mod(mm: Node) -> void:
 	mm_ref = mm
+	if mm.has_method("register_texture"):
+		var ref_t = UiKit.tex("net_refresh")
+		if ref_t != null:
+			mm.register_texture("icon_refresh", ref_t)
 	if mm.has_method("register_hook"):
 		mm.call("register_hook", "on_world_started", Callable(self, "_on_world_started"))
 		mm.call("register_hook", "on_match_tick", Callable(self, "_on_match_tick"))
@@ -68,67 +88,179 @@ func _cleanup_nodes() -> void:
 	if flash_layer != null and is_instance_valid(flash_layer):
 		flash_layer.queue_free()
 		flash_layer = null
-	if ctl_layer != null and is_instance_valid(ctl_layer):
-		ctl_layer.queue_free()
-	ctl_layer = null
-	ctl_panel = null
-	ctl_btns.clear()
 
-func _on_world_started(main: Node, world: Node) -> void:
+func _ensure_hud(main: Node, world: Node) -> void:
+	if main == null or not is_instance_valid(main) or world == null or not is_instance_valid(world):
+		return
 	main_ref = main
 	world_ref = world
-	_cleanup_nodes()
 
-	# 1. Встраивание слота постройки МБР во вкладку «АРМИЯ» (Tab 4) нижней панели
-	if main.hud != null:
-		if main.hud.pages.size() > 4:
-			var army_grid = main.hud.pages[4] as GridContainer
-			if army_grid != null and not main.hud.keys.has("nuclear_silo"):
-				var cell = main.hud._cell("nuclear_silo", "icon_m_ballistic", true)
-				if main.hud.key_labels.has("nuclear_silo"):
-					var lbl = main.hud.key_labels["nuclear_silo"] as Label
-					if lbl != null:
-						lbl.text = "ШАХТА\nМБР"
-				army_grid.add_child(cell)
-				army_grid.move_child(cell, 2)
+	# 1. Встраивание слота МБР во вкладку «АРМИЯ» (Tab 4) нижней панели
+	if main.hud != null and main.hud.pages.size() > 4:
+		var army_grid = main.hud.pages[4] as GridContainer
+		if army_grid != null and not main.hud.keys.has("nuclear_silo"):
+			var cell = main.hud._cell("nuclear_silo", "icon_m_ballistic", true)
+			army_grid.add_child(cell)
+			army_grid.move_child(cell, mini(army_grid.get_child_count() - 1, 2))
 
 		if not main.hud.action.is_connected(_on_hud_action):
 			main.hud.action.connect(_on_hud_action)
 
 	# 2. Слой мира для визуализации призрака, шахты, полёта МБР и ядерных грибов
-	world_layer = NuclearWorldLayer.new()
-	world_layer.setup(self, main, world)
-	world.add_child(world_layer)
+	if world_layer == null or not is_instance_valid(world_layer):
+		world_layer = NuclearWorldLayer.new()
+		world_layer.setup(self, main, world)
+		world.add_child(world_layer)
 
 	# 3. CanvasLayer для кинематографичной ослепляющей ядерной вспышки
-	flash_layer = CanvasLayer.new()
-	flash_layer.layer = 120
-	flash_rect = ColorRect.new()
-	flash_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-	flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	flash_rect.color = Color(1.0, 0.96, 0.75, 0.0)
-	flash_layer.add_child(flash_rect)
-	main.add_child(flash_layer)
-	_build_controls(main)
+	if flash_layer == null or not is_instance_valid(flash_layer):
+		flash_layer = CanvasLayer.new()
+		flash_layer.layer = 125
+		flash_rect = ColorRect.new()
+		flash_rect.anchor_right = 1.0
+		flash_rect.anchor_bottom = 1.0
+		flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		flash_rect.color = Color(1.0, 1.0, 1.0, 0.0)
+		flash_layer.add_child(flash_rect)
+		main.add_child(flash_layer)
 
-	print("[NuclearStrike] Injected nuclear_silo cell into Army tab and world layers created.")
+func _trigger_nuclear_flash() -> void:
+	if main_ref == null or not is_instance_valid(main_ref):
+		return
+	if flash_layer == null or not is_instance_valid(flash_layer) or not flash_layer.is_inside_tree():
+		if flash_layer != null and is_instance_valid(flash_layer):
+			flash_layer.queue_free()
+		flash_layer = CanvasLayer.new()
+		flash_layer.layer = 125
+		flash_rect = ColorRect.new()
+		flash_rect.anchor_right = 1.0
+		flash_rect.anchor_bottom = 1.0
+		flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		flash_rect.color = Color(1.0, 1.0, 1.0, 0.0)
+		flash_layer.add_child(flash_rect)
+		main_ref.add_child(flash_layer)
+
+	if flash_rect != null and is_instance_valid(flash_rect):
+		var vp_sz: Vector2 = main_ref.get_viewport().get_visible_rect().size
+		flash_rect.position = Vector2.ZERO
+		flash_rect.size = vp_sz * 1.5
+
+		# Фаза 1: Мгновенное ослепление сверхчистым белым светом (100% непрозрачность)
+		flash_rect.color = Color(1.0, 1.0, 1.0, 1.0)
+		var tw: Tween = flash_rect.create_tween()
+		# Фаза 2: Держим ослепляющий пик 0.18 секунды (эффект перегрузки сетчатки глаза)
+		tw.tween_interval(0.18)
+		# Фаза 3: Переход в огненную плазму и раскалённый янтарно-оранжевый жар
+		tw.tween_property(flash_rect, "color", Color(1.0, 0.72, 0.22, 0.85), 0.45).set_trans(Tween.TRANS_QUAD)
+		# Фаза 4: Рассеивание жара в тёплый дымный оттенок
+		tw.tween_property(flash_rect, "color", Color(0.9, 0.45, 0.1, 0.35), 0.75).set_trans(Tween.TRANS_QUAD)
+		# Фаза 5: Окончательное мягкое затухание в прозрачность
+		tw.tween_property(flash_rect, "color:a", 0.0, 1.8).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+func _on_world_started(main: Node, world: Node) -> void:
+	_cleanup_nodes()
+	_ensure_hud(main, world)
+	if world != null:
+		world.set_meta("nuclear_strike_mod", self)
+	print("[NuclearStrike] Injected nuclear_silo into Army tab and world layers created.")
+
+func launch_strike_from_silo(f: Facility, target_world_pos: Vector2) -> bool:
+	if f == null or not is_instance_valid(f) or not bool(f.get_meta("has_warhead", false)):
+		return false
+	f.set_meta("has_warhead", false)
+	f.missiles = 0
+	if targeting_silo == f:
+		targeting_silo = null
+		is_targeting = false
+		target_point = Vector2.INF
+	var start_pos: Vector2 = f.center_px()
+	var dist: float = start_pos.distance_to(target_world_pos)
+	var flight_duration: float = clampf(5.5 + dist * 0.002, 6.5, 9.5)
+	if ClassDB.class_exists("Sfx"):
+		Sfx.play("vls_hatch_open", start_pos)
+		Sfx.play("missile_launch", start_pos)
+		Sfx.play("hyper_launch", start_pos)
+	if world_ref != null and world_ref.fx != null:
+		world_ref.fx.spawn("tel_flash", start_pos.round(), 6)
+		world_ref.fx.spawn("launch_cloud", start_pos.round(), 5)
+		world_ref.fx.spawn("shockwave", start_pos.round(), 1)
+	if world_ref != null and world_ref.has_method("camera_shake_launch"):
+		world_ref.camera_shake_launch(start_pos)
+	var m: Dictionary = {
+		"from": start_pos,
+		"target": target_world_pos,
+		"t": 0.0,
+		"duration": flight_duration,
+		"whistled": false,
+		"country_id": f.country_id,
+		"trail": []
+	}
+	active_missiles.append(m)
+	return true
+
+func _on_nuke_sheet_target() -> void:
+	if is_placing:
+		cancel_placement()
+	if is_targeting:
+		_cancel_targeting()
+
+	var ready_silo: Facility = null
+	var any_silo: Facility = null
+	var player_id: int = int(world_ref.player.id) if world_ref != null and world_ref.player != null else 0
+	if world_ref != null and world_ref.mil != null:
+		for f in world_ref.mil.facilities:
+			if f != null and is_instance_valid(f) and _is_silo(f) and f.country_id == player_id and f.hp > 0.0:
+				if any_silo == null:
+					any_silo = f
+				if bool(f.get_meta("has_warhead", false)):
+					ready_silo = f
+					break
+
+	if ready_silo != null:
+		selected_fac = ready_silo
+		if main_ref != null and "selected_fac" in main_ref:
+			main_ref.selected_fac = ready_silo
+		_start_targeting(ready_silo)
+		if main_ref != null and main_ref.hud != null:
+			main_ref.hud.show_toast("ЯДЕРНЫЙ УДАР: выберите квадрат на карте для пуска МБР «Сармат»!")
+	elif any_silo != null:
+		selected_fac = any_silo
+		if main_ref != null and "selected_fac" in main_ref:
+			main_ref.selected_fac = any_silo
+		_update_native_card(any_silo)
+		if main_ref != null and main_ref.hud != null:
+			main_ref.hud.show_toast("Шахта МБР пуста. Закажите сборку термоядерной боеголовки!")
+	else:
+		if main_ref != null and main_ref.hud != null:
+			main_ref.hud.show_toast("Нет шахты МБР! Постройте шахтный комплекс во вкладке АРМИЯ.")
+		if ClassDB.class_exists("UiKit"):
+			UiKit.snd("ui_error")
 
 func _on_hud_action(nm: String) -> void:
 	match nm:
 		"nuclear_silo":
 			if main_ref != null and main_ref.hud != null:
 				main_ref.hud.show_tip(
-					"Шахтный комплекс МБР",
-					"Стратегический ракетный комплекс шахтного базирования. Требует 3500 $ и 10 урана (с урановых шахт). Снаряжается термоядерными МБР.",
+					"Термоядерный удар МБР «Сармат»",
+					"Стратегический комплекс шахтного базирования. Постройка: %d $ и %d урана. Боеголовка снаряжается в шахте." % [SILO_COST_MONEY, SILO_COST_URANIUM],
 					""
 				)
-			toggle_placement()
+			if is_placing:
+				cancel_placement()
+			else:
+				start_placement()
+		"nuke_sheet_target":
+			_on_nuke_sheet_target()
 		"nuke_craft":
-			if selected_fac != null:
-				_order_warhead(selected_fac)
+			var f_c = selected_fac if selected_fac != null else (main_ref.selected_fac as Facility if main_ref != null and "selected_fac" in main_ref else null)
+			if f_c != null and _is_silo(f_c):
+				_order_warhead(f_c)
 		"nuke_target":
-			if selected_fac != null:
-				_start_targeting(selected_fac)
+			var f_t = selected_fac if selected_fac != null else (main_ref.selected_fac as Facility if main_ref != null and "selected_fac" in main_ref else null)
+			if f_t != null and _is_silo(f_t):
+				_start_targeting(f_t)
+		"nuke_build_another":
+			start_placement()
 		"nuke_target_reset":
 			target_point = Vector2.INF
 			if main_ref != null and main_ref.hud != null:
@@ -142,33 +274,28 @@ func _on_hud_action(nm: String) -> void:
 				main_ref.hud.show_toast("Сначала укажите точку удара на карте!")
 				if ClassDB.class_exists("UiKit"):
 					UiKit.snd("ui_error")
-		"nuke_cancel_target":
-			_cancel_targeting()
+		"cancel_select", "nuke_close", "nuke_cancel_target":
+			close_all()
 		"nuke_repair":
-			if selected_fac != null:
-				_repair_silo(selected_fac)
+			var f_r = selected_fac if selected_fac != null else (main_ref.selected_fac as Facility if main_ref != null and "selected_fac" in main_ref else null)
+			if f_r != null and _is_silo(f_r):
+				_repair_silo(f_r)
 		"nuke_demolish":
-			if selected_fac != null:
-				_demolish_silo(selected_fac)
-		"nuke_close":
-			selected_fac = null
-			if main_ref != null and "selected_fac" in main_ref:
-				main_ref.selected_fac = null
-			if main_ref != null and main_ref.hud != null:
-				main_ref.hud.hide_ops()
+			var f_d = selected_fac if selected_fac != null else (main_ref.selected_fac as Facility if main_ref != null and "selected_fac" in main_ref else null)
+			if f_d != null and _is_silo(f_d):
+				_demolish_silo(f_d)
 
 func _is_silo(f: Facility) -> bool:
 	if f == null:
 		return false
 	if f.army_build == "nuclear_silo" or f.lower_sprite == "nuclear_silo" or bool(f.get_meta("is_nuclear_silo", false)):
-		# ГАРАНТИЯ: Шахта — это стационарный железобетонный комплекс (CIV_FACTORY), ни в коем случае НЕ TEL!
-		# Блокируем любые попытки движка двигать шахту.
 		f.kind = Facility.Kind.CIV_FACTORY
+		f.set_meta("is_nuclear_silo", true)
+		f.set_meta("mod_facility", true)
 		f.moving = false
 		f.mdest = Vector2.ZERO
 		f.mpos = f.center_px()
-		if not f.has_meta("is_nuclear_silo"):
-			f.set_meta("is_nuclear_silo", true)
+		if not f.has_meta("hp"):
 			f.set_meta("hp", f.hp if f.hp > 0.0 else SILO_MAX_HP)
 			f.set_meta("max_hp", SILO_MAX_HP)
 			f.set_meta("has_warhead", f.missiles > 0)
@@ -180,9 +307,17 @@ func _is_silo(f: Facility) -> bool:
 func _on_match_tick(main: Node, world: Node, delta: float) -> void:
 	main_ref = main
 	world_ref = world
-	_tick_silos(delta)
-	_tick_missiles(delta)
-	_tick_explosions(delta)
+	if main != null and (main.hud == null or not main.hud.keys.has("nuclear_silo") or world_layer == null or flash_layer == null):
+		_ensure_hud(main, world)
+
+	var ts: float = 1.0
+	if world != null and "time_scale" in world:
+		ts = maxf(0.0, float(world.time_scale))
+	var sim_delta: float = delta * ts
+
+	_tick_silos(sim_delta)
+	_tick_missiles(sim_delta)
+	_tick_explosions(sim_delta)
 
 	# 1. Если активен режим наведения термоядерного удара — отображаем специальную карточку прицеливания
 	if is_targeting and targeting_silo != null and is_instance_valid(targeting_silo):
@@ -199,57 +334,8 @@ func _on_match_tick(main: Node, world: Node, delta: float) -> void:
 	else:
 		selected_fac = null
 
-	_update_controls()
-
 	if world_layer != null and is_instance_valid(world_layer):
 		world_layer.queue_redraw()
-
-# Собственные кнопки мода: создаются один раз и не пересоздаются каждый кадр,
-# поэтому клик (нажатие + отпускание) всегда попадает в одну и ту же кнопку.
-func _build_controls(main: Node) -> void:
-	ctl_layer = CanvasLayer.new()
-	ctl_layer.layer = 119
-	ctl_panel = PanelContainer.new()
-	ctl_panel.visible = false
-	var row: HBoxContainer = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	ctl_panel.add_child(row)
-	var defs: Array = [
-		["target", "ЯДЕРНЫЙ УДАР", "nuke_target"],
-		["launch", "ПУСК МБР (Enter)", "nuke_launch_confirm"],
-		["reset", "СБРОС ЦЕЛИ", "nuke_target_reset"],
-		["cancel", "ОТМЕНА", "nuke_cancel_target"],
-	]
-	for d: Array in defs:
-		var b: Button = Button.new()
-		b.text = String(d[1])
-		b.custom_minimum_size = Vector2(150, 42)
-		b.focus_mode = Control.FOCUS_NONE
-		b.pressed.connect(_on_hud_action.bind(String(d[2])))
-		row.add_child(b)
-		ctl_btns[String(d[0])] = b
-	ctl_layer.add_child(ctl_panel)
-	main.add_child(ctl_layer)
-
-func _update_controls() -> void:
-	if ctl_panel == null or not is_instance_valid(ctl_panel):
-		return
-	var tgt_mode: bool = is_targeting and targeting_silo != null and is_instance_valid(targeting_silo)
-	var armed: bool = (not tgt_mode) and selected_fac != null and is_instance_valid(selected_fac) and bool(selected_fac.get_meta("has_warhead", false))
-	var has_tgt: bool = target_point != Vector2.INF
-	ctl_panel.visible = tgt_mode or armed
-	(ctl_btns["target"] as Button).visible = armed
-	(ctl_btns["launch"] as Button).visible = tgt_mode
-	(ctl_btns["launch"] as Button).disabled = not has_tgt
-	(ctl_btns["reset"] as Button).visible = tgt_mode and has_tgt
-	(ctl_btns["cancel"] as Button).visible = tgt_mode
-	if not ctl_panel.visible:
-		return
-	var vp: Vector2 = ctl_panel.get_viewport().get_visible_rect().size
-	var hy: float = vp.y
-	if main_ref != null and main_ref.hud != null and main_ref.hud.get("holder") != null:
-		hy = float(main_ref.hud.holder.position.y)
-	ctl_panel.position = Vector2(floorf((vp.x - ctl_panel.size.x) * 0.5), hy - ctl_panel.size.y - 12.0)
 
 func toggle_placement() -> void:
 	if is_placing:
@@ -367,6 +453,7 @@ func place_silo_at(cell: Vector2i) -> void:
 	f.mpos = f.center_px()
 	f.missiles = 1
 	f.set_meta("is_nuclear_silo", true)
+	f.set_meta("mod_facility", true)
 	f.set_meta("hp", SILO_MAX_HP)
 	f.set_meta("max_hp", SILO_MAX_HP)
 	f.set_meta("has_warhead", true)
@@ -444,17 +531,9 @@ func _start_targeting(f: Facility) -> void:
 		main_ref.hud.show_toast("БОЕВАЯ ТРЕВОГА! Выберите точку нанесения термоядерного удара на карте.")
 
 func _cancel_targeting() -> void:
-	is_targeting = false
-	targeting_silo = null
-	target_point = Vector2.INF
+	close_all()
 	if main_ref != null and main_ref.hud != null:
 		main_ref.hud.show_toast("Наведение ядерного удара отменено.")
-		if selected_fac != null:
-			_update_native_card(selected_fac)
-		else:
-			main_ref.hud.hide_ops()
-	if ClassDB.class_exists("UiKit"):
-		UiKit.snd("ui_select")
 
 func set_target_point(wpos: Vector2) -> void:
 	target_point = wpos
@@ -511,7 +590,7 @@ func launch_strike(target_world_pos: Vector2) -> void:
 
 	if main_ref != null and main_ref.hud != null:
 		main_ref.hud.show_toast("Пуск МБР «Сармат» выполнен! Подлёт к цели через %d сек." % int(ceil(flight_duration)))
-		main_ref.hud.hide_ops()
+	close_all()
 
 func _repair_silo(f: Facility) -> void:
 	var p = world_ref.player
@@ -551,14 +630,9 @@ func _demolish_silo(f: Facility) -> void:
 		world_ref.remove_object(f.main_obj)
 	world_ref.mil.facilities.erase(f)
 
-	selected_fac = null
-	if main_ref != null and "selected_fac" in main_ref:
-		main_ref.selected_fac = null
 	if main_ref != null and main_ref.hud != null:
 		main_ref.hud.show_toast("Шахтный комплекс МБР демонтирован (+%d $ возврат)." % SILO_REFUND)
-		main_ref.hud.hide_ops()
-	if ClassDB.class_exists("UiKit"):
-		UiKit.snd("ui_select")
+	close_all()
 
 func _tick_silos(delta: float) -> void:
 	if world_ref == null or world_ref.mil == null:
@@ -645,12 +719,8 @@ func _detonate_nuclear(m: Dictionary) -> void:
 	}
 	active_explosions.append(exp)
 
-	# 2. Ослепляющая вспышка экрана
-	if flash_rect != null and is_instance_valid(flash_rect):
-		flash_rect.color = Color(1.0, 1.0, 0.95, 1.0)
-		var tw = flash_rect.create_tween()
-		tw.tween_property(flash_rect, "color", Color(1.0, 0.75, 0.25, 0.75), 0.5).set_trans(Tween.TRANS_QUAD)
-		tw.tween_property(flash_rect, "color:a", 0.0, 2.8).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	# 2. Ослепляющая вспышка экрана ядерного удара
+	_trigger_nuclear_flash()
 
 	# 3. Каскад сокрушительных звуков
 	if ClassDB.class_exists("Sfx"):
@@ -680,13 +750,13 @@ func _detonate_nuclear(m: Dictionary) -> void:
 		if world_ref.has_method("_apply_strike"):
 			world_ref._apply_strike(cell + off, 12, "crater_l", 75.0, country_id)
 
-	# 6. Тотальное выжигание ландшафта (радиус 30 клеток = более 60 клеток в ширину!)
+	# 6. Начальное выжигание эпицентра
 	var d = world_ref.data
 	if d != null:
-		var burn_radius = 30
-		for dy in range(-burn_radius, burn_radius + 1):
-			for dx in range(-burn_radius, burn_radius + 1):
-				if dx * dx + dy * dy <= burn_radius * burn_radius:
+		var init_burn = 8
+		for dy in range(-init_burn, init_burn + 1):
+			for dx in range(-init_burn, init_burn + 1):
+				if dx * dx + dy * dy <= init_burn * init_burn:
 					var cx = cell.x + dx
 					var cy = cell.y + dy
 					if d.inside(cx, cy):
@@ -720,15 +790,22 @@ func _detonate_nuclear(m: Dictionary) -> void:
 						if world_ref.has_method("say"):
 							world_ref.say(vict, Loc.mk("КАТАСТРОФА! В результате термоядерного удара разрушена энергостанция! Полный блэкаут сети."))
 
-	# 9. Множественные очаги пожара и дымовые завесы
+	# 9. Спавн нативных пиксельных взрывов и дымовых завес из движка игры
 	if world_ref.fx != null:
 		world_ref.fx.spawn("shockwave", target_pos, 1)
-		for k in range(30):
-			var r_dist = randf_range(12.0, 210.0)
+		world_ref.fx.spawn("x_ball", target_pos, 7)
+		world_ref.fx.spawn("explosion_l", target_pos, 7)
+		for bi in range(6):
+			var b_ang: float = float(bi) * (TAU / 6.0)
+			var b_pos: Vector2 = target_pos + Vector2(cos(b_ang), sin(b_ang)) * randf_range(20.0, 50.0)
+			world_ref.fx.spawn("explosion_m", b_pos, 6)
+			world_ref.fx.spawn("launch_cloud", b_pos, 5)
+		for k in range(20):
+			var r_dist = randf_range(16.0, 200.0)
 			var f_ang = randf() * TAU
 			var fire_pos = target_pos + Vector2(cos(f_ang), sin(f_ang)) * r_dist
-			world_ref.fx.spawn("fire_small", fire_pos, 4, world_ref.game_time + 55.0, true)
-			world_ref.fx.spawn("smoke_black_loop", fire_pos + Vector2(0, -10), 6, world_ref.game_time + 60.0, true)
+			world_ref.fx.spawn("fire_small", fire_pos, 4, world_ref.game_time + 50.0, true)
+			world_ref.fx.spawn("smoke_column_loop", fire_pos + Vector2(0, -8), 6, world_ref.game_time + 55.0, true)
 
 	if world_ref.has_method("say"):
 		world_ref.say(world_ref.country_by_id(country_id), Loc.mk("ТЕРМОЯДЕРНЫЙ УДАР НАНЕСЁН ПО КВАДРАТУ (%d, %d)! Зона полностью уничтожена.", [cell.x, cell.y]))
@@ -741,6 +818,31 @@ func _tick_explosions(delta: float) -> void:
 		var exp = active_explosions[i]
 		exp["t"] += delta
 		var t = float(exp["t"])
+
+		# Прогрессивное выжигание земли ударной волной (до 30 клеток радиуса)
+		var d = world_ref.data if world_ref != null else null
+		if d != null and t <= 3.2:
+			var prev_t = maxf(0.0, t - delta)
+			var r_prev = (prev_t / 3.0) * float(exp["max_radius"])
+			var r_curr = (t / 3.0) * float(exp["max_radius"])
+			var cell_prev = int(r_prev / float(GameWorld.CELL))
+			var cell_curr = mini(30, int(r_curr / float(GameWorld.CELL)))
+			var target_cell: Vector2i = exp["cell"]
+			for r in range(cell_prev, cell_curr + 1):
+				for dy in range(-r, r + 1):
+					for dx in range(-r, r + 1):
+						var d_sq = dx * dx + dy * dy
+						if d_sq <= r * r and d_sq > (r - 1) * (r - 1):
+							var cx = target_cell.x + dx
+							var cy = target_cell.y + dy
+							if d.inside(cx, cy):
+								var b = d.get_biome(cx, cy)
+								if Biome.is_natural_land(b):
+									d.set_biome(cx, cy, Biome.BURNT)
+								var idx = cy * d.w + cx
+								if world_ref.tree_at.has(idx):
+									world_ref.tree_at.erase(idx)
+
 		if exp["sound_phase"] == 0 and t >= 1.2:
 			exp["sound_phase"] = 1
 			if ClassDB.class_exists("Sfx"):
@@ -785,19 +887,24 @@ func _update_native_card(f: Facility) -> void:
 
 	var acts: Array = []
 	if has_w:
-		acts.append(h._act("ЯДЕРНЫЙ\nУДАР", "icon_target", "nuke_target", true))
+		acts.append(h._act("ПУСК МБР", "icon_target", "nuke_target", true))
 	elif prod:
 		var left_s = maxf(0.0, WARHEAD_TIME - float(f.get_meta("prod_t", 0.0)))
-		acts.append(h._act("ИДЁТ\nСБОРКА", "icon_r_uranium", "none", false, 0, "%s" % h._mmss(left_s)))
+		acts.append(h._act("ИДЁТ СБОРКА\n%s" % h._mmss(left_s), "icon_r_uranium", "none", false))
 	else:
 		var can_craft = p.money >= WARHEAD_COST_MONEY and p.uranium >= WARHEAD_COST_URANIUM
-		acts.append(h._act("СБОРКА ЯБЧ\n1500$ · 8 У", "icon_r_uranium", "nuke_craft", can_craft))
+		acts.append(h._act("СБОРКА ЯБЧ\n1500 $ · 8 У", "icon_r_uranium", "nuke_craft", can_craft))
+
+	acts.append(h._act("ЕЩЁ ШАХТА\n3500 $", "icon_m_ballistic", "nuke_build_another", p.money >= SILO_COST_MONEY and p.uranium >= SILO_COST_URANIUM))
 
 	if hp < max_hp:
-		acts.append(h._act("РЕМОНТ\n400$", "icon_restore", "nuke_repair", p.money >= SILO_REPAIR_COST))
+		acts.append(h._act("РЕМОНТ\n400 $", "icon_restore", "nuke_repair", p.money >= SILO_REPAIR_COST))
 
-	acts.append(h._act("СНОС\n+1750$", "icon_close", "nuke_demolish", true))
-	acts.append(h._act("ЗАКРЫТЬ", "icon_arrow_down", "nuke_close", true))
+	var dact = h._act("СНОС\n+1750 $", "icon_close", "nuke_demolish", true)
+	dact["red"] = true
+	acts.append(dact)
+
+	acts.append(h._act("ЗАКРЫТЬ", "icon_close", "nuke_close", true))
 	h._fill_acts("nuclear_silo_acts_%d" % f.id, acts)
 
 func _update_targeting_card() -> void:
@@ -823,7 +930,7 @@ func _update_targeting_card() -> void:
 	var has_tgt = target_point != Vector2.INF
 	acts.append(h._act("ПУСК МБР", "icon_target", "nuke_launch_confirm", has_tgt))
 	if has_tgt:
-		acts.append(h._act("СБРОС\nЦЕЛИ", "icon_refresh", "nuke_target_reset", true))
+		acts.append(h._act("СБРОС ЦЕЛИ", "icon_refresh", "nuke_target_reset", true))
 	acts.append(h._act("ОТМЕНА", "icon_close", "nuke_cancel_target", true))
 	h._fill_acts("nuclear_targeting_acts", acts)
 
@@ -849,6 +956,10 @@ class NuclearWorldLayer extends Node2D:
 		var is_cancel: bool = false
 		var ev_pos: Vector2 = Vector2.ZERO
 
+		if (mod.is_placing or mod.is_targeting) and (event is InputEventMouseButton or event is InputEventScreenTouch) and not event.pressed:
+			get_viewport().set_input_as_handled()
+			return
+
 		if event is InputEventMouseButton:
 			if event.pressed:
 				if event.button_index == MOUSE_BUTTON_LEFT:
@@ -872,8 +983,8 @@ class NuclearWorldLayer extends Node2D:
 					mod.cancel_placement()
 					get_viewport().set_input_as_handled()
 					return
-				elif mod.is_targeting:
-					mod._cancel_targeting()
+				elif mod.is_targeting or mod.selected_fac != null:
+					mod.close_all()
 					get_viewport().set_input_as_handled()
 					return
 
@@ -895,10 +1006,55 @@ class NuclearWorldLayer extends Node2D:
 				mod.cancel_placement()
 				get_viewport().set_input_as_handled()
 				return
-			elif mod.is_targeting:
-				mod._cancel_targeting()
+			elif mod.is_targeting or mod.selected_fac != null:
+				mod.close_all()
 				get_viewport().set_input_as_handled()
 				return
+
+	const P_BLOCK: float = 4.0
+
+	func _draw_pixel_span(bx_start: int, bx_end: int, by: int, col: Color) -> void:
+		if bx_end < bx_start or col.a <= 0.001:
+			return
+		draw_rect(Rect2(float(bx_start) * P_BLOCK, float(by) * P_BLOCK, float(bx_end - bx_start + 1) * P_BLOCK, P_BLOCK), col)
+
+	func _draw_pixel_disc_grid(cx: int, cy: int, r_blocks: int, col: Color) -> void:
+		if r_blocks <= 0 or col.a <= 0.001:
+			return
+		var r_sq = r_blocks * r_blocks
+		for dy in range(-r_blocks, r_blocks + 1):
+			var dy_sq = dy * dy
+			var dx = int(floor(sqrt(float(r_sq - dy_sq))))
+			_draw_pixel_span(cx - dx, cx + dx, cy + dy, col)
+
+	func _draw_pixel_ellipse_grid(cx: int, cy: int, rx: int, ry: int, col: Color) -> void:
+		if rx <= 0 or ry <= 0 or col.a <= 0.001:
+			return
+		var ry_f = float(ry)
+		var rx_f = float(rx)
+		for dy in range(-ry, ry + 1):
+			var norm_y = float(dy) / ry_f
+			var dx = int(floor(rx_f * sqrt(maxf(0.0, 1.0 - norm_y * norm_y))))
+			_draw_pixel_span(cx - dx, cx + dx, cy + dy, col)
+
+	func _draw_pixel_ring_grid(cx: int, cy: int, r_outer: int, thick_blocks: int, col: Color) -> void:
+		if r_outer <= 0 or col.a <= 0.001:
+			return
+		var r_inner = max(0, r_outer - thick_blocks)
+		var r_out_sq = r_outer * r_outer
+		var r_in_sq = r_inner * r_inner
+		for dy in range(-r_outer, r_outer + 1):
+			var dy_sq = dy * dy
+			if dy_sq > r_out_sq:
+				continue
+			var dx_out = int(floor(sqrt(float(r_out_sq - dy_sq))))
+			var dx_in = int(floor(sqrt(float(r_in_sq - dy_sq)))) if dy_sq < r_in_sq else 0
+			if dx_out > dx_in:
+				_draw_pixel_span(cx - dx_out, cx - dx_in, cy + dy, col)
+				_draw_pixel_span(cx + dx_in, cx + dx_out, cy + dy, col)
+			elif dx_out == dx_in and dx_out > 0:
+				_draw_pixel_span(cx - dx_out, cx - dx_out, cy + dy, col)
+				_draw_pixel_span(cx + dx_out, cx + dx_out, cy + dy, col)
 
 	func _draw() -> void:
 		if mod == null or world == null or main == null:
@@ -1011,59 +1167,112 @@ class NuclearWorldLayer extends Node2D:
 			draw_circle(m_pos + dir * 6.0, 2.5, Color(0.2, 0.22, 0.25)) # Головная часть
 			# Пламя двигателя
 			draw_line(m_pos - dir * 14.0, m_pos - dir * 26.0, Color(1.0, 0.75, 0.15), 3.0)
-			draw_circle(m_pos - dir * 24.0, 4.0, Color(1.0, 0.35, 0.05, 0.85))
 
-		# 5. Отрисовка колоссального термоядерного гриба и ударной волны
+		# 5. Отрисовка термоядерного гриба и ударной волны (100% пиксель-арт стиль песочницы)
 		for exp in mod.active_explosions:
 			var pos: Vector2 = exp["pos"]
 			var t: float = float(exp["t"])
 			var max_rad: float = float(exp["max_radius"])
 			var cloud_h: float = float(exp["cloud_height"])
 
-			# А) Сверхзвуковая ударная волна (0 .. 3.5 сек)
-			if t < 3.5:
-				var sw_prog = clampf(t / 3.0, 0.0, 1.0)
-				var sw_rad = sin(sw_prog * PI * 0.5) * max_rad
-				var sw_alpha = (1.0 - sw_prog) * 0.95
-				draw_circle(pos, sw_rad, Color(1.0, 0.45, 0.1, sw_alpha * 0.18))
-				draw_arc(pos, sw_rad, 0, TAU, 72, Color(1.0, 0.95, 0.6, sw_alpha), 4.5)
-				draw_arc(pos, sw_rad * 0.93, 0, TAU, 64, Color(1.0, 0.38, 0.05, sw_alpha * 0.75), 2.5)
+			var orig_gx: int = int(round(pos.x / P_BLOCK))
+			var orig_gy: int = int(round(pos.y / P_BLOCK))
 
-			# Б) Огненный шар в эпицентре (0 .. 4.5 сек)
-			if t < 4.5:
-				var fb_rad = (sin(clampf(t / 0.9, 0.0, 1.0) * PI * 0.5) * 95.0) if t <= 0.9 else maxf(0.0, 95.0 - (t - 0.9) * 20.0)
-				var fb_alpha = clampf(1.0 - (t - 0.5) / 3.8, 0.0, 1.0)
-				if fb_rad > 0.0 and fb_alpha > 0.0:
-					draw_circle(pos, fb_rad * 1.35, Color(0.95, 0.25, 0.05, fb_alpha * 0.45))
-					draw_circle(pos, fb_rad, Color(1.0, 0.65, 0.1, fb_alpha * 0.85))
-					draw_circle(pos, fb_rad * 0.65, Color(1.0, 0.98, 0.88, fb_alpha * 0.98))
+			# А) Ступенчатая пиксельная ударная волна (0 .. 2.8 сек)
+			if t < 2.8:
+				var sw_prog = clampf(t / 2.6, 0.0, 1.0)
+				var sw_blocks = int(round(sin(sw_prog * PI * 0.5) * (max_rad / P_BLOCK)))
+				var sw_alpha = (1.0 - sw_prog) * 0.85
+				if sw_blocks > 0:
+					_draw_pixel_ring_grid(orig_gx, orig_gy, sw_blocks, 2, Color(1.0, 0.95, 0.7, sw_alpha))
+					_draw_pixel_ring_grid(orig_gx, orig_gy, int(sw_blocks * 0.94), 1, Color(1.0, 0.45, 0.08, sw_alpha * 0.75))
+				var spark_n = 18
+				for s_i in range(spark_n):
+					var s_ang = float(s_i) * (TAU / float(spark_n)) + t * 2.0
+					var sp_gx = orig_gx + int(round(cos(s_ang) * float(sw_blocks + 1)))
+					var sp_gy = orig_gy + int(round(sin(s_ang) * float(sw_blocks + 1) * 0.7))
+					_draw_pixel_span(sp_gx, sp_gx, sp_gy, Color(1.0, 0.9, 0.3, sw_alpha))
 
-			# В) Гигантский ядерный гриб (ножка и шапка) (0.3 .. 12 сек)
-			if t > 0.3:
-				var rise_k = clampf((t - 0.3) / 4.2, 0.0, 1.0)
-				var cur_h = rise_k * cloud_h
-				var cap_pos = pos - Vector2(0, cur_h)
-				var smoke_a = clampf(1.0 - (t - 4.5) / 7.2, 0.0, 0.95) if t > 4.5 else clampf((t - 0.3) / 1.0, 0.0, 0.95)
+			# Б) Пиксельный огненный шар в эпицентре (0 .. 3.6 сек)
+			if t < 3.6:
+				var fb_prog = clampf(t / 0.75, 0.0, 1.0) if t <= 0.75 else maxf(0.0, 1.0 - (t - 0.75) / 2.85)
+				var fb_blocks = int(round(sin(fb_prog * PI * 0.5) * 22.0))
+				var fb_alpha = clampf(1.0 - (t - 0.5) / 3.1, 0.0, 1.0)
+				if fb_blocks > 0 and fb_alpha > 0.0:
+					_draw_pixel_disc_grid(orig_gx, orig_gy, int(fb_blocks * 1.25), Color(0.14, 0.12, 0.10, fb_alpha * 0.7))
+					_draw_pixel_disc_grid(orig_gx, orig_gy, fb_blocks, Color(0.95, 0.28, 0.05, fb_alpha * 0.9))
+					_draw_pixel_disc_grid(orig_gx, orig_gy, int(fb_blocks * 0.68), Color(1.0, 0.75, 0.12, fb_alpha * 0.95))
+					_draw_pixel_disc_grid(orig_gx, orig_gy, int(fb_blocks * 0.35), Color(1.0, 1.0, 0.9, fb_alpha))
 
-				# Ножка гриба (поднимающийся столб кипящего дыма и огня)
-				for step in range(11):
-					var st_k = float(step) / 10.0
-					var st_p = pos.lerp(cap_pos, st_k)
-					var st_rad = (22.0 + sin(st_k * PI) * 14.0) * (0.6 + 0.4 * rise_k)
-					draw_circle(st_p, st_rad * 1.25, Color(0.12, 0.11, 0.1, smoke_a * 0.85))
-					draw_circle(st_p, st_rad * 0.8, Color(0.85, 0.35, 0.05, smoke_a * (1.0 - st_k * 0.5) * 0.55))
+			# В) Аутентичный пиксель-арт термоядерный гриб (ножка, юбка и шапка) (0.25 .. 12.0 сек)
+			if t > 0.25:
+				var rise_k = clampf((t - 0.25) / 4.0, 0.0, 1.0)
+				var cloud_a = clampf(1.0 - (t - 4.5) / 7.5, 0.0, 0.95) if t > 4.5 else clampf((t - 0.25) / 0.7, 0.0, 0.95)
+				var cap_h_blocks = int(round(rise_k * (cloud_h / P_BLOCK)))
+				var cap_gy = orig_gy - cap_h_blocks
 
-				# Шапка ядерного гриба (расползающийся наковальнеобразный купол)
-				for puff in exp["puffs"]:
-					var puff_p = cap_pos + puff["offset"] * rise_k
-					var puff_sz = puff["size"] * (0.55 + 0.45 * rise_k)
-					var puff_col = Color(0.14, 0.13, 0.12, smoke_a * 0.9) if not puff["burn"] else Color(0.8, 0.32, 0.06, smoke_a * 0.65)
-					draw_circle(puff_p, puff_sz, puff_col)
+				# 1. Юбка у основания (Ground skirt / Wilson cloud)
+				var skirt_rx = int(10 + rise_k * 18)
+				var skirt_ry = int(3 + rise_k * 4)
+				_draw_pixel_ellipse_grid(orig_gx, orig_gy, skirt_rx, skirt_ry, Color(0.12, 0.11, 0.10, cloud_a * 0.85))
+				_draw_pixel_ellipse_grid(orig_gx, orig_gy, int(skirt_rx * 0.75), int(skirt_ry * 0.65), Color(0.28, 0.25, 0.23, cloud_a * 0.75))
 
-				# Кольца конденсации Вильсона (0.7 .. 3.8 сек)
-				if t >= 0.7 and t <= 3.8:
-					var w_prog = clampf((t - 0.7) / 3.0, 0.0, 1.0)
-					var w_rad = w_prog * 110.0
-					var w_a = (1.0 - w_prog) * 0.65
-					draw_arc(pos - Vector2(0, cur_h * 0.45), w_rad, 0, TAU, 48, Color(0.9, 0.94, 1.0, w_a), 2.5)
-					draw_arc(pos - Vector2(0, cur_h * 0.75), w_rad * 0.75, 0, TAU, 36, Color(0.9, 0.94, 1.0, w_a * 0.7), 2.0)
+				# 2. Ствол / ножка гриба (Column / Stem)
+				for sy in range(cap_gy, orig_gy + 1):
+					var hk = float(orig_gy - sy) / maxf(1.0, float(cap_h_blocks))
+					var stem_half = int(round(3.5 + 2.0 * sin(hk * PI) + (1.0 - hk) * 3.5 + (hk * hk) * 2.5))
+					# Тёмный контур дыма
+					_draw_pixel_span(orig_gx - stem_half, orig_gx + stem_half, sy, Color(0.12, 0.11, 0.10, cloud_a * 0.95))
+					# Пепельный дым
+					_draw_pixel_span(orig_gx - stem_half + 1, orig_gx + stem_half - 1, sy, Color(0.25, 0.23, 0.21, cloud_a * 0.9))
+					# Восходящий огненный вихрь внутри ствола
+					if t < 6.5 and stem_half >= 3:
+						var fw = stem_half - 2
+						var fire_fade = cloud_a * (1.0 - hk * 0.45) * maxf(0.0, 1.0 - (t - 0.8) / 5.7)
+						_draw_pixel_span(orig_gx - fw, orig_gx + fw, sy, Color(0.95, 0.45, 0.08, fire_fade * 0.85))
+						if fw >= 2 and t < 3.5:
+							_draw_pixel_span(orig_gx - (fw - 1), orig_gx + (fw - 1), sy, Color(1.0, 0.85, 0.22, fire_fade * 0.95))
+
+				# 3. Шляпка гриба (Тороид / Anvil / Cap)
+				var cap_rx = int(round((14 + rise_k * 26) * (1.0 + 0.04 * sin(t * 2.0))))
+				var cap_ry = int(round(8 + rise_k * 13))
+
+				# Слой 1: Внешняя тёмная окантовка всей шапки (силуэт)
+				var col_dark = Color(0.10, 0.09, 0.09, cloud_a * 0.95)
+				_draw_pixel_ellipse_grid(orig_gx, cap_gy, cap_rx, cap_ry, col_dark)
+				_draw_pixel_ellipse_grid(orig_gx - int(cap_rx * 0.58), cap_gy + int(cap_ry * 0.25), int(cap_rx * 0.44), int(cap_ry * 0.65), col_dark)
+				_draw_pixel_ellipse_grid(orig_gx + int(cap_rx * 0.58), cap_gy + int(cap_ry * 0.25), int(cap_rx * 0.44), int(cap_ry * 0.65), col_dark)
+				_draw_pixel_ellipse_grid(orig_gx, cap_gy - int(cap_ry * 0.4), int(cap_rx * 0.6), int(cap_ry * 0.55), col_dark)
+
+				# Слой 2: Основное дымное тело шапки
+				var col_smoke = Color(0.22, 0.20, 0.19, cloud_a * 0.9)
+				_draw_pixel_ellipse_grid(orig_gx, cap_gy, cap_rx - 1, cap_ry - 1, col_smoke)
+				_draw_pixel_ellipse_grid(orig_gx - int(cap_rx * 0.58), cap_gy + int(cap_ry * 0.25), int(cap_rx * 0.44) - 1, int(cap_ry * 0.65) - 1, col_smoke)
+				_draw_pixel_ellipse_grid(orig_gx + int(cap_rx * 0.58), cap_gy + int(cap_ry * 0.25), int(cap_rx * 0.44) - 1, int(cap_ry * 0.65) - 1, col_smoke)
+				_draw_pixel_ellipse_grid(orig_gx, cap_gy - int(cap_ry * 0.4), int(cap_rx * 0.6) - 1, int(cap_ry * 0.55) - 1, col_smoke)
+
+				# Слой 3: Светлые клубы и блики на гребнях (пиксельные складки дыма)
+				var col_light = Color(0.42, 0.38, 0.36, cloud_a * 0.85)
+				_draw_pixel_ellipse_grid(orig_gx, cap_gy - int(cap_ry * 0.45), int(cap_rx * 0.42), int(cap_ry * 0.35), col_light)
+				_draw_pixel_ellipse_grid(orig_gx - int(cap_rx * 0.4), cap_gy - int(cap_ry * 0.25), int(cap_rx * 0.28), int(cap_ry * 0.3), col_light)
+				_draw_pixel_ellipse_grid(orig_gx + int(cap_rx * 0.4), cap_gy - int(cap_ry * 0.25), int(cap_rx * 0.28), int(cap_ry * 0.3), col_light)
+
+				# Слой 4: Огненная подсветка нижней части шапки из эпицентра
+				if t < 6.0:
+					var fire_cap_a = cloud_a * maxf(0.0, 1.0 - t / 6.0)
+					var col_fire = Color(0.92, 0.42, 0.08, fire_cap_a * 0.85)
+					var col_hot = Color(1.0, 0.80, 0.20, fire_cap_a * 0.95)
+					_draw_pixel_ellipse_grid(orig_gx, cap_gy + int(cap_ry * 0.3), int(cap_rx * 0.48), int(cap_ry * 0.4), col_fire)
+					if t < 3.5:
+						_draw_pixel_ellipse_grid(orig_gx, cap_gy + int(cap_ry * 0.35), int(cap_rx * 0.28), int(cap_ry * 0.25), col_hot)
+
+				# 4. Пиксельные искры и частицы пепла в воздухе
+				if t < 8.0:
+					var ember_seed = int(pos.x + pos.y) % 100
+					for e_i in range(24):
+						var e_ang = float(e_i * 37 + ember_seed) * 0.1
+						var e_dist_b = int(fmod(float(e_i * 7 + int(t * 12)), float(cap_rx + 12))) + 4
+						var e_h_b = int(fmod(float(e_i * 5 + int(t * 10)), float(cap_h_blocks + 15)))
+						var e_gx = orig_gx + int(cos(e_ang) * float(e_dist_b))
+						var e_gy = orig_gy - e_h_b + int(sin(e_ang) * float(e_dist_b) * 0.3)
+						_draw_pixel_span(e_gx, e_gx, e_gy, Color(1.0, 0.65, 0.15, cloud_a * 0.8))

@@ -47,10 +47,12 @@ func _end_drag() -> void :
 		_drag_pt = -2
 		_set_mode(mode)
 		if cells.size() >= 2 and world.player != null:
-			if GameConfig.confirm_actions:
+			if GameConfig.confirm_actions and not Input.is_key_pressed(KEY_SHIFT):
 				_pend = {"kind": "line", "cells": cells, "mode": mode}
 				_show_pend()
 			else:
+				if not _pend.is_empty():
+					_pend_cancel()
 				_build_line_now(int(BUILD_KIND[mode]), cells)
 		return
 	if (_drag_pt == -3 or _drag_pt == -4) and _moved:
@@ -377,6 +379,31 @@ func _strike_enter(wid: String) -> void :
 			plan_has_target = true
 			plan_count = int(t["n"])
 			plan_wps.assign(t.get("wps", []))
+	if wid == "thermo" or wid == "nuke":
+		var rdy_map: Dictionary = strike.ready_all(world)
+		var av_w: int = int((rdy_map.get(wid, [0, ""]) as Array)[0])
+		_plan_info = {"available": av_w}
+		var cur_tot: int = 0
+		var valid_list: Array = []
+		for t: Dictionary in plan_list:
+			var tn: int = int(t["n"])
+			if cur_tot + tn <= av_w:
+				valid_list.append(t)
+				cur_tot += tn
+			elif cur_tot < av_w:
+				t["n"] = av_w - cur_tot
+				valid_list.append(t)
+				cur_tot = av_w
+		plan_list = valid_list
+		if plan_has_target:
+			if cur_tot >= av_w:
+				if plan_list.is_empty():
+					plan_count = maxi(1, av_w)
+				else:
+					plan_has_target = false
+					plan_count = 1
+			else:
+				plan_count = clampi(plan_count, 1, av_w - cur_tot)
 	hud.set_hint(Loc.t("%s: ТАП ПО КАРТЕ = ЦЕЛЬ") % Loc.t(StrikeHubScript.title(wid)).to_upper())
 
 
@@ -401,7 +428,13 @@ func _strike_update(delta: float) -> void :
 			_danger_t = 1.0
 			_danger = world.mil.danger_cells(world.player.id) if world.mil.has_method("smart_of") and world.mil.smart_of(world.player.id) else []
 	elif mode == Mode.MISSILE:
-		_plan_info = world.mil.missile_plan(world.player, plan_target, plan_has_target)
+		if strike.active and (strike.cur == "thermo" or strike.cur == "nuke" or strike.cur == "iskander"):
+			_plan_info = StrikeHubScript.plan_single(world, strike.cur, plan_target, plan_has_target)
+			var av_m: int = int(_plan_info.get("available", 0))
+			if plan_list.is_empty():
+				plan_count = clampi(plan_count, 1, maxi(1, av_m))
+		else:
+			_plan_info = world.mil.missile_plan(world.player, plan_target, plan_has_target)
 	var op: PanelContainer = hud.ops_panel
 	if strike_ui.get_parent() != op:
 		if strike_ui.get_parent() != null:
@@ -459,7 +492,7 @@ func _strike_done(all: Dictionary, r: Dictionary) -> void :
 			cam_lock = false
 			hud.set_key_pressed("follow", false)
 			_follow_done_t = 0.0
-	elif single == "tel" or single == "hyper":
+	elif single == "tel" or single == "hyper" or single == "iskander":
 		_await_missile = true
 	elif single == "":
 		hud.show_toast(Loc.t(String(r["text"])) + ((Loc.msg(Loc.mk(" · не ушли: %s", [", ".join(failed)]))) if not failed.is_empty() else ""))

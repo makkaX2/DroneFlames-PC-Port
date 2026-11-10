@@ -10,6 +10,7 @@ extends Node2D
 
 const PK = preload("res://ui/ui24/path_kit.gd")
 const MD = preload("res://ui/ui24/map_declutter.gd")
+const Hub = preload("res://game/strike_hub.gd")
 
 var gw: GameWorld
 var main_node: Node
@@ -114,7 +115,8 @@ func _draw() -> void :
 			if i < mm.size() - 1:
 				_cross(_scr(tp0), false, false)
 			if mm.size() > 1 or int(mm[i]["n"]) > 1:
-				_tag(_scr(tp0), "#%d ×%d" % [i + 1, int(mm[i]["n"])], Color.WHITE if i < mm.size() - 1 else Color("ffd166"))
+				var tc: Color = Color.WHITE if i < mm.size() - 1 else (Hub.colour(main_node.strike.cur) if (main_node != null and main_node.get("strike") != null and bool(main_node.strike.active)) else Color("ffd166"))
+				_tag(_scr(tp0), "#%d ×%d" % [i + 1, int(mm[i]["n"])], tc)
 		if bool(st["has_target"]) and String(st["kind"]) == "hyper":
 			_cross(_scr(st["target"]), false, true)
 	if bool(st["active"]) and String(st["kind"]) == "cruise":
@@ -125,9 +127,9 @@ func _draw() -> void :
 	elif bool(st["active"]) and String(st["kind"]) == "missile":
 		var mi: Dictionary = st["info"]
 		if bool(st["has_target"]):
-			if mi["tel"] != null:
-				_arc(mi["launch"], st["target"], 0.0, not bool(mi["in_range"]), null, float(mi["alt0"]))
-			_cross(_scr(st["target"]), not bool(mi["in_range"]), true)
+			if mi.get("tel") != null and mi.has("launch"):
+				_arc(mi["launch"], st["target"], 0.0, not bool(mi.get("in_range", false)), null, float(mi.get("alt0", 0.0)))
+			_cross(_scr(st["target"]), not bool(mi.get("in_range", false)), true)
 	elif bool(st["active"]) and String(st["kind"]) == "drone":
 		var info: Dictionary = st["info"]
 		var wps: Array[Vector2] = st["wps"]
@@ -227,16 +229,48 @@ func _draw() -> void :
 		_sel_brackets(sf, cam)
 
 	if sf != null and gw.mil.alive(sf):
-		var ring: Dictionary = cover_ring(sf.kind)
-		var rr: float = float(ring["r"])
-		var col: Color = ring["col"]
-		if rr > 0.0:
+		if sf.army_build == "thermo_battery" or bool(sf.get_meta("is_thermo", false)):
 			var cc: Vector2 = _scr(sf.center_px()) + Vector2(0.5, 0.5)
-			var r2: float = rr * cam.zoom.x
-			draw_arc(cc, r2, 0.0, TAU, 96, Palette.c("ui_rubber"), 3.0)
-			draw_arc(cc, r2, 0.0, TAU, 96, col, 1.0)
+			var r_max: float = 640.0 * cam.zoom.x
+			var r_min: float = 90.0 * cam.zoom.x
+			var col_t: Color = Color(1.0, 0.55, 0.2)
+			draw_arc(cc, r_max, 0.0, TAU, 96, Palette.c("ui_rubber"), 3.0)
+			draw_arc(cc, r_max, 0.0, TAU, 96, col_t, 1.2)
+			draw_line(cc, cc + Vector2.from_angle(_t * 1.5) * r_max, Color(col_t.r, col_t.g, col_t.b, 0.45), 1.0)
+			draw_arc(cc, r_min, 0.0, TAU, 48, Palette.c("ui_rubber"), 2.0)
+			draw_arc(cc, r_min, 0.0, TAU, 48, Color(1.0, 0.25, 0.2, 0.8), 1.0)
+		else:
+			var ring: Dictionary = cover_ring(sf.kind)
+			var rr: float = float(ring["r"])
+			var col: Color = ring["col"]
+			if rr > 0.0:
+				var cc: Vector2 = _scr(sf.center_px()) + Vector2(0.5, 0.5)
+				var r2: float = rr * cam.zoom.x
+				draw_arc(cc, r2, 0.0, TAU, 96, Palette.c("ui_rubber"), 3.0)
+				draw_arc(cc, r2, 0.0, TAU, 96, col, 1.0)
+				draw_line(cc, cc + Vector2.from_angle(_t * 1.5) * r2, Color(col.r, col.g, col.b, 0.5), 1.0)
 
-			draw_line(cc, cc + Vector2.from_angle(_t * 1.5) * r2, Color(col.r, col.g, col.b, 0.5), 1.0)
+	if main_node != null and main_node.get("strike") != null and bool(main_node.strike.active) and main_node.strike.cur == "thermo":
+		for f: Facility in gw.mil.facilities:
+			if f != null and is_instance_valid(f) and f.country_id == pid and (f.army_build == "thermo_battery" or bool(f.get_meta("is_thermo", false))) and gw.mil.alive(f):
+				var cc: Vector2 = _scr(f.center_px()) + Vector2(0.5, 0.5)
+				var r_max: float = 640.0 * cam.zoom.x
+				var r_min: float = 90.0 * cam.zoom.x
+				var col_t: Color = Color(1.0, 0.55, 0.2)
+				draw_arc(cc, r_max, 0.0, TAU, 96, Palette.c("ui_rubber"), 3.0)
+				draw_arc(cc, r_max, 0.0, TAU, 96, col_t, 1.2)
+				draw_line(cc, cc + Vector2.from_angle(_t * 1.5) * r_max, Color(col_t.r, col_t.g, col_t.b, 0.45), 1.0)
+				draw_arc(cc, r_min, 0.0, TAU, 48, Palette.c("ui_rubber"), 2.0)
+				draw_arc(cc, r_min, 0.0, TAU, 48, Color(1.0, 0.25, 0.2, 0.8), 1.0)
+				var targets: Array = st.get("multi", [])
+				if targets.is_empty() and bool(st.get("has_target", false)):
+					targets = [{"pos": st["target"], "n": 1}]
+				for t_dict in targets:
+					var tp: Vector2 = t_dict["pos"]
+					var dist: float = f.center_px().distance_to(tp)
+					var in_rng: bool = dist >= 90.0 and dist <= 640.0
+					var lcol: Color = Color(0.25, 0.95, 0.4, 0.85) if in_rng else Color(1.0, 0.25, 0.2, 0.85)
+					draw_dashed_line(cc, _scr(tp), lcol, 1.2, 6.0)
 	var t9: int = Time.get_ticks_usec()
 	_army_overlay(cam)
 	dbg_army_us = Time.get_ticks_usec() - t9
@@ -491,7 +525,10 @@ func _diamond(p: Vector2, big: bool, zoomed_out: bool = false) -> void :
 
 
 func _cross(p: Vector2, all_red: bool, breathe: bool) -> void :
-	PK.reticle(self, p + Vector2(0.5, 0.5), Palette.c("alert_red") if all_red else Color("ff8a4a"), _t if breathe else 0.0, 8.0 if breathe else 7.0)
+	var col: Color = Palette.c("alert_red") if all_red else Color("ff8a4a")
+	if not all_red and main_node != null and main_node.get("strike") != null and bool(main_node.strike.active):
+		col = Hub.colour(main_node.strike.cur)
+	PK.reticle(self, p + Vector2(0.5, 0.5), col, _t if breathe else 0.0, 8.0 if breathe else 7.0)
 
 
 

@@ -175,7 +175,7 @@ var _cr_warn: Label = null
 
 
 
-const STRIKE_MODE: Dictionary = {"drone": Mode.TARGET, "jet": Mode.TARGET, "tel": Mode.MISSILE, "ship": Mode.SHIP_CR, "art": Mode.SHIP_CR, "bomber": Mode.CR_TARGET, "hyper": Mode.HYP_TARGET}
+const STRIKE_MODE: Dictionary = {"drone": Mode.TARGET, "jet": Mode.TARGET, "tel": Mode.MISSILE, "ship": Mode.SHIP_CR, "art": Mode.SHIP_CR, "bomber": Mode.CR_TARGET, "hyper": Mode.HYP_TARGET, "thermo": Mode.MISSILE, "nuke": Mode.MISSILE, "iskander": Mode.MISSILE}
 
 
 

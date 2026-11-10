@@ -875,7 +875,8 @@ func _poll_job() -> void :
 	if not _finish_line(job):
 		var x: int = int(job["a"])
 		var y: int = int(job["b"])
-		_fail["%d:%d" % [mini(x, y), maxi(x, y)]] = gw.game_time + FAIL_COOLDOWN
+		var cd: float = FAIL_COOLDOWN * 8.0 if bool(job.get("water_gap", false)) else FAIL_COOLDOWN
+		_fail["%d:%d" % [mini(x, y), maxi(x, y)]] = gw.game_time + cd
 	pt("rail_apply", t0)
 
 
@@ -1060,6 +1061,7 @@ func _find_path(job: Dictionary) -> Array[Vector2i]:
 			else:
 				run = 0
 		if longest > GameWorld.MAX_SEA_BRIDGE:
+			job["water_gap"] = true
 			(job["log"] as Array).append("[Rail] water gap %d cells: no line" % longest)
 			out.clear()
 		return out

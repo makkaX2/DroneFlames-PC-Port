@@ -39,7 +39,7 @@ const GENERIC: Array = ["defense", "diplo", "ai", "session"]
 const CFG: Array = ["bots", "difficulty", "aggression", "victory", "target_i", "time_i", "size_i", "tutorial", "fog", "ore_preset", "ore_custom", "creative", "expand_i", "reserves_i", "ai_autodig", "alliances", "limit_i"]
 
 
-const PREFS: Array = ["night", "hints", "econ_fx", "clouds", "fx_level", "performance_mode", "graphics_chosen", "pause_fps_limit", "ground_detail", "day_grade", "perf_hud", "confirm_actions", "dev_mode", "arch_i", "opening", "notif_mode", "plan_pos", "power_save", "my_name", "my_flag", "my_land", "cb_on", "cb_list", "my_money", "lang", "pseudo_loc", "fps_i", "ui_scale_i", "ui_scale_auto", "resolution_w", "resolution_h", "mods_enabled"]
+const PREFS: Array = ["night", "hints", "econ_fx", "clouds", "fx_level", "performance_mode", "graphics_chosen", "pause_fps_limit", "ground_detail", "day_grade", "perf_hud", "confirm_actions", "dev_mode", "arch_i", "opening", "notif_mode", "plan_pos", "power_save", "my_name", "my_flag", "my_land", "cb_on", "cb_list", "my_money", "lang", "pseudo_loc", "fps_i", "ui_scale_i", "ui_scale_auto", "resolution_w", "resolution_h", "mods_enabled", "chunk_culling", "tree_batching", "tree_sway_mode", "object_lod", "simple_cover", "strat_lod_z", "dynamic_fps_target"]
 const DISPLAY_RESOLUTIONS: Array[Vector2i] = [
 	Vector2i(3840, 2160), Vector2i(2560, 1600), Vector2i(2560, 1440),
 	Vector2i(1920, 1200), Vector2i(1920, 1080), Vector2i(1680, 1050),
@@ -930,8 +930,13 @@ static func load_prefs() -> void :
 		if typeof(v) == typeof(cur):
 			(GameConfig as GDScript).set(n, v)
 	GameConfig.fx_level = clampi(GameConfig.fx_level, 0, 2)
-	GameConfig.performance_mode = clampi(GameConfig.performance_mode, 0, 3)
+	GameConfig.performance_mode = clampi(GameConfig.performance_mode, 0, 4)
 	GameConfig.notif_mode = clampi(GameConfig.notif_mode, 0, 2)
+	GameConfig.tree_sway_mode = clampi(GameConfig.tree_sway_mode, 0, 2)
+	GameConfig.object_lod = clampi(GameConfig.object_lod, 0, 2)
+	GameConfig.strat_lod_z = clampi(GameConfig.strat_lod_z, 0, 3)
+	GameConfig.dynamic_fps_target = clampi(GameConfig.dynamic_fps_target, 0, 3)
+	GameConfig.mods_enabled = true
 	apply_display_resolution()
 	apply_power_save()
 	apply_ui_scale()

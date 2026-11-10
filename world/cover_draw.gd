@@ -27,7 +27,7 @@ static func _top(x: int) -> int:
 
 
 static func blit(ci: CanvasItem, tex: Texture2D, dst: Rect2, src: Rect2, mod: Color = Color.WHITE) -> void :
-	if _tops.is_empty():
+	if _tops.is_empty() or GameConfig.eff_simple_cover():
 		ci.draw_texture_rect_region(tex, dst, src, mod)
 		return
 	var flip: bool = dst.size.x < 0.0

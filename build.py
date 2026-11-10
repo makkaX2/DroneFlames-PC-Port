@@ -2,7 +2,7 @@
 """
 DroneFlames PC Port - Automated Build & Packaging Script
 Prepares clean distribution, packages Portable ZIP, and compiles Inno Setup installer.
-Author: @good_boy_irl
+Author: @droneflamesmod
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def get_version() -> str:
                 return str(data["version"])
         except Exception:
             pass
-    return "0.33.5.1"
+    return "0.33.4.9"
 
 VERSION = get_version()
 IS_TEST_BUILD = "--test" in sys.argv or "-test" in VERSION.lower() or os.environ.get("BUILD_TEST", "").lower() in ("1", "true")
@@ -37,7 +37,7 @@ if sys.platform == "win32":
     except Exception:
         pass
 APP_NAME = "DroneFlames"
-PUBLISHER = "good_boy_irl"
+PUBLISHER = "droneflamesmod"
 
 BUILD_DIR = ROOT_DIR / "build"
 STAGE_NAME = f"{APP_NAME}_PC_v{VERSION}_{PUBLISHER}"

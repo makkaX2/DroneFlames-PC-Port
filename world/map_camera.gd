@@ -95,15 +95,22 @@ func strat_k() -> float:
 	return strat_k_of(zoom.x) if floor_z <= 0.0 else 0.0
 
 
+const STRAT_THRESHOLDS: Array = [0.17, 0.28, 0.40, 0.50]
+
 static func strat_top() -> float:
-	if zs.is_empty():
-		zs = ZOOMS.duplicate()
-	return float(zs[0])
+	var idx: int = clampi(GameConfig.eff_strat_lod_z(), 0, STRAT_THRESHOLDS.size() - 1)
+	if idx == 0:
+		if zs.is_empty():
+			zs = ZOOMS.duplicate()
+		return float(zs[0])
+	return float(STRAT_THRESHOLDS[idx]) * 1.45
 
 
 static func strat_full_z() -> float:
+	var idx: int = clampi(GameConfig.eff_strat_lod_z(), 0, STRAT_THRESHOLDS.size() - 1)
+	var base_th: float = float(STRAT_THRESHOLDS[idx])
 	var top: float = strat_top()
-	var full: float = STRAT_FULL / maxf(ui_k, 0.1)
+	var full: float = base_th / maxf(ui_k, 0.1)
 	if full >= top:
 		full = top * 0.68
 	return full

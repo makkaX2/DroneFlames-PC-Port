@@ -330,16 +330,37 @@ func _plan_tap(pos: Vector2, wp: Vector2) -> void :
 			plan_wps.insert(_insert_index(p), p)
 		return
 	if (mode == Mode.TARGET or _missile_multi()) and plan_has_target:
+		var is_mod_weapon: bool = strike.active and (strike.cur == "thermo" or strike.cur == "nuke" or strike.cur == "iskander")
+		var av_check: int = int(_missile_mp().get("available", 0)) if is_mod_weapon else 999
+		var cur_tot: int = 0
+		if is_mod_weapon:
+			for t0: Dictionary in _plan_targets():
+				cur_tot += int(t0["n"])
 
 		if cam.world_to_screen(plan_target).distance_to(pos) <= GRAB_R:
+			if is_mod_weapon and cur_tot >= av_check:
+				var w_name: String = "залпы" if strike.cur == "thermo" else ("ракеты «Искандер»" if strike.cur == "iskander" else "МБР")
+				hud.show_toast(Loc.msg(Loc.mk("Все %s распределены: %d", [w_name, av_check])))
+				UiKit.snd("ui_error")
+				return
 			plan_count += 1
 			overlay.ripple(plan_target, "alert_red")
 			return
 		for t: Dictionary in plan_list:
 			if cam.world_to_screen(t["pos"]).distance_to(pos) <= GRAB_R:
+				if is_mod_weapon and cur_tot >= av_check:
+					var w_name: String = "залпы" if strike.cur == "thermo" else ("ракеты «Искандер»" if strike.cur == "iskander" else "МБР")
+					hud.show_toast(Loc.msg(Loc.mk("Все %s распределены: %d", [w_name, av_check])))
+					UiKit.snd("ui_error")
+					return
 				t["n"] = int(t["n"]) + 1
 				overlay.ripple(t["pos"], "alert_red")
 				return
+		if is_mod_weapon and cur_tot >= av_check:
+			var w_name: String = "залпы" if strike.cur == "thermo" else ("ракеты «Искандер»" if strike.cur == "iskander" else "МБР")
+			hud.show_toast(Loc.msg(Loc.mk("Все %s распределены: %d", [w_name, av_check])))
+			UiKit.snd("ui_error")
+			return
 		plan_list.append({"pos": plan_target, "n": plan_count, "wps": plan_wps.duplicate()})
 		plan_wps.clear()
 
@@ -365,6 +386,8 @@ func _missile_multi() -> bool:
 
 func _missile_mp() -> Dictionary:
 	if mode == Mode.MISSILE:
+		if strike.active and (strike.cur == "thermo" or strike.cur == "nuke" or strike.cur == "iskander"):
+			return StrikeHubScript.plan(world, strike.cur, _plan_targets())
 		return world.mil.missile_multi_plan(world.player, _plan_targets())
 	if mode == Mode.SHIP_CR:
 		if strike.active and strike.cur == "art":
@@ -375,13 +398,27 @@ func _missile_mp() -> Dictionary:
 
 
 func _missile_tap(pos: Vector2, wp: Vector2) -> void :
+	var is_mod_weapon: bool = strike.active and (strike.cur == "thermo" or strike.cur == "nuke" or strike.cur == "iskander")
+	var av: int = int(_missile_mp().get("available", 0))
+	if is_mod_weapon and av <= 0:
+		var w_name: String = "залпов «Солнцепёк»" if strike.cur == "thermo" else ("ракет «Искандер»" if strike.cur == "iskander" else "снаряжённых шахт МБР")
+		hud.show_toast(Loc.msg(Loc.mk("Нет готовых %s для пуска", [w_name])))
+		UiKit.snd("ui_error")
+		return
 	if plan_has_target and not route_mode:
 		var tot: int = 0
 		for t: Dictionary in _plan_targets():
 			tot += int(t["n"])
-		var av: int = int(_missile_mp()["available"])
 		if tot >= av:
-			hud.show_toast(Loc.msg(Loc.mk("Все ракеты распределены: %d", [av])))
+			var w_name: String = "ракеты"
+			if strike.active:
+				if strike.cur == "thermo":
+					w_name = "залпы"
+				elif strike.cur == "iskander":
+					w_name = "ракеты «Искандер»"
+				elif strike.cur == "nuke":
+					w_name = "МБР"
+			hud.show_toast(Loc.msg(Loc.mk("Все %s распределены: %d", [w_name, av])))
 			UiKit.snd("ui_error")
 			return
 	var n_pts: int = plan_list.size()
@@ -553,6 +590,8 @@ func _res_go(nm: String) -> void :
 
 func _confirm_mode(m: int) -> bool:
 	if not GameConfig.confirm_actions:
+		return false
+	if Input.is_key_pressed(KEY_SHIFT) and (BUILD_KIND.has(m) or m == Mode.MODULE):
 		return false
 	if m == Mode.TRENCH_H or m == Mode.TEETH_H:
 		return false
@@ -757,29 +796,50 @@ func _draw_ghost() -> void :
 		_ghost_own_rings()
 	if RB.draw(self, _ghost):
 		return
-	if _pend.is_empty():
+	var shift_active: bool = Input.is_key_pressed(KEY_SHIFT)
+	var wp: Vector2 = Vector2.INF
+	if not _pend.is_empty():
+		if shift_active and (BUILD_KIND.has(m) or m == Mode.MODULE):
+			_pend_cancel()
+			var hovered_shift: Control = get_viewport().gui_get_hovered_control()
+			if hovered_shift != null:
+				return
+			wp = cam.screen_to_world(get_viewport().get_mouse_position())
+		else:
+			wp = _pend["wp"]
+	elif (shift_active or repeat_building) and (BUILD_KIND.has(m) or m == Mode.MODULE or m == Mode.CAPITAL or m == Mode.TOWN):
+		var hovered: Control = get_viewport().gui_get_hovered_control()
+		if hovered != null:
+			return
+		wp = cam.screen_to_world(get_viewport().get_mouse_position())
+	else:
 		return
+
 	var C: float = float(GameWorld.CELL)
+	var cell: = Vector2i(floori(wp.x / C), floori(wp.y / C))
+	if world != null and world.data != null and not world.data.inside(cell.x, cell.y):
+		return
+
 	var ok_col: = Color(0.35, 1.0, 0.45, 0.45)
 	var bad_col: = Color(1.0, 0.3, 0.25, 0.45)
-	match String(_pend["kind"]):
-		"demolish":
-			var gf: Facility = _pend["fac"]
-			if gf.is_line():
-				for c: Vector2i in gf.cells + gf.pending:
-					_ghost.draw_rect(Rect2(Vector2(c) * C, Vector2(C, C)), Color(1.0, 0.3, 0.25, 0.5))
-			else:
-				_ghost.draw_rect(Rect2(Vector2(gf.cell) * C, Vector2(gf.size) * C), Color(1.0, 0.3, 0.25, 0.35))
-				_ghost.draw_rect(Rect2(Vector2(gf.cell) * C, Vector2(gf.size) * C), Color(1.0, 0.3, 0.25, 0.9), false, 1.0)
-			return
-		"line":
-			for c: Vector2i in _pend["cells"]:
-				_ghost.draw_rect(Rect2(Vector2(c) * C, Vector2(C, C)), Color(1.0, 0.85, 0.3, 0.45))
-			return
-		"op":
-			return
-	var wp: Vector2 = _pend["wp"]
-	var cell: = Vector2i(floori(wp.x / C), floori(wp.y / C))
+	if not _pend.is_empty():
+		match String(_pend["kind"]):
+			"demolish":
+				var gf: Facility = _pend["fac"]
+				if gf.is_line():
+					for c: Vector2i in gf.cells + gf.pending:
+						_ghost.draw_rect(Rect2(Vector2(c) * C, Vector2(C, C)), Color(1.0, 0.3, 0.25, 0.5))
+				else:
+					_ghost.draw_rect(Rect2(Vector2(gf.cell) * C, Vector2(gf.size) * C), Color(1.0, 0.3, 0.25, 0.35))
+					_ghost.draw_rect(Rect2(Vector2(gf.cell) * C, Vector2(gf.size) * C), Color(1.0, 0.3, 0.25, 0.9), false, 1.0)
+				return
+			"line":
+				for c: Vector2i in _pend["cells"]:
+					_ghost.draw_rect(Rect2(Vector2(c) * C, Vector2(C, C)), Color(1.0, 0.85, 0.3, 0.45))
+				return
+			"op":
+				return
+
 	if BUILD_KIND.has(m) or m == Mode.MODULE:
 		var kind: int = module_kind if m == Mode.MODULE else int(BUILD_KIND[m])
 		if kind == Facility.Kind.MINE and world.get("econ") != null and not world.econ.deposit_near(cell, 3, ["uranium"]).is_empty():
@@ -802,6 +862,20 @@ func _draw_ghost() -> void :
 				_ghost.draw_rect(r, Color(ok_col, 0.14) if why == "" else Color(bad_col, 0.2))
 				_ghost.draw_texture_rect_region(na.texture, Rect2(org, nr.size), nr, Color(0.72, 1.0, 0.78, 0.66) if why == "" else Color(1.0, 0.48, 0.42, 0.66))
 				spr_ok = true
+		elif world != null and world.get("spr_index") != null and Military.SPRITES.has(kind):
+			var sp_name: String = String(Military.SPRITES[kind])
+			if world.spr_index.has(sp_name):
+				var sid: int = int(world.spr_index[sp_name])
+				if sid >= 0 and sid < world.spr_tex.size() and sid < world.spr_rect.size() and sid < world.spr_anchor.size() and sid < world.spr_fd.size():
+					var sr: Rect2 = world.spr_rect[sid]
+					var sa: Vector2 = world.spr_anchor[sid]
+					var s_fd: int = world.spr_fd[sid]
+					var stex: Texture2D = world.spr_tex[sid]
+					if stex != null:
+						var spos: Vector2 = Vector2(nw.x * C - sa.x, (nw.y + s_fd) * C - sa.y)
+						_ghost.draw_rect(r, Color(ok_col, 0.18) if why == "" else Color(bad_col, 0.22))
+						_ghost.draw_texture_rect_region(stex, Rect2(spos, sr.size), Rect2(sr.position.x, sr.position.y, sr.size.x, sr.size.y), Color(0.72, 1.0, 0.78, 0.72) if why == "" else Color(1.0, 0.48, 0.42, 0.72))
+						spr_ok = true
 		if not spr_ok:
 			_ghost.draw_rect(r, ok_col if why == "" else bad_col)
 		if kind == Facility.Kind.NAVAL_BASE and r.get_center().distance_to(wp) > C * 3.0:
@@ -818,7 +892,13 @@ func _draw_ghost() -> void :
 		Mode.CAPITAL, Mode.TOWN:
 			rad = float(GameWorld.CELL) * (34.0 if m == Mode.CAPITAL else 20.0)
 			if m == Mode.CAPITAL:
-				var why_cap: String = _pend_why()
+				var why_cap: String = ""
+				if not _pend.is_empty():
+					why_cap = _pend_why()
+				else:
+					var pl: Dictionary = world.can_found_city(cell, City.Kind.CAPITAL, true)
+					if not bool(pl.get("ok", false)):
+						why_cap = Loc.t("Неподходящее место для столицы (вода или препятствия)")
 				var cap_ok: bool = why_cap == ""
 				var cap_fill: Color = Color(0.2, 0.9, 0.35, 0.22) if cap_ok else Color(0.9, 0.25, 0.2, 0.22)
 				var cap_ring: Color = Color(0.2, 0.95, 0.35, 0.95) if cap_ok else Color(0.95, 0.3, 0.2, 0.95)
@@ -1007,15 +1087,22 @@ func _why(r: Variant) -> String:
 
 
 
-func _on_built(r: Variant, kind: int) -> void :
+func _on_built(r: Variant, kind: int, shift_was_pressed: bool = false) -> void :
 	var f: Facility = r as Facility
 	if f == null:
+		if _why(r) != "":
+			hud.show_toast(_why(r))
+			UiKit.snd("ui_error")
 		return
 	hud.show_toast(Loc.msg(Loc.mk("Построено: %s", [Loc.t(Military.title_of(kind))])))
 	UiKit.snd("ui_build")
-	var keep_mode: int = mode if repeat_building and BUILD_KIND.has(mode) and int(BUILD_KIND[mode]) == kind else Mode.NONE
+	var is_shift: bool = shift_was_pressed or Input.is_key_pressed(KEY_SHIFT)
+	var keep_mode: int = mode if (repeat_building or is_shift) and BUILD_KIND.has(mode) and int(BUILD_KIND[mode]) == kind else Mode.NONE
 	_set_mode(keep_mode)
-	if kind == Facility.Kind.DRONE_PORT or kind == Facility.Kind.MISSILE_FACTORY or kind == Facility.Kind.AIRFIELD or kind == Facility.Kind.BARRACKS or kind == Facility.Kind.PORT or kind == Facility.Kind.DRONE_FACTORY:
-		selected_fac = f
-		_auto_card = f
-		_auto_card_t = 15.0
+	if keep_mode == Mode.NONE:
+		if kind == Facility.Kind.DRONE_PORT or kind == Facility.Kind.MISSILE_FACTORY or kind == Facility.Kind.AIRFIELD or kind == Facility.Kind.BARRACKS or kind == Facility.Kind.PORT or kind == Facility.Kind.DRONE_FACTORY:
+			selected_fac = f
+			_auto_card = f
+			_auto_card_t = 15.0
+	if _ghost != null:
+		_ghost.queue_redraw()

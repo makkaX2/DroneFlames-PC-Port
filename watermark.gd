@@ -1,5 +1,5 @@
 extends Node
-## Watermark and PC Port Branding by @good_boy_irl
+## Watermark and PC Port Branding by @droneflamesmod
 ## Keeps subtle, clean branding: window title, menu version string, and F11 fullscreen.
 
 var _base_title: String = ""
@@ -26,7 +26,7 @@ func _ready() -> void:
 
 func _init_title_string() -> void:
 	var ver: String = _get_game_version()
-	_base_title = "DroneFlames " + ver + " — PC Port by @good_boy_irl"
+	_base_title = "DroneFlames " + ver + " — PC Port by @droneflamesmod"
 
 func _get_game_version() -> String:
 	if ResourceLoader.exists("res://version_info.json"):
@@ -36,7 +36,7 @@ func _get_game_version() -> String:
 			var json = JSON.parse_string(txt)
 			if json is Dictionary and json.has("version"):
 				return "v" + String(json["version"])
-	return "v0.33.5.1"
+	return "v0.33.5.2"
 
 func _setup_app_icon() -> void:
 	if _is_mobile():
@@ -72,7 +72,7 @@ func _on_update_available(new_version: String, _changelog: String, _dl_url: Stri
 		if up.get_script().compare_versions(new_v, cur_v) <= 0:
 			return
 	print("[PC Port] New version available on GitHub: v" + new_version)
-	_base_title = "DroneFlames " + _get_game_version() + " — PC Port by @good_boy_irl (Обновление v" + new_version + " доступно!)"
+	_base_title = "DroneFlames " + _get_game_version() + " — PC Port by @droneflamesmod (Обновление v" + new_version + " доступно!)"
 	_update_title()
 
 func _process(_delta: float) -> void:
@@ -132,5 +132,5 @@ func _update_title() -> void:
 
 func _on_node_added(node: Node) -> void:
 	if node is Label:
-		if node.text.begins_with("v0.") and not node.text.contains("@good_boy_irl"):
-			node.text = node.text + " · PC Port by @good_boy_irl"
+		if node.text.begins_with("v0.") and not node.text.contains("@droneflamesmod"):
+			node.text = node.text + " · PC Port by @droneflamesmod"

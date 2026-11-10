@@ -175,11 +175,20 @@ static func _all() -> Array:
 
 static func has(sprite_name: String) -> bool:
 	ensure()
+	if Engine.get_main_loop() != null:
+		var loop = Engine.get_main_loop()
+		if "root" in loop and loop.root != null and loop.root.has_node("ModManager"):
+			var mm = loop.root.get_node("ModManager")
+			if mm != null and mm.has_method("get_custom_texture"):
+				if mm.get_custom_texture(sprite_name) != null:
+					return true
 	if sprite_name.begins_with("d331_") or sprite_name.begins_with("r332_") or sprite_name.begins_with("u335_"):
 		return _at(sprite_name) != null
 	for at: SpriteAtlas in _all():
 		if at.has(sprite_name):
 			return true
+	if sprite_name == "icon_refresh":
+		return has("net_refresh")
 	return sprite_name == "icon_play_big" or sprite_name == "icon_attack_jet"
 
 
@@ -239,6 +248,8 @@ static func _at(sprite_name: String) -> SpriteAtlas:
 	return null
 
 
+static var _custom_tex_cache: Dictionary = {}
+
 static func tex(sprite_name: String) -> Texture2D:
 	ensure()
 	if Engine.get_main_loop() != null:
@@ -252,10 +263,28 @@ static func tex(sprite_name: String) -> Texture2D:
 		return atlas7.region("icon_play")
 	if sprite_name == "icon_attack_jet":
 		return _attack_icon()
+	if sprite_name == "icon_refresh":
+		return tex("net_refresh")
 	var at: SpriteAtlas = _at(sprite_name)
 	if at == null:
-		if ResourceLoader.exists("res://assets/sprites/" + sprite_name + ".png"):
-			return load("res://assets/sprites/" + sprite_name + ".png")
+		if _custom_tex_cache.has(sprite_name):
+			return _custom_tex_cache[sprite_name]
+		var p: String = "res://assets/sprites/" + sprite_name + ".png"
+		if ResourceLoader.exists(p):
+			var res = load(p)
+			if res is Texture2D:
+				_custom_tex_cache[sprite_name] = res
+				return res
+		if FileAccess.file_exists(p):
+			var fa: FileAccess = FileAccess.open(p, FileAccess.READ)
+			if fa:
+				var buf: PackedByteArray = fa.get_buffer(fa.get_length())
+				fa.close()
+				var img: Image = Image.new()
+				if img.load_png_from_buffer(buf) == OK and not img.is_empty():
+					var itex: Texture2D = ImageTexture.create_from_image(img)
+					_custom_tex_cache[sprite_name] = itex
+					return itex
 		return null
 	return at.region(sprite_name)
 

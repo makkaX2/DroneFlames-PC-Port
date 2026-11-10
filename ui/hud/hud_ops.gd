@@ -229,6 +229,11 @@ func _fill_acts(sig_base: String, acts: Array) -> void :
 			var l: Label = UiKit.lbl(txt, 9, (UiKit.RED if bool(a.get("red", false)) else UiKit.TEXT) if bool(a["on"]) else UiKit.DIM, 2, 3)
 			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			l.custom_minimum_size = Vector2(52, 0)
+			l.mouse_filter = Control.MOUSE_FILTER_PASS
+			l.gui_input.connect(func(ev: InputEvent) -> void:
+				if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and not b.disabled:
+					b.emit_signal("pressed")
+			)
 			cell.add_child(l)
 			fac_row.add_child(cell)
 		else:

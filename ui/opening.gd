@@ -26,6 +26,8 @@ const DRIFT: float = 0.12
 
 var root: Control
 var bars: ColorRect
+var bg_vp: TextureRect
+var bg_dim: ColorRect
 var sky: TextureRect
 var vp: VideoStreamPlayer
 var music: AudioStreamPlayer
@@ -62,6 +64,19 @@ func _ready() -> void :
 	bars.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bars.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(bars)
+	bg_vp = TextureRect.new()
+	bg_vp.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg_vp.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg_vp.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	bg_vp.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	bg_vp.self_modulate = Color(0.35, 0.35, 0.38, 1.0)
+	bg_vp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bg_vp)
+	bg_dim = ColorRect.new()
+	bg_dim.color = Color(0.04, 0.04, 0.06, 0.45)
+	bg_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bg_dim)
 	sky = TextureRect.new()
 	var g: = Gradient.new()
 	g.set_color(0, Loading.SKY_TOP)
@@ -131,6 +146,10 @@ func _layout() -> void :
 func _process(delta: float) -> void :
 	if _done or _paused:
 		return
+	if bg_vp != null and bg_vp.texture == null and vp != null and vp.is_playing():
+		var vt: Texture2D = vp.get_video_texture()
+		if vt != null:
+			bg_vp.texture = vt
 	_t += delta
 	var pos: float = vp.stream_position if vp.is_playing() else _t
 	sky.modulate.a = clampf((pos - SKY_FROM) / 1.0, 0.0, 1.0)
@@ -232,6 +251,8 @@ func _finish(instant: bool) -> void :
 
 
 func _close() -> void :
+	if bg_vp != null:
+		bg_vp.texture = null
 	if vp != null:
 		vp.stop()
 	if music != null:

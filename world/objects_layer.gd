@@ -12,6 +12,7 @@ var _sway_t: float = 0.0
 var _cursor: int = 0
 var cover_ver: int = 0
 const GUEST_BUDGET: int = 3
+var _cull_box: Vector4i = Vector4i(-999, -999, -999, -999)
 
 
 func setup(game_world: GameWorld) -> void :
@@ -77,6 +78,29 @@ func _process(delta: float) -> void :
 	var half: Vector2 = cam.view_size() * 0.5 / cam.zoom.x
 	var tl: Vector2 = (cam.position - half) / 4.0
 	var br: Vector2 = (cam.position + half) / 4.0
+
+	# Chunk Frustum Culling
+	var do_cull: bool = GameConfig.eff_chunk_culling()
+	if do_cull:
+		var x0: int = clampi(int(floorf(tl.x / float(chunk_cells))) - 1, 0, cw - 1)
+		var y0: int = clampi(int(floorf(tl.y / float(chunk_cells))) - 1, 0, ch - 1)
+		var x1: int = clampi(int(floorf(br.x / float(chunk_cells))) + 1, 0, cw - 1)
+		var y1: int = clampi(int(floorf(br.y / float(chunk_cells))) + 1, 0, ch - 1)
+		var box: Vector4i = Vector4i(x0, y0, x1, y1)
+		if box != _cull_box:
+			_cull_box = box
+			for j in ch:
+				for i in cw:
+					var c: ObjChunk = chunks[j * cw + i]
+					var in_v: bool = i >= x0 and i <= x1 and j >= y0 and j <= y1
+					if c.visible != in_v:
+						c.visible = in_v
+	elif _cull_box != Vector4i(-999, -999, -999, -999):
+		_cull_box = Vector4i(-999, -999, -999, -999)
+		for c: ObjChunk in chunks:
+			if not c.visible:
+				c.visible = true
+
 	var budget: int = GUEST_BUDGET
 	for c: ObjChunk in chunks_in_rect(Rect2i(Vector2i(tl) - Vector2i(chunk_cells, chunk_cells), Vector2i(br - tl) + Vector2i(chunk_cells, chunk_cells) * 2)):
 		if c.need_guests and budget > 0:
@@ -84,7 +108,12 @@ func _process(delta: float) -> void :
 			c.need_guests = false
 			c.sorted = false
 			c.queue_redraw()
-	if not sway_enabled:
+
+	var sway_mode: int = GameConfig.eff_tree_sway_mode()
+	var sway_ok: bool = sway_enabled and sway_mode != 0
+	if sway_mode == 1 and cam.zoom.x < 0.8:
+		sway_ok = false
+	if not sway_ok:
 		return
 	var vis: Array[ObjChunk] = chunks_in_rect(Rect2i(Vector2i(tl), Vector2i(br - tl)))
 	if vis.is_empty():

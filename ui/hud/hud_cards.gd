@@ -35,7 +35,7 @@ func _card(key: String, icon: String, title: String, sub: String, rows: bool, ba
 	ops_sub.visible = sub != ""
 	if ops_sub.text != sub:
 		ops_sub.text = sub
-	if fresh:
+	if fresh or ops_icon.texture == null:
 		_ops_key = key
 		UiKit.set_icon(ops_icon, icon if icon != "" else "icon_info", 32.0)
 		var pnl: Control = ops_panel
@@ -168,6 +168,8 @@ func show_facility(f: Facility, mil: Military, player: Country) -> void :
 	# buttons never stay under the pointer and the card-open sound repeats.
 	if f != null and (f.get_meta("is_airborne_base", false) or f.get_meta("is_tank_factory", false)
 		or f.get_meta("is_vdv_hq", false) or f.get_meta("is_nuclear_silo", false)
+		or f.get_meta("is_thermo", false) or f.get_meta("is_iskander_tel", false)
+		or f.army_build == "iskander_tel" or f.army_build == "thermo_battery"
 		or f.get_meta("mod_facility", false)):
 		return
 	var alive: bool = mil.alive(f)

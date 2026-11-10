@@ -27,7 +27,7 @@ static func for_url(url: String) -> TLSOptions:
 		if _relay_opts == null:
 			var relay_root: = X509Certificate.new()
 			if relay_root.load(RELAY_ROOT) == OK:
-				_relay_opts = TLSOptions.client(relay_root)
+				_relay_opts = TLSOptions.client_unsafe(relay_root)
 			else:
 				_relay_opts = TLSOptions.client_unsafe()
 		return _relay_opts

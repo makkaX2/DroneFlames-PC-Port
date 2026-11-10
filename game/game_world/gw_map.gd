@@ -73,6 +73,19 @@ func draw_object(ci: CanvasItem, id: int, phase: int) -> void :
 	var st: int = obj_state[id]
 	if st == 2 or (id < obj_hidden.size() and obj_hidden[id] != 0):
 		return
+	var knd: int = obj_kind[id]
+	if knd == KIND_TREE:
+		var lod: int = GameConfig.eff_object_lod()
+		if lod > 0 and camera != null:
+			var zx: float = camera.zoom.x
+			if lod == 1:
+				if zx < 0.35 and (id & 3) == 1:
+					return
+			elif lod >= 2:
+				if zx < 0.32 and (id % 3) != 0:
+					return
+				elif zx < 0.48 and (id & 1) != 0:
+					return
 	var s: int = obj_spr[id]
 	if id < obj_arch.size() and obj_arch[id] != 0 and obj_arch[id] < arch_tab.size():
 		var atb: PackedInt32Array = arch_tab[obj_arch[id]]

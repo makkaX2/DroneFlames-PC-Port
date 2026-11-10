@@ -66,6 +66,11 @@ func _tap(pos: Vector2) -> void :
 			hud.open_my_state()
 			UiKit.snd("ui_open")
 			return
+	if not _pend.is_empty() and (not _confirming or Input.is_key_pressed(KEY_SHIFT)):
+		_pend = {}
+		hud.hide_confirm()
+		if _ghost != null:
+			_ghost.queue_redraw()
 	if not _confirming and _confirm_mode(mode):
 
 		_pend = {"kind": "tap", "wp": wp, "mode": mode}
@@ -94,7 +99,8 @@ func _tap(pos: Vector2) -> void :
 				var t: City = r as City
 				if t != null:
 					hud.show_toast(Loc.msg(Loc.mk("Основан город %s (-%d)", [Loc.name(t.name), Military.COST_TOWN])))
-					_set_mode(Mode.NONE)
+					var is_shift_town: bool = Input.is_key_pressed(KEY_SHIFT)
+					_set_mode(Mode.TOWN if is_shift_town else Mode.NONE)
 					hud.refresh()
 			if net.in_match:
 				net.issue({"k": "town", "cell": cell}, on_town)
@@ -215,16 +221,19 @@ func _tap(pos: Vector2) -> void :
 			var kind: int = BUILD_KIND[mode]
 			if kind == Facility.Kind.MINE and not world.econ.deposit_near(cell, 3, ["uranium"]).is_empty():
 				kind = Facility.Kind.URANIUM_MINE
+			if kind == Facility.Kind.NAVAL_BASE and world.get("navy") != null:
+				cell = _navy_snap(cell)
 			var bcost: Dictionary = Economy.build_cost(kind)
 			var pl: Country = world.player
+			var shift_held: bool = Input.is_key_pressed(KEY_SHIFT)
 			if not pl.has_res(bcost) and world.econ.has_method("can_substitute") and world.econ.can_substitute(bcost, pl):
 
 				var placing: String = world.mil.place_why(kind, cell, pl, null, false)
 				if placing != "":
 					hud.show_toast(placing)
-				elif _confirming or (_sub_confirm.size() == 3 and int(_sub_confirm[0]) == kind and (_sub_confirm[1] as Vector2i).distance_to(cell) < 3.0 and Time.get_ticks_msec() - int(_sub_confirm[2]) < 8000):
+				elif _confirming or shift_held or (_sub_confirm.size() == 3 and int(_sub_confirm[0]) == kind and (_sub_confirm[1] as Vector2i).distance_to(cell) < 3.0 and Time.get_ticks_msec() - int(_sub_confirm[2]) < 8000):
 					_sub_confirm = []
-					_sim("", "cmd_build_sub", [kind, cell, pl], _on_built.bind(kind))
+					_sim("", "cmd_build_sub", [kind, cell, pl], _on_built.bind(kind, shift_held))
 				else:
 					_sub_confirm = [kind, cell, Time.get_ticks_msec()]
 					hud.show_toast(Loc.msg(Loc.mk("Не хватает: %s. Тапните ещё раз — %s", [pl.missing_res(bcost), world.econ.substitute_note(bcost, pl).to_lower()])))
@@ -233,18 +242,22 @@ func _tap(pos: Vector2) -> void :
 				_sim("mil", "build", [kind, cell, world.player], func(r: Variant) -> void :
 					if r == null and not pl.has_res(bcost):
 						_offer_buy(bcost)
-					_on_built(r, kind))
+					_on_built(r, kind, shift_held))
 		Mode.MODULE:
 			if module_port == null or not world.mil.alive(module_port):
 				_set_mode(Mode.NONE)
 				return
 			var mk: int = module_kind
 			var mport: Facility = module_port
+			var shift_held: bool = Input.is_key_pressed(KEY_SHIFT)
 			_sim("mil", "build", [mk, cell, world.player, mport], func(r: Variant) -> void :
 				if r != null:
 					hud.show_toast(Loc.msg(Loc.mk("Модуль: %s", [Loc.t(Military.title_of(mk))])))
-					selected_fac = mport
-					_set_mode(Mode.NONE))
+					if not (repeat_building or shift_held or Input.is_key_pressed(KEY_SHIFT)):
+						selected_fac = mport
+						_set_mode(Mode.NONE)
+					elif _ghost != null:
+						_ghost.queue_redraw())
 		Mode.TARGET:
 			_plan_tap(pos, wp)
 		Mode.CR_TARGET:
@@ -582,7 +595,7 @@ func _begin_press(pos: Vector2) -> void :
 	_press_ms = Time.get_ticks_msec()
 	_moved = false
 
-	_dtz = _press_ms - _last_tap_ms < 320 and _last_tap_pos.is_finite() and pos.distance_to(_last_tap_pos) < 50.0 and line_cells.is_empty() and not _on_plan_point(pos)
+	_dtz = (mode == Mode.NONE and not Input.is_key_pressed(KEY_SHIFT)) and _press_ms - _last_tap_ms < 320 and _last_tap_pos.is_finite() and pos.distance_to(_last_tap_pos) < 50.0 and line_cells.is_empty() and not _on_plan_point(pos)
 	if _dtz:
 		_strat_tap = Vector2.INF
 		_dtz_y0 = pos.y
@@ -681,7 +694,7 @@ func _update_ops(delta: float) -> void :
 		if not _missile_multi_card():
 			hud.show_aircraft(hb, world.mil.air, world.player)
 		return
-	if mode == Mode.MISSILE:
+	if mode == Mode.MISSILE and not strike.active:
 		_plan_info = world.mil.missile_plan(world.player, plan_target, plan_has_target)
 		if _missile_multi_card():
 			return

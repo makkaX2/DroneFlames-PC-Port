@@ -6,16 +6,16 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.1 (PC Port by @good_boy_irl)"
+const VERSION: String = "v0.33.5.2 (PC Port by @droneflamesmod)"
 
 const WHATS_NEW: Array = [
-	"ХОТФИКС v0.33.5.1: восстановлено сетевое подключение к мультиплееру через выделенный сервер",
-	"ОБНОВЛЕНИЕ v0.33.5: исправление зума на Mac M4, устранены зазоры экрана и стилизован macOS DMG",
-	"СЕТЬ v0.33.5: ликвидация просадок TPS в Radmin VPN / Hamachi / LAN, стабильный выделенный сервер",
-	"СТАБИЛЬНОСТЬ v0.33.5: исправление синтаксических ошибок в армии и ядре, устранение серых экранов",
-	"ГЕЙМПЛЕЙ v0.33.5: постройка урановых шахт в режиме Mine, исправление круга столицы, убран лишний декор",
-	"ОПТИМИЗАЦИЯ v0.33.5: оптимизации Korbitus 0.3, пакетное улучшение инфраструктуры, битовые маски войск",
-	"МОДЫ v0.33.5: встроенный локальный воркшоп, термо-батарея и обновлённый ядерный удар",
+	"ИНТЕРФЕЙС & ВИДЕО v0.33.5.2: панель склада поднята вплотную к верхней полосе, разграничены клики по ресурсам (деньги -> доходы, энергия -> цепочки, склад -> склад, зеленая полоса -> страна); адаптивный полноэкранный фон вступительного трейлера без черных полос; пасхалка на сплэш-скрине запуска (@droneflamesmod, @nufxa и уточка)",
+	"ВЕРИФИКАЦИЯ МОДОВ v0.33.5.2: галочка верификации выдана строго на 6 официальных модов (Солнцепёк, Искандер-М, Ядерный арсенал, ВДВ, FPS-мод, Оазис в пустыне), исправлено отображение иконки без пустых отступов у остальных модов",
+	"ИСКАНДЕР & МОДЫ v0.33.5.2: интеграция ОТРК «Искандер-М» в меню ударов (ОФ и кассетные БЧ, гиперзвуковой полёт), ВДВ v1.3.0 с поддержкой нескольких штабов (6 цветов), ядерный удар v1.2.0 с 5-фазной вспышкой, ТОС-1А с радиусом 90-640px, сквозной клик по ярлыкам операций",
+	"СТРОИТЕЛЬСТВО v0.33.5.2: живой предпросмотр (обложка) постройки при зажатом Shift в реальном времени под курсором, непрерывное размещение по клику и мгновенное подтверждение по клавише E",
+	"МУЛЬТИПЛЕЕР v0.33.5.2: исправлена ошибка проверки TLS сертификата релей-сервера (-9984), восстановлен доступ к сетевой игре",
+	"ОПТИМИЗАЦИЯ v0.33.5.2: многоуровневая система оптимизации, батчинг деревьев (сокращение Draw Calls в разы), отсечение невидимых чанков, авто-FPS при просадках, фикс ночных мешей и детальная настройка в меню Графика",
+	"КЕЙБИНДЫ v0.33.5.2: постройка зданий и копание окопов без подтверждения по Shift, моментальная установка нескольких казарм подряд, клавиши B (казармы) и T (окопы), умный Esc",
 	"МУЛЬТИПЛЕЕР v0.33.4.9: позднее подключение к партии, возврат за свою страну и управление свободной страной ИИ",
 	"ЧЁТКОСТЬ v0.33.4.8: исправлено размытие шрифтов и 2D-графики при масштабировании окна",
 	"ПВО v0.33.4.8: окно целей и кнопки по размеру панели, без обрезания на широком экране",
@@ -314,6 +314,26 @@ func _ibutton(parent: Control, text: String, colour: String, req: String, icon: 
 		b.add_theme_stylebox_override("normal", UiKit.sb("wb_btn_" + colour, 14, 4, -1))
 		b.add_theme_stylebox_override("hover", UiKit.sb("wb_btn_" + colour, 14, 4, -1))
 	return b
+
+func _apply_mods_button_outline(bb: Button) -> void:
+	UiKit.ensure()
+	if UiKit.atlas_cosm_tt == null or not UiKit.atlas_cosm_tt.has("tt_plate_dev_rgb_anim"):
+		return
+	var outline: Panel = Panel.new()
+	outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	outline.set_anchors_preset(Control.PRESET_FULL_RECT)
+	outline.offset_left = -3
+	outline.offset_top = -3
+	outline.offset_right = 3
+	outline.offset_bottom = 3
+	var sb: StyleBoxTexture = StyleBoxTexture.new()
+	sb.texture = UiKit.atlas_cosm_tt.region("tt_plate_dev_rgb_anim", 0)
+	sb.draw_center = false
+	sb.set_texture_margin_all(12)
+	outline.add_theme_stylebox_override("panel", sb)
+	outline.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	MpKit.animate_style(outline, sb, UiKit.atlas_cosm_tt, "tt_plate_dev_rgb_anim")
+	bb.add_child(outline)
 
 
 
@@ -1033,29 +1053,15 @@ func show_main() -> void :
 			b = pair
 		else:
 			var is_mods: bool = String(it[2]) == "mods"
-			if is_mods and not GameConfig.mods_enabled:
-				var m_box: = VBoxContainer.new()
-				m_box.add_theme_constant_override("separation", 2)
-				m_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				col.add_child(m_box)
-				var bb: Button = _ibutton(m_box, String(it[0]), "stone", "", String(it[4]), float(it[3]))
-				bb.disabled = true
-				bb.focus_mode = Control.FOCUS_NONE
-				bb.self_modulate = Color(0.65, 0.65, 0.65, 0.75)
-				bb.add_theme_color_override("font_disabled_color", Color(0.65, 0.65, 0.65))
-				bb.tooltip_text = "Модификации временно отключены. Скоро вернутся!"
-				var sub_lbl: Label = UiKit.lbl("СКОРО ВЕРНУТСЯ", 9, UiKit.MUTED, 1, 2)
-				sub_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-				m_box.add_child(sub_lbl)
-				b = m_box
-			else:
-				var mpl1: bool = String(it[2]) == "mp" and mp_locked()
-				var bb: Button = _ibutton(col, String(it[0]), String(it[1]), "" if mpl1 else String(it[2]), String(it[4]), float(it[3]))
-				if mpl1:
-					_android_mp_lock(bb, String(it[0]))
-				if i2 == 0:
-					bb.add_theme_font_size_override("font_size", 20)
-				b = bb
+			var mpl1: bool = String(it[2]) == "mp" and mp_locked()
+			var bb: Button = _ibutton(col, String(it[0]), String(it[1]), "" if mpl1 else String(it[2]), String(it[4]), float(it[3]))
+			if mpl1:
+				_android_mp_lock(bb, String(it[0]))
+			if is_mods:
+				_apply_mods_button_outline(bb)
+			if i2 == 0:
+				bb.add_theme_font_size_override("font_size", 20)
+			b = bb
 		if i2 == 0:
 			SavesUI.main_strip(self, col, has_save)
 		b.modulate.a = 0.0
@@ -1623,9 +1629,6 @@ func show_flag_editor(bot: int = -1) -> void :
 
 
 func show_mods(keep: bool = false) -> void:
-	if not GameConfig.mods_enabled:
-		show_mods_settings(_from_pause)
-		return
 	var ks: int = _scroll.scroll_vertical if keep and _scroll != null and is_instance_valid(_scroll) else 0
 	var vb: VBoxContainer = _screen("Модификации", 0.55, not keep)
 	current = "mods"
@@ -2806,7 +2809,6 @@ func show_settings(from_pause: bool) -> void :
 	_nav_row(vb, "УПРАВЛЕНИЕ", "КЛАВИАТУРА И МЫШЬ", show_controls.bind(from_pause))
 	_nav_row(vb, "ЗВУК", _sound_hint(), show_settings_sub.bind("audio"))
 	_nav_row(vb, "ГРАФИКА", Loc.t("ЭФФЕКТЫ: %s") % Loc.t(String(["НИЗКО", "НОРМА", "ВЫСОКО"][clampi(GameConfig.fx_level, 0, 2)])), show_settings_sub.bind("gfx"))
-	_nav_row(vb, "МОДИФИКАЦИИ", Loc.t("ВКЛЮЧЕНО") if GameConfig.mods_enabled else Loc.t("ОТКЛЮЧЕНО (СКОРО ВЕРНУТСЯ)"), func() -> void : show_mods_settings(from_pause))
 	_selector(vb, "ПОДСКАЗКИ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.hints else 1, func(i: int) -> void : GameConfig.hints = i == 0, VW_SHORT)
 	_selector(vb, "ПЛАН РАЗВИТИЯ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 1 if Hud.plan_closed else 0, func(i: int) -> void : Hud.plan_closed = i == 1, VW_SHORT)
 	_selector(vb, "ПОДТВЕРЖДЕНИЕ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.confirm_actions else 1, func(i: int) -> void : GameConfig.confirm_actions = i == 0, VW_SHORT)
@@ -2904,7 +2906,7 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 	elif changelog == "" and up != null:
 		changelog = String(up.get("latest_changelog"))
 	if tag == "":
-		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.5.1"
+		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.9"
 	var is_android: bool = OS.has_feature("mobile") or OS.get_name() == "Android"
 	var is_mac: bool = OS.get_name() == "macOS"
 	var direct_installer_url: String = ""
@@ -3096,15 +3098,48 @@ func show_local_workshop() -> void:
 
 
 func _set_graphics_profile(i: int) -> void:
-	GameConfig.performance_mode = clampi(i, 0, 3)
+	GameConfig.performance_mode = clampi(i, 0, 4)
+	if i == 4:
+		return
 	var economical: bool = i == 0 or i == 3
-	GameConfig.fx_level = 0 if economical else i
+	GameConfig.fx_level = 0 if economical else (1 if i == 1 else 2)
 	GameConfig.clouds = not economical
 	GameConfig.ground_detail = not economical
 	GameConfig.econ_fx = not economical
 	GameConfig.day_grade = not economical
+
+	match i:
+		0:
+			GameConfig.chunk_culling = true
+			GameConfig.tree_batching = true
+			GameConfig.tree_sway_mode = 1
+			GameConfig.object_lod = 1
+			GameConfig.simple_cover = true
+			GameConfig.strat_lod_z = 2
+		1:
+			GameConfig.chunk_culling = true
+			GameConfig.tree_batching = true
+			GameConfig.tree_sway_mode = 1
+			GameConfig.object_lod = 1
+			GameConfig.simple_cover = false
+			GameConfig.strat_lod_z = 1
+		2:
+			GameConfig.chunk_culling = true
+			GameConfig.tree_batching = false
+			GameConfig.tree_sway_mode = 2
+			GameConfig.object_lod = 0
+			GameConfig.simple_cover = false
+			GameConfig.strat_lod_z = 0
+		3:
+			GameConfig.chunk_culling = true
+			GameConfig.tree_batching = true
+			GameConfig.tree_sway_mode = 0
+			GameConfig.object_lod = 2
+			GameConfig.simple_cover = true
+			GameConfig.strat_lod_z = 3
+
 	if gw != null and gw.objects != null and gw.camera != null:
-		gw.objects.sway_enabled = gw.camera.zoom.x >= 1.0 and not economical
+		gw.objects.sway_enabled = GameConfig.tree_sway_mode != 0
 
 
 func show_graphics_first() -> void:
@@ -3124,17 +3159,65 @@ func show_graphics_first() -> void:
 
 func show_settings_sub(kind: String) -> void :
 	if kind == "mods":
-		show_mods_settings(_from_pause)
+		show_mods()
 		return
 	var vb: VBoxContainer = _screen("Графика" if kind == "gfx" else (Loc.t("Заставка") if kind == "opening" else Loc.t("Звук")), 0.45)
 	current = "settings_" + kind
 	_sheet = kind != "gfx"
 	if kind == "gfx":
-		_selector(vb, "ПРОФИЛЬ ГРАФИКИ", ["ПРОИЗВОДИТ.", "БАЛАНС", "КАЧЕСТВО", "МАКС. FPS"], func() -> int: return GameConfig.performance_mode, func(i: int) -> void:
+		_selector(vb, "ПРОФИЛЬ ГРАФИКИ", ["ПРОИЗВОДИТ.", "БАЛАНС", "КАЧЕСТВО", "МАКС. FPS", "СВОЙ"], func() -> int: return GameConfig.performance_mode, func(i: int) -> void:
 			_set_graphics_profile(i)
 			Save.save_prefs()
 			call_deferred("show_settings_sub", "gfx"), 110.0)
-		_label(vb, "Производительность: меньше эффектов, подробная карта скрывается раньше.", 9, UiKit.MUTED)
+		_label(vb, "Готовые профили. Ниже можно настроить каждый параметр вручную.", 9, UiKit.MUTED)
+
+		_selector(vb, "АВТО-FPS (АДАПТИВНО)", ["ВЫКЛ", "30 FPS", "45 FPS", "60 FPS"], func() -> int: return GameConfig.dynamic_fps_target, func(i: int) -> void:
+			GameConfig.dynamic_fps_target = i
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), VW_SHORT)
+		_label(vb, "При просадках FPS ниже порога автоматически включает ступени оптимизации и возвращает графику обратно.", 9, UiKit.MUTED)
+
+		_selector(vb, "ОТСЕЧЕНИЕ ЧАНКОВ", ["ВЫКЛ", "ВКЛ"], func() -> int: return 1 if GameConfig.chunk_culling else 0, func(i: int) -> void:
+			GameConfig.chunk_culling = i == 1
+			GameConfig.performance_mode = 4
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), VW_SHORT)
+		_label(vb, "Не рендерит скрытые за экраном части карты, экономя вызовы GPU.", 9, UiKit.MUTED)
+
+		_selector(vb, "БАТЧИНГ ДЕРЕВЬЕВ", ["ВЫКЛ", "ВКЛ"], func() -> int: return 1 if GameConfig.tree_batching else 0, func(i: int) -> void:
+			GameConfig.tree_batching = i == 1
+			GameConfig.performance_mode = 4
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), VW_SHORT)
+		_label(vb, "Объединяет растительность одного атласа в единый вызов, снижая Draw Calls в 5-8 раз.", 9, UiKit.MUTED)
+
+		_selector(vb, "ПОКАЧИВАНИЕ ДЕРЕВЬЕВ", ["ВЫКЛ", "ВБЛИЗИ", "ВСЕГДА"], func() -> int: return GameConfig.tree_sway_mode, func(i: int) -> void:
+			GameConfig.tree_sway_mode = i
+			GameConfig.performance_mode = 4
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), VW_SHORT)
+		_label(vb, "Вблизи: не перерисовывает деревья при отдалении камеры.", 9, UiKit.MUTED)
+
+		_selector(vb, "LOD РАСТИТЕЛЬНОСТИ", ["ВЫКЛ", "МЯГКИЙ", "АГРЕССИВНЫЙ"], func() -> int: return GameConfig.object_lod, func(i: int) -> void:
+			GameConfig.object_lod = i
+			GameConfig.performance_mode = 4
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), VW_SHORT)
+		_label(vb, "Прореживает густые леса при общем обзоре континента.", 9, UiKit.MUTED)
+
+		_selector(vb, "ПЕРЕХОД В СТРАТ. КАРТУ", ["СТАНДАРТ (0.17)", "БАЛАНС (0.28)", "РАННИЙ (0.40)", "МАКС (0.50)"], func() -> int: return GameConfig.strat_lod_z, func(i: int) -> void:
+			GameConfig.strat_lod_z = i
+			GameConfig.performance_mode = 4
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), 110.0)
+		_label(vb, "Масштаб зума камеры, на котором включается быстрая упрощённая карта.", 9, UiKit.MUTED)
+
+		_selector(vb, "ПЕРЕКРЫТИЕ ТЕХНИКИ", ["ТОЧНОЕ", "БЫСТРОЕ"], func() -> int: return 1 if GameConfig.simple_cover else 0, func(i: int) -> void:
+			GameConfig.simple_cover = i == 1
+			GameConfig.performance_mode = 4
+			Save.save_prefs()
+			call_deferred("show_settings_sub", "gfx"), VW_SHORT)
+		_label(vb, "Быстрое: рисует технику целиком без нарезки полосками.", 9, UiKit.MUTED)
 		if not GameConfig.android:
 			var resolutions: Array[Vector2i] = Save.available_display_resolutions()
 			var resolution_labels: Array[String] = Save.display_resolution_labels(resolutions)

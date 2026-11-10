@@ -109,6 +109,61 @@ static var performance_mode: int = 1
 static var graphics_chosen: bool = false
 static var pause_fps_limit: bool = false
 
+# Granular Graphics & Optimization settings
+static var chunk_culling: bool = true
+static var tree_batching: bool = true
+static var tree_sway_mode: int = 1 # 0: Off, 1: Close only (zoom >= 0.8), 2: Always
+static var object_lod: int = 1 # 0: Off, 1: Soft (zoom < 0.5), 2: Aggressive
+static var simple_cover: bool = false
+static var strat_lod_z: int = 1 # 0: 0.17 (late), 1: 0.28 (balanced), 2: 0.40 (early), 3: 0.50 (max)
+static var dynamic_fps_target: int = 0 # 0: Off, 1: 30 FPS, 2: 45 FPS, 3: 60 FPS
+
+# Adaptive runtime state (internal override when dynamic FPS triggers)
+static var _adaptive_active: bool = false
+static var _dyn_chunk_culling: bool = true
+static var _dyn_tree_batching: bool = true
+static var _dyn_tree_sway_mode: int = 1
+static var _dyn_object_lod: int = 1
+static var _dyn_simple_cover: bool = false
+static var _dyn_strat_lod_z: int = 1
+
+static func eff_chunk_culling() -> bool:
+	return _dyn_chunk_culling if _adaptive_active else chunk_culling
+
+static func eff_tree_batching() -> bool:
+	return _dyn_tree_batching if _adaptive_active else tree_batching
+
+static func eff_tree_sway_mode() -> int:
+	return _dyn_tree_sway_mode if _adaptive_active else tree_sway_mode
+
+static func eff_object_lod() -> int:
+	return _dyn_object_lod if _adaptive_active else object_lod
+
+static func eff_simple_cover() -> bool:
+	return _dyn_simple_cover if _adaptive_active else simple_cover
+
+static func eff_strat_lod_z() -> int:
+	return _dyn_strat_lod_z if _adaptive_active else strat_lod_z
+
+static func apply_adaptive_stage(stage: int) -> void:
+	if stage <= 0:
+		_adaptive_active = false
+		return
+	_adaptive_active = true
+	_dyn_chunk_culling = true
+	_dyn_tree_sway_mode = 0
+	_dyn_tree_batching = tree_batching
+	_dyn_object_lod = object_lod
+	_dyn_simple_cover = simple_cover
+	_dyn_strat_lod_z = strat_lod_z
+	if stage >= 2:
+		_dyn_tree_batching = true
+		_dyn_object_lod = maxi(1, object_lod)
+		_dyn_simple_cover = true
+	if stage >= 3:
+		_dyn_object_lod = 2
+		_dyn_strat_lod_z = maxi(2, strat_lod_z)
+
 
 const ORE_PRESET_NAMES: Array = ["БАЛАНС", "МАЛО", "МНОГО", "СВОИ"]
 const ORE_LEVEL_NAMES: Array = ["НЕТ", "МАЛО", "НОРМА", "МНОГО", "ОЧЕНЬ МНОГО"]
