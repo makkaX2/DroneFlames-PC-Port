@@ -3978,7 +3978,13 @@ func show_profile(msg: String = "", sev: String = "info") -> void :
 	var sub_prof: String = "ЧАСОВ: %s · ПОБЕД: %d · МАТЧЕЙ: %d" % [Account.format_hours(played_s), wins_cnt, matches_cnt]
 	MpKit.player_card(vb, Account.username(), sub_prof, Account.equipped(), 72.0, Callable(), null, Account.is_dev(), Account.avatar_b64)
 	if Account.is_dev():
-		MpKit.status_bar(vb, "РАЗРАБОТЧИК ПОРТА DRONEFLAMES", "ok", "icon_ok")
+		var dev_sb: PanelContainer = MpKit.status_bar(vb, "РАЗРАБОТЧИК ПОРТА DRONEFLAMES", "ok", "mod_verified")
+		dev_sb.mouse_filter = Control.MOUSE_FILTER_STOP
+		dev_sb.gui_input.connect(func(ev: InputEvent) -> void:
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+				UiKit.snd("ui_click")
+				MpKit.show_dev_verified_dialog(Account.username())
+		)
 	elif not Account.is_authenticated():
 		var reg_p: Button = UiKit.big("ЗАРЕГИСТРИРОВАТЬСЯ В СЕТИ", "green", "", 44.0, 12)
 		vb.add_child(reg_p)
@@ -5306,7 +5312,13 @@ func show_player_profile(u: Dictionary) -> void:
 	MpKit.player_card(vb, uname, sub, cos, 72.0, Callable(), null, is_dev, a_b64)
 	
 	if is_dev:
-		MpKit.status_bar(vb, "РАЗРАБОТЧИК ПОРТА DRONEFLAMES", "ok", "icon_ok")
+		var dev_sb: PanelContainer = MpKit.status_bar(vb, "РАЗРАБОТЧИК ПОРТА DRONEFLAMES", "ok", "mod_verified")
+		dev_sb.mouse_filter = Control.MOUSE_FILTER_STOP
+		dev_sb.gui_input.connect(func(ev: InputEvent) -> void:
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+				UiKit.snd("ui_click")
+				MpKit.show_dev_verified_dialog(uname)
+		)
 	
 	var total_w: int = int(u.get("total_wins", int(u.get("wins", 0)) + int(u.get("solo_wins", 0))))
 	var matches_cnt: int = int(u.get("matches_played", u.get("matches", 0)))

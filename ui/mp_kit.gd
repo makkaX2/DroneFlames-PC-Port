@@ -681,7 +681,7 @@ static func avatar_framed(frame_code: Variant, px: float = 48.0, avatar_tex: Tex
 	return box
 
 
-static var _dev_verified_popup: Control = null
+static var _dev_verified_popup: CanvasLayer = null
 
 static func show_dev_verified_dialog(dev_name: String = "") -> void:
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
@@ -691,20 +691,40 @@ static func show_dev_verified_dialog(dev_name: String = "") -> void:
 		_dev_verified_popup.queue_free()
 		_dev_verified_popup = null
 
+	var cl: CanvasLayer = CanvasLayer.new()
+	cl.layer = 130
+	tree.root.add_child(cl)
+	_dev_verified_popup = cl
+
 	var bg: ColorRect = ColorRect.new()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.color = Color(0.02, 0.04, 0.08, 0.8)
 	bg.mouse_filter = Control.MOUSE_FILTER_STOP
-	tree.root.add_child(bg)
-	_dev_verified_popup = bg
+	cl.add_child(bg)
+
+	var close_dialog: Callable = func() -> void:
+		UiKit.snd("ui_click")
+		if _dev_verified_popup != null and is_instance_valid(_dev_verified_popup):
+			_dev_verified_popup.queue_free()
+			_dev_verified_popup = null
+
+	bg.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			close_dialog.call()
+	)
 
 	var cc: CenterContainer = CenterContainer.new()
 	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg.add_child(cc)
 
 	var panel: PanelContainer = PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", UiKit.sb("wb_window", 16, 14))
-	panel.custom_minimum_size = Vector2(360, 0)
+	var win_w: float = 340.0
+	if tree.root.get_viewport() != null:
+		win_w = minf(340.0, tree.root.get_viewport().get_visible_rect().size.x - 32.0)
+	panel.custom_minimum_size = Vector2(win_w, 0)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	cc.add_child(panel)
 
 	var vb: VBoxContainer = VBoxContainer.new()
@@ -743,12 +763,7 @@ static func show_dev_verified_dialog(dev_name: String = "") -> void:
 	vb.add_child(text_lbl)
 
 	var close_btn: Button = UiKit.big("ЗАКРЫТЬ", "green", "", 36.0, 11)
-	close_btn.pressed.connect(func() -> void:
-		UiKit.snd("ui_click")
-		if _dev_verified_popup != null and is_instance_valid(_dev_verified_popup):
-			_dev_verified_popup.queue_free()
-			_dev_verified_popup = null
-	)
+	close_btn.pressed.connect(close_dialog)
 	vb.add_child(close_btn)
 
 
@@ -772,20 +787,22 @@ static func toast(text: String) -> void:
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
 	if tree == null or tree.root == null:
 		return
+	var cl: CanvasLayer = CanvasLayer.new()
+	cl.layer = 140
+	tree.root.add_child(cl)
 	var tip: = PanelContainer.new()
 	tip.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_gold", 8, 4))
-	tip.top_level = true
-	tip.z_index = 200
+	tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var lbl: Label = UiKit.lbl(text, 12, UiKit.TEXT, 3, 3)
 	tip.add_child(lbl)
-	tree.root.add_child(tip)
+	cl.add_child(tip)
 	var vp_size: Vector2 = tree.root.get_viewport().get_visible_rect().size
 	tip.position = Vector2((vp_size.x - 240) / 2.0, vp_size.y * 0.15)
 	var tw: Tween = tip.create_tween()
 	tw.tween_property(tip, "modulate:a", 1.0, 0.2).from(0.0)
 	tw.tween_interval(2.2)
 	tw.tween_property(tip, "modulate:a", 0.0, 0.4)
-	tw.tween_callback(tip.queue_free)
+	tw.tween_callback(cl.queue_free)
 
 
 
