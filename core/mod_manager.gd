@@ -16,6 +16,7 @@ signal catalog_failed(reason: String)
 signal mod_installed(mod_id: String)
 signal mod_uninstalled(mod_id: String)
 signal mod_toggled(mod_id: String, enabled: bool)
+signal mod_download_started(mod_id: String)
 signal mod_download_progress(mod_id: String, received_bytes: int, total_bytes: int, percent: float)
 signal mod_download_completed(mod_id: String)
 signal mod_download_failed(mod_id: String, reason: String)
@@ -853,7 +854,7 @@ func _activate_promoted_mod(mod_id: String, backup_path: String) -> bool:
 		enabled_mod_ids.append(mod_id)
 	_save_config()
 	scan_installed_mods()
-	if is_mod_loaded(mod_id):
+	if is_mod_loaded(mod_id) or (installed_mods.has(mod_id) and (String(installed_mods[mod_id].get("_load_error", "")) == "" or not _are_mods_enabled())):
 		if backup_path != "" and DirAccess.dir_exists_absolute(backup_path):
 			_delete_recursive_absolute(backup_path)
 		return true
@@ -1046,8 +1047,16 @@ func get_mod_icon(mod_id: String, mod_data: Dictionary = {}) -> Texture2D:
 	return null
 
 func download_and_install_mod(cat_mod: Dictionary) -> void:
-	var mod_id: String = String(cat_mod.get("id", ""))
-	var dl_url: String = String(cat_mod.get("url", cat_mod.get("download_url", "")))
+	var mod_id: String = String(cat_mod.get("id", "")).strip_edges()
+	var dl_url: String = String(cat_mod.get("url", cat_mod.get("download_url", ""))).strip_edges()
+	if dl_url == "":
+		for c in catalog_mods:
+			if String(c.get("id", "")).strip_edges() == mod_id:
+				dl_url = String(c.get("url", c.get("download_url", ""))).strip_edges()
+				break
+	if dl_url == "" and mod_id != "":
+		dl_url = "https://raw.githubusercontent.com/makkaX2/DroneFlames-Mods/main/mods/%s/%s.dfmod" % [mod_id, mod_id]
+
 	if not _valid_mod_id(mod_id) or dl_url == "":
 		print("[ModManager] Error: No download URL for mod: ", mod_id, " data: ", cat_mod)
 		mod_download_failed.emit(mod_id, "Некорректный ID мода или не указан URL для скачивания")
@@ -1056,6 +1065,14 @@ func download_and_install_mod(cat_mod: Dictionary) -> void:
 	if _is_downloading:
 		mod_download_failed.emit(mod_id, "Уже выполняется другое скачивание")
 		return
+
+	# Гарантируем наличие целевой папки downloads перед скачиванием
+	var dl_dir: String = ProjectSettings.globalize_path("user://mods/downloads")
+	if not DirAccess.dir_exists_absolute(dl_dir):
+		DirAccess.make_dir_recursive_absolute(dl_dir)
+
+	if _http_download.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
+		_http_download.cancel_request()
 
 	_is_downloading = true
 	_download_mod_id = mod_id
@@ -1071,6 +1088,10 @@ func download_and_install_mod(cat_mod: Dictionary) -> void:
 		_is_downloading = false
 		_download_mod_id = ""
 		mod_download_failed.emit(mod_id, "Ошибка отправки запроса: %d" % err)
+		return
+
+	mod_download_started.emit(mod_id)
+	mods_updated.emit()
 
 func _on_download_request_completed(result: int, response_code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
 	var mod_id: String = _download_mod_id
@@ -1079,12 +1100,27 @@ func _on_download_request_completed(result: int, response_code: int, _headers: P
 	_download_mod_id = ""
 	_download_temp_path = ""
 
-	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+	if result != HTTPRequest.RESULT_SUCCESS:
 		var failed_temp: String = ProjectSettings.globalize_path(temp_path)
 		if FileAccess.file_exists(failed_temp):
 			DirAccess.remove_absolute(failed_temp)
-		mod_download_failed.emit(mod_id, "Ошибка загрузки файла (код %d)" % response_code)
+		var err_msg: String = "Ошибка сети при загрузке"
+		match result:
+			HTTPRequest.RESULT_CANT_CONNECT: err_msg = "Не удалось подключиться к серверу загрузки"
+			HTTPRequest.RESULT_CANT_RESOLVE: err_msg = "Не удалось разрешить адрес сервера"
+			HTTPRequest.RESULT_CONNECTION_ERROR: err_msg = "Сетевое соединение разорвано"
+			HTTPRequest.RESULT_TLS_HANDSHAKE_ERROR: err_msg = "Ошибка SSL/TLS соединения"
+			HTTPRequest.RESULT_TIMEOUT: err_msg = "Превышено время ожидания ответа сервера"
+		mod_download_failed.emit(mod_id, err_msg)
 		return
+
+	if response_code != 200 and response_code != 304:
+		var failed_temp: String = ProjectSettings.globalize_path(temp_path)
+		if FileAccess.file_exists(failed_temp):
+			DirAccess.remove_absolute(failed_temp)
+		mod_download_failed.emit(mod_id, "Сервер вернул ошибку HTTP %d" % response_code)
+		return
+
 	var stage_result: Dictionary = _stage_mod_archive(temp_path, mod_id)
 	var global_temp: String = ProjectSettings.globalize_path(temp_path)
 	if FileAccess.file_exists(global_temp):
@@ -1094,11 +1130,12 @@ func _on_download_request_completed(result: int, response_code: int, _headers: P
 		return
 	var backup_path: String = String(stage_result.get("backup", ""))
 	if not _activate_promoted_mod(mod_id, backup_path):
-		mod_download_failed.emit(mod_id, "Мод не загрузился; предшествующая версия восстановлена, если она была.")
+		mod_download_failed.emit(mod_id, "Мод распакован, но не удалось инициализировать скрипт mod.gd")
 		return
 
 	mod_download_completed.emit(mod_id)
 	mod_installed.emit(mod_id)
+	mods_updated.emit()
 	print("[ModManager] Successfully installed/updated and enabled mod: ", mod_id)
 
 func uninstall_mod(mod_id: String) -> void:

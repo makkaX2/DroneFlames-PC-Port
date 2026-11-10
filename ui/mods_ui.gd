@@ -10,6 +10,9 @@ static var _detail_popup: Control = null
 static var _verified_popup: Control = null
 static var _signals_connected: bool = false
 static var _active_menus: Menus = null
+static var _status_banner_text: String = ""
+static var _status_banner_type: String = "info" # "info", "error", "success", "progress"
+static var _banner_label_ref: Label = null
 
 const VERIFIED_MODS: Array[String] = [
 	"thermo_battery",
@@ -44,6 +47,10 @@ static func is_version_greater(v_new: String, v_cur: String) -> bool:
 			return false
 	return false
 
+static func _update_banner_label() -> void:
+	if _banner_label_ref != null and is_instance_valid(_banner_label_ref):
+		_banner_label_ref.text = _status_banner_text
+
 static func _ensure_signals(menus: Menus, mm: Node) -> void:
 	_active_menus = menus
 	if _signals_connected:
@@ -51,10 +58,32 @@ static func _ensure_signals(menus: Menus, mm: Node) -> void:
 	_signals_connected = true
 	mm.mods_updated.connect(_refresh_ui)
 	mm.catalog_loaded.connect(func(_arr: Array) -> void: _refresh_ui())
-	mm.catalog_failed.connect(func(_err: String) -> void: _refresh_ui())
-	mm.mod_download_completed.connect(func(_id: String) -> void: _refresh_ui())
-	mm.mod_download_failed.connect(func(_id: String, err: String) -> void:
+	mm.catalog_failed.connect(func(err: String) -> void:
+		_status_banner_text = "Каталог недоступен: " + err
+		_status_banner_type = "error"
+		_refresh_ui()
+	)
+	if mm.has_signal("mod_download_started"):
+		mm.mod_download_started.connect(func(id: String) -> void:
+			_status_banner_text = "Загрузка мода «%s»..." % id
+			_status_banner_type = "progress"
+			_refresh_ui()
+		)
+	if mm.has_signal("mod_download_progress"):
+		mm.mod_download_progress.connect(func(id: String, _rec: int, _tot: int, pct: float) -> void:
+			_status_banner_text = "Загрузка «%s»: %d%%" % [id, int(pct)]
+			_status_banner_type = "progress"
+			_update_banner_label()
+		)
+	mm.mod_download_completed.connect(func(id: String) -> void:
+		_status_banner_text = "Мод «%s» успешно установлен и активирован!" % id
+		_status_banner_type = "success"
+		_refresh_ui()
+	)
+	mm.mod_download_failed.connect(func(id: String, err: String) -> void:
 		print("[ModsUI] Download failed: ", err)
+		_status_banner_text = "Ошибка загрузки «%s»: %s" % [id, err]
+		_status_banner_type = "error"
 		_refresh_ui()
 	)
 
@@ -73,6 +102,35 @@ static func build(menus: Menus, parent: VBoxContainer) -> void:
 	var workshop: Button = UiKit.big("МАСТЕРСКАЯ КАРТ · ЛОКАЛЬНО", "gold", "", 38.0, 11)
 	workshop.pressed.connect(func() -> void: menus.show_local_workshop())
 	parent.add_child(workshop)
+
+	if _status_banner_text != "":
+		var sb_panel: PanelContainer = PanelContainer.new()
+		var sb_color: Color = UiKit.GOLD
+		if _status_banner_type == "error":
+			sb_color = UiKit.RED
+		elif _status_banner_type == "success":
+			sb_color = UiKit.GREEN
+
+		sb_panel.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 10, 8))
+		parent.add_child(sb_panel)
+
+		var sb_row: HBoxContainer = HBoxContainer.new()
+		sb_row.add_theme_constant_override("separation", 8)
+		sb_panel.add_child(sb_row)
+
+		var sb_lbl: Label = UiKit.lbl(_status_banner_text, 10, sb_color, 1, 1)
+		sb_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sb_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		sb_row.add_child(sb_lbl)
+		_banner_label_ref = sb_lbl
+
+		var btn_dismiss: Button = UiKit.big("✕", "stone", "", 24.0, 9)
+		btn_dismiss.custom_minimum_size = Vector2(28, 24)
+		btn_dismiss.pressed.connect(func() -> void:
+			_status_banner_text = ""
+			_refresh_ui()
+		)
+		sb_row.add_child(btn_dismiss)
 
 
 	# Верхняя панель: Переключатель вкладок
@@ -397,9 +455,10 @@ static func _build_mod_card(menus: Menus, parent: VBoxContainer, data: Dictionar
 	var update_available: bool = false
 	var latest_ver: String = ""
 	var catalog_entry: Dictionary = {}
+	var all_cat: Array = mm.get_full_catalog() if mm.has_method("get_full_catalog") else mm.catalog_mods
 	if is_installed:
 		var cur_v: String = installed_ver if installed_ver != "" else mod_ver
-		for cat in mm.catalog_mods:
+		for cat in all_cat:
 			if String(cat.get("id", "")) == mod_id:
 				catalog_entry = cat
 				latest_ver = String(cat.get("version", ""))
@@ -410,13 +469,37 @@ static func _build_mod_card(menus: Menus, parent: VBoxContainer, data: Dictionar
 	if update_available:
 		var btn_up: Button = UiKit.big("ОБНОВИТЬ v" + latest_ver, "gold", "", 28.0, 9)
 		btn_up.pressed.connect(func() -> void:
+			btn_up.disabled = true
+			btn_up.text = "ЗАГРУЗКА..."
 			if not catalog_entry.is_empty():
 				mm.download_and_install_mod(catalog_entry)
+			else:
+				mm.download_and_install_mod({"id": mod_id})
 		)
 		act_col.add_child(btn_up)
 
 	var this_id: String = mod_id
 	if is_installed:
+		# Если мод с ошибкой компиляции/загрузки — даем кнопку быстрой починки/переустановки
+		if load_error != "":
+			var btn_fix: Button = UiKit.big("ПЕРЕУСТАНОВИТЬ", "gold", "", 26.0, 8)
+			btn_fix.pressed.connect(func() -> void:
+				btn_fix.disabled = true
+				btn_fix.text = "ЗАГРУЗКА..."
+				var fix_cat: Dictionary = {}
+				for cat in all_cat:
+					if String(cat.get("id", "")) == this_id:
+						fix_cat = cat
+						break
+				if not fix_cat.is_empty():
+					mm.download_and_install_mod(fix_cat)
+				elif mm.has_method("install_builtin_mod") and mm.install_builtin_mod(this_id):
+					pass
+				else:
+					mm.download_and_install_mod({"id": this_id})
+			)
+			act_col.add_child(btn_fix)
+
 		# Тумблер ВКЛ / ВЫКЛ
 		var tog_text: String = "ВКЛЮЧЕН" if is_enabled else "ОТКЛЮЧЕН"
 		var tog_color: String = "green" if is_enabled else "stone"
@@ -427,15 +510,17 @@ static func _build_mod_card(menus: Menus, parent: VBoxContainer, data: Dictionar
 		)
 		act_col.add_child(btn_tog)
 	else:
-		# Кнопка установки
+		# Кнопка установки (СКАЧАТЬ)
 		var is_this_downloading: bool = mm._is_downloading and mm._download_mod_id == mod_id
 		if is_this_downloading:
 			var btn_down: Button = UiKit.big("ЗАГРУЗКА...", "gold", "", 28.0, 9)
 			btn_down.disabled = true
 			act_col.add_child(btn_down)
 		else:
-			var btn_down: Button = UiKit.big("УСТАНОВИТЬ", "green", "", 28.0, 9)
+			var btn_down: Button = UiKit.big("СКАЧАТЬ", "green", "", 28.0, 9)
 			btn_down.pressed.connect(func() -> void:
+				btn_down.disabled = true
+				btn_down.text = "ЗАГРУЗКА..."
 				if mm.has_method("install_catalog_mod"):
 					mm.install_catalog_mod(data)
 				else:
