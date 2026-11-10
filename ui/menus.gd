@@ -2080,45 +2080,39 @@ func show_mp(msg: String = "", sev: String = "") -> void :
 	var rs: bool = _mp_resume_card(vb)
 	var rj: bool = _mp_rejoin_card(vb)
 	var relay_mode: bool = RtcLink.relay_only()
-	MpKit.tabs(vb, [["net_lan", "WI-FI"], ["net_globe", "ОНЛАЙН", online_ok and (relay_mode or not Account.signed_in() or Account.mp_ok())]], _mp_tab, func(i: int) -> void :
+	MpKit.tabs(vb, [["net_lan", "WI-FI"], ["net_globe", "ОНЛАЙН", online_ok]], _mp_tab, func(i: int) -> void :
 		if i == _mp_tab:
 			return
 		_mp_tab = i
+		if _mp_tab == 1 and not Account.is_authenticated() and not _auth_declined:
+			_auth_declined = true
+			show_net_auth_prompt(func() -> void: show_mp(), func() -> void: show_mp())
+			return
 		show_mp())
 	_acc_sig = _account_sig()
-	if _mp_tab == 0 or relay_mode:
+	if _mp_tab == 0:
 		_mp_nick_row(vb)
+	else:
+		_mp_profile_card(vb)
 	_label(vb, "БЕЗ ИНТЕРНЕТА, В ОДНОЙ СЕТИ" if _mp_tab == 0 else "ЧЕРЕЗ ИНТЕРНЕТ, ДО %d ИГРОКОВ" % NetConfig.MAX_PLAYERS, 10, UiKit.MUTED)
 	var signed: bool = Account.signed_in()
-	var open_ok: bool = online_ok and (relay_mode or (signed and Account.mp_open()))
+	var open_ok: bool = online_ok
 	if _mp_tab == 1:
 		if not online_ok:
 			MpKit.placeholder(vb, "net_warn", "ОНЛАЙН НЕДОСТУПЕН В ЭТОЙ ВЕРСИИ", "ИГРАЙТЕ ПО WI-FI: ВКЛАДКА СЛЕВА", false, 96.0)
-		elif not signed and not relay_mode:
-			net.browser.stop()
-			_mp_signin_block(vb)
-		elif relay_mode:
-			MpKit.placeholder(vb, "net_globe", "СЕТЕВАЯ ИГРА", "СОЗДАЙТЕ КОМНАТУ И ПЕРЕДАЙТЕ КОД ДРУЗЬЯМ", false, 82.0)
+		else:
+			var top_btn: Button = MpKit.card_button(60.0)
+			vb.add_child(top_btn)
+			var tr: HBoxContainer = MpKit._hbox(top_btn, 10, 12)
+			tr.add_child(MpKit.icon("acc_ranked", true))
+			MpKit._two_lines(tr, "ТАБЛИЦА ЛИДЕРОВ (ТОПЫ)", "РЕЙТИНГ ПО ЧАСАМ И ПОБЕДАМ · ПОИСК И ПРОФИЛИ", 13, UiKit.GOLD)
+			tr.add_child(UiKit.icon_rect("acc_arrow", 16.0))
+			top_btn.pressed.connect(func() -> void:
+				UiKit.press_fx(top_btn)
+				show_leaderboard()
+			)
 			net.browser.start()
 			MpKit.section(vb, "ОТКРЫТЫЕ КОМНАТЫ", "net_refresh", net.browser.busy and net.browser.state == RoomBrowser.STATE_OK, func() -> void : net.browser.refresh())
-		else:
-			_mp_account_card(vb)
-			if Account.mp_open():
-				_mp_ranked_card(vb)
-			if Account.mp_ok() and Account.suspended_s() > 0:
-				net.browser.stop()
-				MpKit.placeholder(vb, "acc_ban", "ОНЛАЙН ЗАКРЫТ ДО %s" % Account.suspension_until(), 
-					"ОСТАЛОСЬ %s · ПРИЧИНА: %s" % [Account.suspension_left(), Account.suspension_reason()], false, 120.0)
-				_label(vb, "ИГРА ПО WI-FI ДОСТУПНА", 10, UiKit.MUTED)
-				_sus_watch()
-			elif not Account.mp_ok():
-				net.browser.stop()
-				MpKit.placeholder(vb, "acc_ban", "ОНЛАЙН-ИГРА ЗАКРЫТА ДЛЯ АККАУНТА", "ИГРА ПО WI-FI ДОСТУПНА", false, 120.0)
-			elif net.reconnecting:
-				net.browser.stop()
-			else:
-				net.browser.start()
-				MpKit.section(vb, "ОТКРЫТЫЕ КОМНАТЫ", "net_refresh", net.browser.busy and net.browser.state == RoomBrowser.STATE_OK, func() -> void : net.browser.refresh())
 	else:
 		net.browser.stop()
 		MpKit.section(vb, "КОМНАТЫ РЯДОМ", "net_sync", true)
@@ -2139,6 +2133,26 @@ func show_mp(msg: String = "", sev: String = "") -> void :
 		_mp_join_b = null
 	_mp_fill_list()
 	_mp_status_and_buttons(msg, sev, online_ok, signed)
+
+
+
+func _mp_profile_card(vb: VBoxContainer) -> void:
+	var sub: String
+	if Account.is_authenticated():
+		sub = "ЧАСОВ: %s · ПОБЕД: %d · МАТЧЕЙ: %d" % [
+			Account.format_hours(float(Account.info.get("playtime_s", 0.0))),
+			int(Account.info.get("wins", 0)),
+			int(Account.info.get("matches", 0))
+		]
+	else:
+		sub = "НЕАВТОРИЗОВАН · НАЖМИТЕ ДЛЯ ВХОДА"
+	var arrow: TextureRect = UiKit.icon_rect("acc_arrow", 16.0)
+	MpKit.player_card(vb, Account.username(), sub, Account.equipped(), MpKit.ROW_H, func() -> void:
+		if Account.is_authenticated():
+			show_profile()
+		else:
+			show_net_auth_prompt(func() -> void: show_profile(), func() -> void: show_mp())
+	, arrow, Account.is_dev(), Account.avatar_b64)
 
 
 
@@ -2201,8 +2215,8 @@ func _mp_status_and_buttons(msg: String, sev: String, online_ok: bool, signed: b
 	if _mp_tab == 1 and online_ok and not signed and not relay_mode:
 		mk.modulate.a = 0.6
 	mk.pressed.connect( func() -> void :
-		if _mp_tab == 1 and not relay_mode and not Account.signed_in():
-			show_auth(0, "create")
+		if _mp_tab == 1 and not Account.is_authenticated():
+			show_net_auth_prompt(func() -> void: show_mp_create(), func() -> void: show_mp())
 			return
 		if not NetConfig.load_match().is_empty() and not _mp_new_ok:
 			_mp_new_ok = true
@@ -2420,6 +2434,9 @@ static func _mp_code_shown(c: String) -> String:
 
 
 func _mp_join_code(code: String) -> void :
+	if not Account.is_authenticated():
+		show_net_auth_prompt(func() -> void: _mp_join_code(code), func() -> void: show_mp())
+		return
 	net.browser.stop()
 	var w: String = net.join_online(code)
 	if w != "":
@@ -2679,7 +2696,15 @@ func show_lobby(msg: String = "") -> void :
 	for i in NetConfig.MAX_PLAYERS:
 		if i < net.slots.size():
 			var sl: Dictionary = net.slots[i]
-			MpKit.slot_row(seats, i, String(sl.get("name", "?")), i == 0, i == net.local_slot, String(ArchStyle.NAMES[net.slot_arch(i)]), false, sl.get("cos", {}) if sl.get("cos") is Dictionary else {}, NetSession.clean_flag(sl.get("flag", "")))
+			var pl_row: PanelContainer = MpKit.slot_row(seats, i, String(sl.get("name", "?")), i == 0, i == net.local_slot, String(ArchStyle.NAMES[net.slot_arch(i)]), false, sl.get("cos", {}) if sl.get("cos") is Dictionary else {}, NetSession.clean_flag(sl.get("flag", "")))
+			var pl_name: String = String(sl.get("name", ""))
+			if pl_name != "":
+				pl_row.mouse_filter = Control.MOUSE_FILTER_STOP
+				pl_row.gui_input.connect(func(ev: InputEvent) -> void:
+					if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+						UiKit.snd("ui_click")
+						_inspect_player(pl_name, sl.get("cos", {}) if sl.get("cos") is Dictionary else {})
+				)
 		else:
 			MpKit.slot_row(seats, i, "", false, false, "", i == net.slots.size())
 	if net.local_slot >= 0:
@@ -3697,24 +3722,21 @@ func show_auth(tab: int = -1, intent: String = "-", msg: String = "", sev: Strin
 		UiKit.snd("ui_tab")
 		show_auth())
 	_af = {}
-	if reg:
-		_af["nick"] = MpKit.field(vb, "НИК", "Латиница и цифры", "nick")
-		var ne: LineEdit = _af["nick"]["edit"]
-		ne.text = _auth_nick
-		ne.text_changed.connect( func(t: String) -> void :
-			var r: Array = Account.filter_nick(t)
-			if String(r[0]) != t:
-				var col: int = ne.caret_column
-				ne.text = String(r[0])
-				ne.caret_column = mini(col, ne.text.length())
-			if bool(r[1]):
-				MpKit.set_field_error(_af["nick"], Account.NICK_RULE)
-			_nick_probe(_af["nick"], ne, ""))
-	_af["email"] = MpKit.field(vb, "ПОЧТА", "name@example.com", "email")
-	(_af["email"]["edit"] as LineEdit).text = _auth_email if _auth_email != "" else Account.last_email
-	_af["password"] = MpKit.field(vb, "ПАРОЛЬ", "Не меньше 8 символов" if reg else "Пароль", "password")
+	_af["nick"] = MpKit.field(vb, "НИК", "Латиница и цифры", "nick")
+	var ne: LineEdit = _af["nick"]["edit"]
+	ne.text = _auth_nick if _auth_nick != "" else Account.username()
+	ne.text_changed.connect( func(t: String) -> void :
+		var r: Array = Account.filter_nick(t)
+		if String(r[0]) != t:
+			var col: int = ne.caret_column
+			ne.text = String(r[0])
+			ne.caret_column = mini(col, ne.text.length())
+		if bool(r[1]):
+			MpKit.set_field_error(_af["nick"], Account.NICK_RULE)
+		_nick_probe(_af["nick"], ne, ""))
+	_af["password"] = MpKit.field(vb, "ПАРОЛЬ", "Не меньше 4 символов" if reg else "Пароль", "password")
 	(_af["password"]["edit"] as LineEdit).text = _auth_pw
-	var order: Array = ["nick", "email", "password"] if reg else ["email", "password"]
+	var order: Array = ["nick", "password"]
 	for k in order.size():
 		var e: LineEdit = _af[order[k]]["edit"]
 		var nxt: String = String(order[k + 1]) if k + 1 < order.size() else ""
@@ -3854,7 +3876,7 @@ func _auth_submit() -> void :
 		return
 	var reg: bool = _auth_tab == 1
 	var first: LineEdit = null
-	for key: String in (["nick", "email", "password"] if reg else ["email", "password"]):
+	for key: String in ["nick", "password"]:
 		var e: LineEdit = _af[key]["edit"]
 		var why: String = _auth_check(key, e.text)
 		MpKit.set_field_error(_af[key], why)
@@ -3873,14 +3895,11 @@ func _auth_submit() -> void :
 	_auth_status("")
 	_auth_tick()
 	var t0: int = Time.get_ticks_msec()
-	get_tree().create_timer(1.0).timeout.connect( func() -> void :
-		if _auth_busy and current == "auth":
-			_auth_status("ПРОВЕРЯЕМ УСТРОЙСТВО...", "wait"))
 	var r: Dictionary
 	if reg:
-		r = await Account.register(_auth_nick, _auth_email, _auth_pw)
+		r = await Account.register(_auth_nick, _auth_pw)
 	else:
-		r = await Account.login(_auth_email, _auth_pw)
+		r = await Account.login(_auth_nick, _auth_pw)
 	if req != _auth_req:
 		return
 	_auth_busy = false
@@ -3945,6 +3964,7 @@ func show_profile(msg: String = "", sev: String = "info") -> void :
 	if current != "profile":
 		_logout_ok = false
 	var vb: VBoxContainer = _screen("Профиль", 0.45, current != "profile")
+	_panel.custom_minimum_size = Vector2(minf(350.0, root.size.x - 16.0), 0)
 	current = "profile"
 	_top = true
 	_acc_sig = _account_sig()
@@ -3952,9 +3972,43 @@ func show_profile(msg: String = "", sev: String = "info") -> void :
 		MpKit.status_bar(vb, "ОНЛАЙН-ИГРА ДЛЯ АККАУНТА ЗАКРЫТА · WI-FI ДОСТУПЕН", "alarm", "acc_ban")
 	elif Account.suspended_s() > 0:
 		MpKit.status_bar(vb, "ОНЛАЙН ЗАКРЫТ ДО %s · %s" % [Account.suspension_until(), Account.suspension_reason()], "alarm", "acc_ban")
-	var since: String = String(Account.info.get("creation_date", "")).left(10)
-	var p3: PackedStringArray = since.split("-")
-	MpKit.player_card(vb, Account.username(), ("В ИГРЕ С %s.%s.%s" % [p3[2], p3[1], p3[0]]) if p3.size() == 3 else "", Account.equipped(), 72.0)
+	var played_s: float = float(Account.info.get("playtime_s", 0.0))
+	var wins_cnt: int = int(Account.info.get("wins", 0))
+	var matches_cnt: int = int(Account.info.get("matches", 0))
+	var sub_prof: String = "ЧАСОВ: %s · ПОБЕД: %d · МАТЧЕЙ: %d" % [Account.format_hours(played_s), wins_cnt, matches_cnt]
+	MpKit.player_card(vb, Account.username(), sub_prof, Account.equipped(), 72.0, Callable(), null, Account.is_dev(), Account.avatar_b64)
+	if Account.is_dev():
+		var dev_sb: PanelContainer = MpKit.status_bar(vb, "РАЗРАБОТЧИК ПОРТА DRONEFLAMES", "ok", "mod_verified")
+		dev_sb.mouse_filter = Control.MOUSE_FILTER_STOP
+		dev_sb.gui_input.connect(func(ev: InputEvent) -> void:
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+				UiKit.snd("ui_click")
+				MpKit.show_dev_verified_dialog(Account.username())
+		)
+	elif not Account.is_authenticated():
+		var reg_p: Button = UiKit.big("ЗАРЕГИСТРИРОВАТЬСЯ В СЕТИ", "green", "", 44.0, 12)
+		vb.add_child(reg_p)
+		reg_p.pressed.connect(func() -> void:
+			show_net_auth_prompt(func() -> void: show_profile(), func() -> void: show_profile())
+		)
+	MpKit.section(vb, "АВАТАРКА")
+	var av_row: = HBoxContainer.new()
+	av_row.add_theme_constant_override("separation", 6)
+	vb.add_child(av_row)
+	var change_av: Button = UiKit.big("ВЫБРАТЬ ИЗ ФАЙЛА (PNG/JPG)", "blue", "", 42.0, 12)
+	change_av.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	av_row.add_child(change_av)
+	change_av.pressed.connect(func() -> void:
+		_pick_avatar_file()
+	)
+	if Account.avatar_b64 != "":
+		var rst_av: Button = UiKit.big("СБРОСИТЬ", "stone", "", 42.0, 12)
+		av_row.add_child(rst_av)
+		rst_av.pressed.connect(func() -> void:
+			Account.avatar_b64 = ""
+			Account.save_profile()
+			show_profile("АВАТАРКА СБРОШЕНА", "ok")
+		)
 	var fresh: int = Account.unseen().size()
 	var orow: Button = _nav_row(vb, "ОФОРМЛЕНИЕ", ("НОВОЕ: %d" % fresh) if fresh > 0 else ("ОТКРЫТО %d" % Account.owned.size() if not Account.owned.is_empty() else "РАМКА · БАННЕР · ТИТУЛ"), func() -> void : show_outfit())
 	if fresh > 0:
@@ -4018,9 +4072,9 @@ func show_profile(msg: String = "", sev: String = "info") -> void :
 	if busy:
 		_label(vb, "ФЛАГ МЕНЯЕТСЯ ВНЕ КОМНАТЫ", 10, UiKit.MUTED)
 	MpKit.section(vb, "СТАТИСТИКА")
-	var played: Variant = Account.info.get("match_played", null)
-	MpKit.stat_card(vb, "ОБЫЧНЫЕ ПАРТИИ", "СЧИТАЮТСЯ ОТ 2 ИГРОКОВ И 10 МИНУТ ИГРЫ", "—" if played == null else str(int(played)), false, "icon_stats")
-	MpKit.stat_card(vb, "РЕЙТИНГОВЫЕ ИГРЫ", "ПОБЕДЫ · ПОРАЖЕНИЯ", "%d · %d" % [int(Account.info.get("wins", 0)), int(Account.info.get("losses", 0))], false, "acc_ranked")
+	MpKit.stat_card(vb, "ВРЕМЯ В ИГРЕ", "ЧАСЫ И МИНУТЫ", Account.format_hours(played_s), false, "icon_time")
+	MpKit.stat_card(vb, "ПОБЕДЫ", "СОЛО И ОНЛАЙН", str(wins_cnt), false, "acc_ranked")
+	MpKit.stat_card(vb, "СЫГРАНО МАТЧЕЙ", "ВСЕГО ПАРТИЙ", str(matches_cnt), false, "icon_stats")
 	_sep(vb, 8)
 	var lo: Button = _ibutton(vb, ("ВЫЙТИ МОЖНО ПОСЛЕ ПАРТИИ" if net.in_match else "СНАЧАЛА ВЫЙДИТЕ ИЗ КОМНАТЫ") if busy else ("СНАЧАЛА ОТМЕНИТЕ ПОИСК" if searching else ("ТОЧНО ВЫЙТИ? ЕЩЁ ТАП" if _logout_ok else "ВЫЙТИ ИЗ АККАУНТА")), "red" if _logout_ok else "stone", "", "acc_logout", 44.0)
 	lo.disabled = busy or searching
@@ -4103,7 +4157,10 @@ func show_outfit(msg: String = "", sev: String = "info") -> void :
 	var codes: Array = Cosmetics.of_kind(kind)
 	var own: Array = Account.owned
 	var visible_codes: Array = codes.filter( func(c: String) -> bool:
-		return not Cosmetics.item(c).has("exclusive") or own.has(c))
+		var it: Dictionary = Cosmetics.item(c)
+		if String(it.get("exclusive", "")) == "dev" and not Account.is_dev():
+			return false
+		return not it.has("exclusive") or own.has(c))
 	var opened: int = visible_codes.filter( func(c: String) -> bool: return own.has(c)).size()
 	_label(vb, "ОТКРЫТО %d ИЗ %d" % [opened, visible_codes.size()], 10, UiKit.MUTED)
 
@@ -4128,7 +4185,7 @@ func show_outfit(msg: String = "", sev: String = "info") -> void :
 	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_scroll.get_parent().add_child(slot)
 	var pick: String = _out_pick
-	var locked: bool = pick != "" and not own.has(pick)
+	var locked: bool = pick != "" and (not own.has(pick) or (String(Cosmetics.item(pick).get("exclusive", "")) == "dev" and not Account.is_dev()))
 	if msg != "" or locked:
 		var it: Dictionary = Cosmetics.item(pick)
 		var u: Variant = Account.catalog.get(pick, it).get("unlock")
@@ -4924,3 +4981,429 @@ func _lead_row(list: VBoxContainer, e: Dictionary, me: bool) -> void :
 	h.add_child(rv)
 	rv.add_child(UiKit.lbl(str(roundi(float(e.get("rating", 0)))), 13, UiKit.GOLD, 3, 2))
 	rv.add_child(UiKit.lbl("%d–%d" % [int(e.get("wins", 0)), int(e.get("losses", 0))], 10, UiKit.MUTED, 1, 1))
+
+
+static var _auth_declined: bool = false
+var _prompt_nick_edit: LineEdit = null
+var _prompt_pw_edit: LineEdit = null
+
+func show_net_auth_prompt(on_success: Callable = Callable(), on_cancel: Callable = Callable()) -> void:
+	var vb: VBoxContainer = _screen("Авторизация", 0.55, true)
+	current = "net_auth_prompt"
+	_top = true
+	
+	MpKit.status_bar(vb, "СЕТЬ DRONEFLAMES MULTIPLAYER", "info", "net_globe")
+	
+	var disc_p: PanelContainer = PanelContainer.new()
+	disc_p.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 8, 4))
+	vb.add_child(disc_p)
+	var dv: VBoxContainer = VBoxContainer.new()
+	dv.add_theme_constant_override("separation", 6)
+	disc_p.add_child(dv)
+	
+	var dl1: Label = UiKit.lbl("ВАШ АККАУНТ НЕ ЗАРЕГИСТРИРОВАН", 12, UiKit.GOLD, 3, 2)
+	dl1.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dv.add_child(dl1)
+	
+	var desc: String = (
+		"Ваш никнейм ещё не был зарегистрирован в сети мультиплеера DroneFlames.\n\n" +
+		"🔒 БЕЗОПАСНОСТЬ И КОНФИДЕНЦИАЛЬНОСТЬ:\n" +
+		"Пароль хранится на сервере исключительно для сохранения вашей статистики (часов, побед), " +
+		"участия в топе игроков, будущей синхронизации миров и облачного сохранения косметики.\n" +
+		"Мы не собираем личные данные и не требуем почту.\n\n" +
+		"⚠️ Внимание: не используйте пароли от вашей личной почты, банка или других важных сайтов!"
+	)
+	var dl2: Label = UiKit.lbl(desc, 10, UiKit.TEXT, 1, 1)
+	dl2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dv.add_child(dl2)
+	
+	MpKit.section(vb, "УЧЁТНАЯ ЗАПИСЬ")
+	
+	var fn: Dictionary = MpKit.field(vb, "НИКНЕЙМ", "Ваш ник", "nick")
+	_prompt_nick_edit = fn["edit"]
+	_prompt_nick_edit.text = Account.username()
+	
+	var fp: Dictionary = MpKit.field(vb, "ПАРОЛЬ", "Придумайте пароль (от 4 символов)", "password")
+	_prompt_pw_edit = fp["edit"]
+	_prompt_pw_edit.secret = true
+	
+	var err_slot: Control = Control.new()
+	err_slot.custom_minimum_size = Vector2(0, 32)
+	vb.add_child(err_slot)
+	
+	var set_err: Callable = func(err_msg: String) -> void:
+		for ch: Node in err_slot.get_children():
+			ch.queue_free()
+		if err_msg != "":
+			var sb: PanelContainer = MpKit.status_bar(err_slot, err_msg, "alarm")
+			sb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
+	var act_box: VBoxContainer = VBoxContainer.new()
+	act_box.add_theme_constant_override("separation", 6)
+	vb.add_child(act_box)
+	
+	var btn_reg: Button = UiKit.big("СОЗДАТЬ ПАРОЛЬ", "green", "", 46.0, 13)
+	act_box.add_child(btn_reg)
+	
+	var btn_login: Button = UiKit.big("ВОЙТИ ПО ПАРОЛЮ", "blue", "", 42.0, 12)
+	act_box.add_child(btn_login)
+	
+	btn_reg.pressed.connect(func() -> void:
+		var u: String = _prompt_nick_edit.text.strip_edges()
+		var p: String = _prompt_pw_edit.text.strip_edges()
+		if u.length() < 2:
+			set_err.call("Никнейм минимум 2 символа")
+			return
+		if p.length() < 4:
+			set_err.call("Пароль минимум 4 символа")
+			return
+		btn_reg.disabled = true
+		btn_login.disabled = true
+		btn_reg.text = "РЕГИСТРАЦИЯ..."
+		var res: Dictionary = await Account.register(u, p)
+		if not is_instance_valid(btn_reg):
+			return
+		if bool(res.get("ok", false)):
+			UiKit.snd("ui_capture")
+			MpKit.toast("УСПЕШНО ЗАРЕГИСТРИРОВАН")
+			if on_success.is_valid():
+				on_success.call()
+			else:
+				show_mp("АККАУНТ ЗАРЕГИСТРИРОВАН", "ok")
+		else:
+			btn_reg.disabled = false
+			btn_login.disabled = false
+			btn_reg.text = "СОЗДАТЬ ПАРОЛЬ"
+			set_err.call(String(res.get("err", "Ошибка регистрации")).to_upper())
+			UiKit.snd("ui_error")
+	)
+	
+	btn_login.pressed.connect(func() -> void:
+		var u: String = _prompt_nick_edit.text.strip_edges()
+		var p: String = _prompt_pw_edit.text.strip_edges()
+		if u.length() < 2:
+			set_err.call("Никнейм минимум 2 символа")
+			return
+		if p.length() < 4:
+			set_err.call("Пароль минимум 4 символа")
+			return
+		btn_reg.disabled = true
+		btn_login.disabled = true
+		btn_login.text = "ВХОД..."
+		var res: Dictionary = await Account.login(u, p)
+		if not is_instance_valid(btn_login):
+			return
+		if bool(res.get("ok", false)):
+			UiKit.snd("ui_capture")
+			MpKit.toast("ВЫ УСПЕШНО ВОШЛИ")
+			if on_success.is_valid():
+				on_success.call()
+			else:
+				show_mp("ВЫ ВОШЛИ В АККАУНТ", "ok")
+		else:
+			btn_reg.disabled = false
+			btn_login.disabled = false
+			btn_login.text = "ВОЙТИ ПО ПАРОЛЮ"
+			set_err.call(String(res.get("err", "Неверный пароль или ошибка входа")).to_upper())
+			UiKit.snd("ui_error")
+	)
+	
+	var br: HBoxContainer = _bottom_row()
+	var cancel_btn: Button = _button(br, "ОТКАЗАТЬСЯ / ПОЗЖЕ", "stone", "")
+	cancel_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cancel_btn.pressed.connect(func() -> void:
+		_auth_declined = true
+		if on_cancel.is_valid():
+			on_cancel.call()
+		else:
+			_mp_tab = 0
+			show_mp()
+	)
+
+
+var _lead_metric: String = "hours"
+var _lead_data: Array = []
+var _lead_search: String = ""
+
+func show_leaderboard(metric: String = "") -> void:
+	if metric != "":
+		_lead_metric = metric
+	var vb: VBoxContainer = _screen("Таблица лидеров", 0.45, current != "leaderboard")
+	_panel.custom_minimum_size = Vector2(minf(350.0, root.size.x - 16.0), 0)
+	current = "leaderboard"
+	_top = true
+	
+	var m_idx: int = 0
+	match _lead_metric:
+		"hours": m_idx = 0
+		"wins": m_idx = 1
+		"matches": m_idx = 2
+	
+	MpKit.tabs(vb, [["icon_time", "ПО ЧАСАМ"], ["acc_ranked", "ПО ПОБЕДАМ"], ["icon_stats", "ПО МАТЧАМ"]], m_idx, func(i: int) -> void:
+		var metrics: Array = ["hours", "wins", "matches"]
+		_lead_metric = metrics[i]
+		_lead_search = ""
+		show_leaderboard()
+	)
+	
+	var sr: HBoxContainer = HBoxContainer.new()
+	sr.add_theme_constant_override("separation", 6)
+	vb.add_child(sr)
+	
+	var se: LineEdit = LineEdit.new()
+	se.placeholder_text = "Поиск игрока по нику..."
+	se.text = _lead_search
+	se.custom_minimum_size = Vector2(0, 40)
+	se.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	se.right_icon = UiKit.tex("net_search" if UiKit.tex("net_search") != null else "net_edit")
+	sr.add_child(se)
+	
+	var list_box: VBoxContainer = VBoxContainer.new()
+	list_box.add_theme_constant_override("separation", 6)
+	vb.add_child(list_box)
+	
+	MpKit.placeholder(list_box, "net_sync", "ЗАГРУЗКА ТОПА...", "", true, 80.0)
+	
+	var fill_rows: Callable = func(players: Array) -> void:
+		if not is_instance_valid(list_box):
+			return
+		for ch in list_box.get_children():
+			ch.queue_free()
+		if players.is_empty():
+			MpKit.placeholder(list_box, "net_players", "ИГРОКИ НЕ НАЙДЕНЫ", "", false, 72.0)
+			return
+		for idx in players.size():
+			var p_dict: Dictionary = players[idx]
+			var rank_num: int = int(p_dict.get("rank", idx + 1))
+			_render_lead_row(list_box, rank_num, p_dict)
+	
+	se.text_changed.connect(func(query: String) -> void:
+		_lead_search = query.strip_edges()
+		if _lead_search == "":
+			fill_rows.call(_lead_data)
+		else:
+			var filtered: Array = _lead_data.filter(func(u: Dictionary) -> bool:
+				return String(u.get("username", "")).to_lower().contains(_lead_search.to_lower())
+			)
+			if filtered.size() < 5 and query.length() >= 2:
+				var s_res: Dictionary = await Account.search_profiles(_lead_search)
+				if is_instance_valid(list_box) and _lead_search == query.strip_edges():
+					var s_list: Array = s_res.get("list", s_res.get("users", []))
+					fill_rows.call(s_list if not s_list.is_empty() else filtered)
+			else:
+				fill_rows.call(filtered)
+	)
+	
+	# Fetch top from server
+	var res: Dictionary = await Account.get_top(_lead_metric, 100)
+	if not is_instance_valid(list_box) or current != "leaderboard":
+		return
+	if not bool(res.get("ok", false)):
+		for ch in list_box.get_children():
+			ch.queue_free()
+		MpKit.placeholder(list_box, "net_err", "ОШИБКА ЗАГРУЗКИ", String(res.get("err", "Не удалось связаться с сервером")), false, 72.0)
+		return
+	_lead_data = res.get("list", res.get("top", []))
+	fill_rows.call(_lead_data)
+	
+	var br: HBoxContainer = _bottom_row()
+	var back: Button = _button(br, "НАЗАД", "stone", "")
+	back.custom_minimum_size.x = 111
+	back.pressed.connect(func() -> void: show_mp())
+	
+	var rf: Button = _ibutton(br, "ОБНОВИТЬ", "blue", "", "net_refresh", 46.0)
+	rf.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rf.pressed.connect(func() -> void: show_leaderboard())
+
+
+func _render_lead_row(parent: Control, rank: int, u: Dictionary) -> Control:
+	var b: Button = MpKit.card_button(64.0)
+	parent.add_child(b)
+	
+	var cos: Dictionary = u.get("cosmetics", {}) if u.get("cosmetics") is Dictionary else {}
+	MpKit.banner_bg(b, cos.get("banner"))
+	
+	var row: HBoxContainer = MpKit._hbox(b, 8, 8)
+	
+	var r_col: Color = UiKit.GOLD if rank == 1 else (Color("c0c0c0") if rank == 2 else (Color("cd7f32") if rank == 3 else UiKit.DIM))
+	var rl: Label = UiKit.lbl("#%d" % rank, 14 if rank <= 3 else 12, r_col, 3, 2)
+	rl.custom_minimum_size = Vector2(36, 0)
+	rl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(rl)
+	
+	var a_b64: String = String(u.get("avatar_b64", u.get("avatar", "")))
+	var a_tex: Texture2D = Account.get_avatar_texture(a_b64)
+	row.add_child(MpKit.avatar_framed(cos.get("frame"), 44.0, a_tex))
+	
+	var v: VBoxContainer = VBoxContainer.new()
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_theme_constant_override("separation", 2)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(v)
+	
+	var nh: HBoxContainer = HBoxContainer.new()
+	nh.add_theme_constant_override("separation", 4)
+	nh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(nh)
+	
+	var uname: String = String(u.get("username", u.get("name", u.get("nick", "Игрок"))))
+	var is_dev: bool = bool(u.get("is_dev", false)) or Account.is_dev_name(uname)
+	var registered: bool = bool(u.get("is_registered", u.get("registered", false)))
+	
+	var nl: Label = UiKit.lbl(uname, 13, UiKit.GOLD if is_dev else UiKit.TEXT, 3, 2)
+	nh.add_child(nl)
+	
+	if is_dev:
+		nh.add_child(MpKit.dev_badge_button(uname))
+	
+	var tag_p: PanelContainer = PanelContainer.new()
+	tag_p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tag_p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var tag_col: Color = UiKit.GREEN if registered else UiKit.DIM
+	tag_p.add_theme_stylebox_override("panel", MpKit._flat(Color(0.1, 0.1, 0.1, 0.8), tag_col, 1, 3))
+	var tag_l: Label = UiKit.lbl("✓ В СЕТИ" if registered else "НЕ ЗАРЕГ.", 9, tag_col, 1, 0)
+	tag_p.add_child(tag_l)
+	nh.add_child(tag_p)
+	
+	var total_w: int = int(u.get("total_wins", int(u.get("wins", 0)) + int(u.get("solo_wins", 0))))
+	var matches_cnt: int = int(u.get("matches_played", u.get("matches", 0)))
+	var play_s: float = float(u.get("playtime_s", float(u.get("hours", 0.0)) * 3600.0))
+	var sub: String = "Побед: %d · Матчей: %d · Часов: %s" % [
+		total_w,
+		matches_cnt,
+		Account.format_hours(play_s)
+	]
+	var sl: Label = UiKit.lbl(sub, 10, UiKit.MUTED, 1, 1)
+	v.add_child(sl)
+	
+	var stat_text: String
+	match _lead_metric:
+		"hours":
+			stat_text = "%s Ч" % Account.format_hours(play_s)
+		"wins":
+			stat_text = "%d ПОБЕД" % total_w
+		"matches":
+			stat_text = "%d ИГР" % matches_cnt
+	var stat_l: Label = UiKit.lbl(stat_text, 13, UiKit.GOLD, 3, 2)
+	stat_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(stat_l)
+	
+	b.pressed.connect(func() -> void:
+		UiKit.press_fx(b)
+		show_player_profile(u)
+	)
+	return b
+
+
+func show_player_profile(u: Dictionary) -> void:
+	var uname: String = String(u.get("username", u.get("name", u.get("nick", "Игрок"))))
+	var vb: VBoxContainer = _screen("Профиль: " + uname, 0.45, true)
+	_panel.custom_minimum_size = Vector2(minf(350.0, root.size.x - 16.0), 0)
+	current = "player_profile"
+	_top = true
+	
+	var is_dev: bool = bool(u.get("is_dev", false)) or Account.is_dev_name(uname)
+	var registered: bool = bool(u.get("is_registered", u.get("registered", false)))
+	var cos: Dictionary = u.get("cosmetics", {}) if u.get("cosmetics") is Dictionary else {}
+	var a_b64: String = String(u.get("avatar_b64", u.get("avatar", "")))
+	
+	var sub: String = "АВТОРИЗОВАННЫЙ ПРОФИЛЬ" if registered else "НЕАВТОРИЗОВАННЫЙ (ИСТОРИЧЕСКИЙ) АККАУНТ"
+	MpKit.player_card(vb, uname, sub, cos, 72.0, Callable(), null, is_dev, a_b64)
+	
+	if is_dev:
+		var dev_sb: PanelContainer = MpKit.status_bar(vb, "РАЗРАБОТЧИК ПОРТА DRONEFLAMES", "ok", "mod_verified")
+		dev_sb.mouse_filter = Control.MOUSE_FILTER_STOP
+		dev_sb.gui_input.connect(func(ev: InputEvent) -> void:
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+				UiKit.snd("ui_click")
+				MpKit.show_dev_verified_dialog(uname)
+		)
+	
+	var total_w: int = int(u.get("total_wins", int(u.get("wins", 0)) + int(u.get("solo_wins", 0))))
+	var matches_cnt: int = int(u.get("matches_played", u.get("matches", 0)))
+	var play_s: float = float(u.get("playtime_s", float(u.get("hours", 0.0)) * 3600.0))
+	
+	MpKit.section(vb, "СТАТИСТИКА")
+	MpKit.stat_card(vb, "ВРЕМЯ В ИГРЕ", "ЧАСЫ И МИНУТЫ", Account.format_hours(play_s), false, "icon_time")
+	MpKit.stat_card(vb, "ПОБЕДЫ", "СОЛО И ОНЛАЙН", str(total_w), false, "acc_ranked")
+	MpKit.stat_card(vb, "МАТЧЕЙ СЫГРАНО", "ВСЕГО ПАРТИЙ", str(matches_cnt), false, "icon_stats")
+	
+	var ls_raw: Variant = u.get("last_seen", 0)
+	var ls_str: String = ""
+	if ls_raw is int and int(ls_raw) > 0:
+		var dt: Dictionary = Time.get_datetime_dict_from_unix_time(int(ls_raw))
+		ls_str = "%02d.%02d.%04d %02d:%02d" % [dt.day, dt.month, dt.year, dt.hour, dt.minute]
+	elif ls_raw is String and String(ls_raw) != "":
+		ls_str = String(ls_raw).left(16)
+	if ls_str != "":
+		MpKit.stat_card(vb, "АКТИВНОСТЬ", "ПОСЛЕДНЯЯ ИГРА", ls_str, false, "net_sync")
+	
+	MpKit.section(vb, "ОФОРМЛЕНИЕ")
+	var fr_name: String = Cosmetics.name_of(String(cos.get("frame", "")))
+	var bn_name: String = Cosmetics.name_of(String(cos.get("banner", "")))
+	var tt_name: String = Cosmetics.name_of(String(cos.get("title", "")))
+	var info_p: PanelContainer = PanelContainer.new()
+	info_p.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 8, 4))
+	vb.add_child(info_p)
+	var iv: VBoxContainer = VBoxContainer.new()
+	iv.add_theme_constant_override("separation", 4)
+	info_p.add_child(iv)
+	iv.add_child(UiKit.lbl("Рамка: %s" % (fr_name if fr_name != "" else "Стандартная"), 11, UiKit.TEXT, 2, 1))
+	iv.add_child(UiKit.lbl("Баннер: %s" % (bn_name if bn_name != "" else "Стандартный"), 11, UiKit.TEXT, 2, 1))
+	if tt_name != "":
+		iv.add_child(UiKit.lbl("Титул: %s" % tt_name, 11, UiKit.GOLD, 2, 1))
+	
+	var br: HBoxContainer = _bottom_row()
+	var back: Button = _button(br, "НАЗАД", "stone", "")
+	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back.pressed.connect(func() -> void:
+		show_leaderboard()
+	)
+
+
+func _inspect_player(uname: String, fallback_cos: Dictionary = {}) -> void:
+	var res: Dictionary = await Account.get_profile(uname)
+	var u: Dictionary
+	if bool(res.get("ok", false)) and res.get("user") is Dictionary:
+		u = res["user"]
+	else:
+		u = {
+			"username": uname,
+			"cosmetics": fallback_cos,
+			"playtime_s": 0.0,
+			"wins": 0,
+			"matches": 0,
+			"registered": false,
+			"is_dev": Account.is_dev_name(uname)
+		}
+	show_player_profile(u)
+
+
+func _pick_avatar_file() -> void:
+	if DisplayServer.has_feature(DisplayServer.FEATURE_NATIVE_DIALOG_FILE):
+		DisplayServer.file_dialog_show("Выберите картинку для аватарки", "", "", false, DisplayServer.FILE_DIALOG_MODE_OPEN_FILE, PackedStringArray(["*.png, *.jpg, *.jpeg ; Изображения"]), func(status: bool, selected_paths: PackedStringArray, _filter_idx: int) -> void:
+			if status and not selected_paths.is_empty():
+				var res: Dictionary = Account.save_avatar_file(selected_paths[0])
+				if bool(res.get("ok", false)):
+					show_profile("АВАТАРКА ОБНОВЛЕНА", "ok")
+				else:
+					show_profile(String(res.get("err", "Ошибка файла")), "alarm")
+		)
+	else:
+		var fd: FileDialog = FileDialog.new()
+		fd.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+		fd.access = FileDialog.ACCESS_FILESYSTEM
+		fd.filters = PackedStringArray(["*.png, *.jpg, *.jpeg ; Изображения"])
+		get_tree().root.add_child(fd)
+		fd.popup_centered_ratio(0.7)
+		fd.file_selected.connect(func(path: String) -> void:
+			var res: Dictionary = Account.save_avatar_file(path)
+			fd.queue_free()
+			if bool(res.get("ok", false)):
+				show_profile("АВАТАРКА ОБНОВЛЕНА", "ok")
+			else:
+				show_profile(String(res.get("err", "Ошибка файла")), "alarm")
+		)
+		fd.canceled.connect(fd.queue_free)
+

@@ -9,6 +9,7 @@ var _dyn_fps_stage: int = 0
 var _dyn_fps_timer: float = 0.0
 var _dyn_fps_low_time: float = 0.0
 var _dyn_fps_high_time: float = 0.0
+var _playtime_accum: float = 0.0
 
 
 
@@ -374,6 +375,9 @@ func _notification(what: int) -> void :
 		if net != null and net.in_match:
 			net.set_host_active(true)
 	elif what == NOTIFICATION_WM_CLOSE_REQUEST:
+		if _playtime_accum > 0.0:
+			Account.record_playtime(_playtime_accum)
+			_playtime_accum = 0.0
 		if net != null and net.in_match:
 			if net.is_host:
 				net.host_exit_saved()
@@ -447,7 +451,13 @@ func _on_match_end(winner: int) -> void :
 		menus.show_end_ranked(wt, mid)
 		return
 	if not net.in_match:
-		Save.match_over(world.player != null and winner == world.player.id)
+		var won: bool = world.player != null and winner == world.player.id
+		Save.match_over(won)
+		if won:
+			Account.record_solo_win()
+		elif _playtime_accum > 0.0:
+			Account.record_playtime(_playtime_accum)
+			_playtime_accum = 0.0
 	else:
 		net.match_decided = true
 		if net.is_host:
@@ -455,6 +465,9 @@ func _on_match_end(winner: int) -> void :
 		NetConfig.clear_rejoin()
 		if net.is_host:
 			NetConfig.clear_match()
+	if _playtime_accum > 0.0:
+		Account.record_playtime(_playtime_accum)
+		_playtime_accum = 0.0
 	_menu_paused = false
 	_paused = true
 	_apply_speed()
@@ -478,6 +491,11 @@ func _on_city_captured(city: City, _old: int) -> void :
 const _TutorialFeed = preload("res://ui/ui24/tutorial_feed.gd")
 
 func _process(delta: float) -> void :
+	if not in_menu and not _paused:
+		_playtime_accum += delta
+		if _playtime_accum >= 30.0:
+			Account.record_playtime(_playtime_accum)
+			_playtime_accum = 0.0
 	var idle: bool = ((in_menu and menus.current == "main") or (not in_menu and (_paused or menus.is_open()))) and not _TutorialFeed.is_open()
 	if idle != Save.fps_idle:
 		Save.fps_idle = idle

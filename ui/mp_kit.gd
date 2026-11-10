@@ -289,7 +289,8 @@ static func slot_row(parent: Control, idx: int, nick: String, host: bool, you: b
 	if not cos.is_empty():
 		p.custom_minimum_size.y = SLOT_H + 4
 		banner_bg(p, cos.get("banner"))
-		row.add_child(avatar_framed(cos.get("frame"), 48.0))
+		var a_tex: Texture2D = Account.get_avatar_texture(String(cos.get("avatar_b64", "")))
+		row.add_child(avatar_framed(cos.get("frame"), 48.0, a_tex))
 		var tc: String = Cosmetics.shown("title", cos.get("title"))
 		if tc != "":
 			var v: = VBoxContainer.new()
@@ -298,10 +299,16 @@ static func slot_row(parent: Control, idx: int, nick: String, host: bool, you: b
 			v.add_theme_constant_override("separation", 1)
 			v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			row.add_child(v)
+			var nh: = HBoxContainer.new()
+			nh.add_theme_constant_override("separation", 4)
+			nh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			v.add_child(nh)
 			var nl: Label = UiKit.lbl(nick, 13, UiKit.TEXT, 3, 2)
 			nl.clip_text = true
 			nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-			v.add_child(nl)
+			nh.add_child(nl)
+			if Account.is_dev_name(nick) or bool(cos.get("is_dev", false)):
+				nh.add_child(dev_badge_button())
 			var tl2: Control = title_label(tc, 10)
 			v.add_child(tl2)
 			if sub != "":
@@ -309,7 +316,16 @@ static func slot_row(parent: Control, idx: int, nick: String, host: bool, you: b
 				sl.clip_text = true
 				v.add_child(sl)
 		else:
-			_two_lines(row, nick, sub)
+			var nh: = HBoxContainer.new()
+			nh.add_theme_constant_override("separation", 4)
+			nh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(nh)
+			var nl: Label = UiKit.lbl(nick, 13, UiKit.TEXT, 3, 2)
+			nl.clip_text = true
+			nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			nh.add_child(nl)
+			if Account.is_dev_name(nick) or bool(cos.get("is_dev", false)):
+				nh.add_child(dev_badge_button())
 	else:
 		_two_lines(row, nick, sub)
 	if you:
@@ -641,18 +657,152 @@ static func stat_card(parent: Control, title: String, sub: String, value: String
 
 
 
-static func avatar_framed(frame_code: Variant, px: float = 48.0) -> Control:
+static func avatar_framed(frame_code: Variant, px: float = 48.0, avatar_tex: Texture2D = null) -> Control:
 	var box: = Control.new()
 	box.custom_minimum_size = Vector2(px, px)
 	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var code: String = Cosmetics.shown("frame", frame_code)
-	var p: TextureRect = UiKit.icon_rect("acc_pilot", px * 2.0 / 3.0)
-	p.position = Vector2(px / 6.0, px / 6.0)
-	box.add_child(p)
+	if avatar_tex != null:
+		var p: = TextureRect.new()
+		p.texture = avatar_tex
+		p.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		p.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		p.custom_minimum_size = Vector2(px * 0.72, px * 0.72)
+		p.size = p.custom_minimum_size
+		p.position = Vector2(px * 0.14, px * 0.14)
+		box.add_child(p)
+	else:
+		var p: TextureRect = UiKit.icon_rect("acc_pilot", px * 2.0 / 3.0)
+		p.position = Vector2(px / 6.0, px / 6.0)
+		box.add_child(p)
 	var fr: TextureRect = UiKit.icon_rect(code if UiKit.tex(code) != null else "acc_frame", px)
 	box.add_child(fr)
 	return box
+
+
+static var _dev_verified_popup: CanvasLayer = null
+
+static func show_dev_verified_dialog(dev_name: String = "") -> void:
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return
+	if _dev_verified_popup != null and is_instance_valid(_dev_verified_popup):
+		_dev_verified_popup.queue_free()
+		_dev_verified_popup = null
+
+	var cl: CanvasLayer = CanvasLayer.new()
+	cl.layer = 130
+	tree.root.add_child(cl)
+	_dev_verified_popup = cl
+
+	var bg: ColorRect = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.02, 0.04, 0.08, 0.8)
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	cl.add_child(bg)
+
+	var close_dialog: Callable = func() -> void:
+		UiKit.snd("ui_click")
+		if _dev_verified_popup != null and is_instance_valid(_dev_verified_popup):
+			_dev_verified_popup.queue_free()
+			_dev_verified_popup = null
+
+	bg.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			close_dialog.call()
+	)
+
+	var cc: CenterContainer = CenterContainer.new()
+	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.add_child(cc)
+
+	var panel: PanelContainer = PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", UiKit.sb("wb_window", 16, 14))
+	var win_w: float = 340.0
+	if tree.root.get_viewport() != null:
+		win_w = minf(340.0, tree.root.get_viewport().get_visible_rect().size.x - 32.0)
+	panel.custom_minimum_size = Vector2(win_w, 0)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	cc.add_child(panel)
+
+	var vb: VBoxContainer = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	panel.add_child(vb)
+
+	var head_row: HBoxContainer = HBoxContainer.new()
+	head_row.add_theme_constant_override("separation", 8)
+	head_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_child(head_row)
+
+	var v_icon: TextureRect = TextureRect.new()
+	var vt: Texture2D = UiKit.tex("mod_verified")
+	v_icon.texture = vt if vt != null else UiKit.tex("icon_ok")
+	v_icon.custom_minimum_size = Vector2(24, 24)
+	v_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	v_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	v_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	head_row.add_child(v_icon)
+
+	var title_lbl: Label = UiKit.lbl("РАЗРАБОТЧИК DRONEFLAMES", 12, Color(0.3, 0.7, 1.0), 3, 2)
+	head_row.add_child(title_lbl)
+
+	var div: ColorRect = ColorRect.new()
+	div.color = Color(UiKit.GOLD, 0.4)
+	div.custom_minimum_size = Vector2(0, 2)
+	vb.add_child(div)
+
+	var who: String = ("Пользователь «%s» является " % dev_name) if dev_name != "" else "Это "
+	var desc_text: String = who + "официальным разработчиком порта DroneFlames PC.\n\n"
+	desc_text += "• Подтверждённый участник команды разработки\n"
+	desc_text += "• Доступ к эксклюзивной косметике разработчика\n"
+	desc_text += "• Официальная верификация учетной записи"
+	var text_lbl: Label = UiKit.lbl(desc_text, 10, UiKit.TEXT)
+	text_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vb.add_child(text_lbl)
+
+	var close_btn: Button = UiKit.big("ЗАКРЫТЬ", "green", "", 36.0, 11)
+	close_btn.pressed.connect(close_dialog)
+	vb.add_child(close_btn)
+
+
+static func dev_badge_button(dev_name: String = "") -> TextureButton:
+	var tb: = TextureButton.new()
+	var v_tex: Texture2D = UiKit.tex("mod_verified")
+	tb.texture_normal = v_tex if v_tex != null else UiKit.tex("icon_ok")
+	tb.custom_minimum_size = Vector2(16, 16)
+	tb.ignore_texture_size = true
+	tb.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	tb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	tb.tooltip_text = "Разработчик порта DroneFlames"
+	tb.pressed.connect(func() -> void:
+		UiKit.snd("ui_click")
+		show_dev_verified_dialog(dev_name)
+	)
+	return tb
+
+
+static func toast(text: String) -> void:
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return
+	var cl: CanvasLayer = CanvasLayer.new()
+	cl.layer = 140
+	tree.root.add_child(cl)
+	var tip: = PanelContainer.new()
+	tip.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_gold", 8, 4))
+	tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var lbl: Label = UiKit.lbl(text, 12, UiKit.TEXT, 3, 3)
+	tip.add_child(lbl)
+	cl.add_child(tip)
+	var vp_size: Vector2 = tree.root.get_viewport().get_visible_rect().size
+	tip.position = Vector2((vp_size.x - 240) / 2.0, vp_size.y * 0.15)
+	var tw: Tween = tip.create_tween()
+	tw.tween_property(tip, "modulate:a", 1.0, 0.2).from(0.0)
+	tw.tween_interval(2.2)
+	tw.tween_property(tip, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(cl.queue_free)
 
 
 
@@ -676,12 +826,24 @@ static func banner_bg(parent: Control, banner_code: Variant) -> void :
 	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	r.stretch_mode = TextureRect.STRETCH_SCALE
-	r.size = t.get_size() * 2.0
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	clip.add_child(r)
 	animate(r, UiKit.atlas_cosm_bn_anim, code)
-	clip.resized.connect( func() -> void :
-		r.position = ((clip.size - r.size) * 0.5).round())
+	
+	var update_layout: Callable = func() -> void:
+		if not is_instance_valid(clip) or not is_instance_valid(r):
+			return
+		var ts: Vector2 = t.get_size()
+		if ts.x <= 0 or ts.y <= 0:
+			return
+		var sc_x: float = maxf(2.0, clip.size.x / ts.x)
+		var sc_y: float = maxf(2.0, clip.size.y / ts.y)
+		var sc: float = maxf(sc_x, sc_y)
+		r.size = (ts * sc).round()
+		r.position = ((clip.size - r.size) * 0.5).round()
+	
+	clip.resized.connect(update_layout)
+	update_layout.call()
 
 
 
@@ -742,7 +904,7 @@ static func title_label(code: String, size: int = 11, display_name: String = "")
 
 
 
-static func player_card(parent: Control, uname: String, sub: String, cos: Dictionary, h: float = ROW_H, on_tap: Callable = Callable(), right: Control = null) -> Control:
+static func player_card(parent: Control, uname: String, sub: String, cos: Dictionary, h: float = ROW_H, on_tap: Callable = Callable(), right: Control = null, is_dev: bool = false, avatar_b64: String = "") -> Control:
 	var b: Control
 	if on_tap.is_valid():
 		var bt: Button = card_button(h)
@@ -759,24 +921,34 @@ static func player_card(parent: Control, uname: String, sub: String, cos: Dictio
 	parent.add_child(b)
 	banner_bg(b, cos.get("banner"))
 	var row: HBoxContainer = _hbox(b, 10, 8)
-	row.add_child(avatar_framed(cos.get("frame"), 48.0))
+	var a_b64: String = avatar_b64
+	if a_b64 == "" and uname.to_lower() == Account.username().to_lower():
+		a_b64 = Account.avatar_b64
+	var a_tex: Texture2D = Account.get_avatar_texture(a_b64)
+	row.add_child(avatar_framed(cos.get("frame"), 48.0, a_tex))
 	var v: = VBoxContainer.new()
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_theme_constant_override("separation", 2)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(v)
-	var n: Label = UiKit.lbl(uname, 16 if h > ROW_H else 13, UiKit.TEXT, 3, 3)
-	n.clip_text = true
-	n.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	v.add_child(n)
+	var nh: = HBoxContainer.new()
+	nh.add_theme_constant_override("separation", 4)
+	nh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(nh)
+	var display_name: String = uname if uname != "" else Account.username()
+	if display_name == "":
+		display_name = "Игрок"
+	var is_d: bool = is_dev or Account.is_dev_name(display_name) or (display_name.to_lower() == Account.username().to_lower() and Account.is_dev())
+	var n: Label = UiKit.lbl(display_name, 16 if h > ROW_H else 13, UiKit.GOLD if is_d else UiKit.TEXT, 3, 3)
+	nh.add_child(n)
+	if is_d:
+		nh.add_child(dev_badge_button(display_name))
 	var tc: String = Cosmetics.shown("title", cos.get("title"))
 	if tc != "":
 		v.add_child(title_label(tc))
 	if sub != "":
 		var s: Label = UiKit.lbl(sub, 10, UiKit.MUTED, 1, 2)
-		s.clip_text = true
-		s.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		v.add_child(s)
 	if right != null:
 		row.add_child(right)
@@ -795,7 +967,8 @@ static func ranked_row(parent: Control, pl: Dictionary, host: bool, you: bool, s
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(row)
-	row.add_child(avatar_framed(pl.get("frame"), 48.0))
+	var a_tex: Texture2D = Account.get_avatar_texture(String(pl.get("avatar_b64", "")))
+	row.add_child(avatar_framed(pl.get("frame"), 48.0, a_tex))
 	var v: = VBoxContainer.new()
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -808,11 +981,14 @@ static func ranked_row(parent: Control, pl: Dictionary, host: bool, you: bool, s
 	v.add_child(nh)
 	if host:
 		nh.add_child(icon("net_host"))
-	var nl: Label = UiKit.lbl(String(pl.get("name", "")), 13, UiKit.DIM if state == "left" else (UiKit.GOLD if you else UiKit.TEXT), 3, 2)
+	var pl_name: String = String(pl.get("name", ""))
+	var nl: Label = UiKit.lbl(pl_name, 13, UiKit.DIM if state == "left" else (UiKit.GOLD if you else UiKit.TEXT), 3, 2)
 	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nl.clip_text = true
 	nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	nh.add_child(nl)
+	if Account.is_dev_name(pl_name) or bool(pl.get("is_dev", false)):
+		nh.add_child(dev_badge_button())
 	if you:
 		nh.add_child(UiKit.lbl("ВЫ", 10, UiKit.GOLD, 3, 2))
 	if state == "left":

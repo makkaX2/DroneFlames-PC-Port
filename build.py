@@ -25,7 +25,7 @@ def get_version() -> str:
                 return str(data["version"])
         except Exception:
             pass
-    return "0.33.4.9"
+    return "0.33.5.3"
 
 VERSION = get_version()
 IS_TEST_BUILD = "--test" in sys.argv or "-test" in VERSION.lower() or os.environ.get("BUILD_TEST", "").lower() in ("1", "true")

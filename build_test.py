@@ -24,7 +24,7 @@ def load_version() -> str:
                 return str(data["version"])
         except Exception:
             pass
-    return "0.33.5.2"
+    return "0.33.5.3"
 
 def set_test_version(new_version: str) -> None:
     v_file = ROOT_DIR / "version_info.json"
