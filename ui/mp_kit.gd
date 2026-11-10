@@ -56,13 +56,9 @@ static func _two_lines(parent: Control, top: String, sub: String, top_size: int 
 	v.add_theme_constant_override("separation", 1)
 	parent.add_child(v)
 	var t: Label = UiKit.lbl(top, top_size, top_col, 3, 2)
-	t.clip_text = true
-	t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	v.add_child(t)
 	if sub != "":
 		var s: Label = UiKit.lbl(sub, 10, UiKit.MUTED, 1, 1)
-		s.clip_text = true
-		s.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		v.add_child(s)
 	return v
 
@@ -291,41 +287,28 @@ static func slot_row(parent: Control, idx: int, nick: String, host: bool, you: b
 		banner_bg(p, cos.get("banner"))
 		var a_tex: Texture2D = Account.get_avatar_texture(String(cos.get("avatar_b64", "")))
 		row.add_child(avatar_framed(cos.get("frame"), 48.0, a_tex))
+		var v: = VBoxContainer.new()
+		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		v.alignment = BoxContainer.ALIGNMENT_CENTER
+		v.add_theme_constant_override("separation", 1)
+		v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(v)
+		var nh: = HBoxContainer.new()
+		nh.add_theme_constant_override("separation", 4)
+		nh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v.add_child(nh)
+		var is_d: bool = Account.is_dev_name(nick) or bool(cos.get("is_dev", false))
+		var nl: Label = UiKit.lbl(nick, 13, UiKit.GOLD if is_d else UiKit.TEXT, 3, 2)
+		nh.add_child(nl)
+		if is_d:
+			nh.add_child(dev_badge_button(nick))
 		var tc: String = Cosmetics.shown("title", cos.get("title"))
 		if tc != "":
-			var v: = VBoxContainer.new()
-			v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			v.alignment = BoxContainer.ALIGNMENT_CENTER
-			v.add_theme_constant_override("separation", 1)
-			v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			row.add_child(v)
-			var nh: = HBoxContainer.new()
-			nh.add_theme_constant_override("separation", 4)
-			nh.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			v.add_child(nh)
-			var nl: Label = UiKit.lbl(nick, 13, UiKit.TEXT, 3, 2)
-			nl.clip_text = true
-			nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-			nh.add_child(nl)
-			if Account.is_dev_name(nick) or bool(cos.get("is_dev", false)):
-				nh.add_child(dev_badge_button())
 			var tl2: Control = title_label(tc, 10)
 			v.add_child(tl2)
-			if sub != "":
-				var sl: Label = UiKit.lbl(sub, 10, UiKit.MUTED, 1, 1)
-				sl.clip_text = true
-				v.add_child(sl)
-		else:
-			var nh: = HBoxContainer.new()
-			nh.add_theme_constant_override("separation", 4)
-			nh.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			row.add_child(nh)
-			var nl: Label = UiKit.lbl(nick, 13, UiKit.TEXT, 3, 2)
-			nl.clip_text = true
-			nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-			nh.add_child(nl)
-			if Account.is_dev_name(nick) or bool(cos.get("is_dev", false)):
-				nh.add_child(dev_badge_button())
+		elif sub != "":
+			var sl: Label = UiKit.lbl(sub, 10, UiKit.MUTED, 1, 1)
+			v.add_child(sl)
 	else:
 		_two_lines(row, nick, sub)
 	if you:

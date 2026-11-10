@@ -2703,7 +2703,7 @@ func show_lobby(msg: String = "") -> void :
 				pl_row.gui_input.connect(func(ev: InputEvent) -> void:
 					if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 						UiKit.snd("ui_click")
-						_inspect_player(pl_name, sl.get("cos", {}) if sl.get("cos") is Dictionary else {})
+						_inspect_player(pl_name, sl.get("cos", {}) if sl.get("cos") is Dictionary else {}, func() -> void: show_lobby())
 				)
 		else:
 			MpKit.slot_row(seats, i, "", false, false, "", i == net.slots.size())
@@ -5291,12 +5291,12 @@ func _render_lead_row(parent: Control, rank: int, u: Dictionary) -> Control:
 	
 	b.pressed.connect(func() -> void:
 		UiKit.press_fx(b)
-		show_player_profile(u)
+		show_player_profile(u, func() -> void: show_leaderboard())
 	)
 	return b
 
 
-func show_player_profile(u: Dictionary) -> void:
+func show_player_profile(u: Dictionary, return_cb: Callable = Callable()) -> void:
 	var uname: String = String(u.get("username", u.get("name", u.get("nick", "Игрок"))))
 	var vb: VBoxContainer = _screen("Профиль: " + uname, 0.45, true)
 	_panel.custom_minimum_size = Vector2(minf(350.0, root.size.x - 16.0), 0)
@@ -5358,11 +5358,16 @@ func show_player_profile(u: Dictionary) -> void:
 	var back: Button = _button(br, "НАЗАД", "stone", "")
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back.pressed.connect(func() -> void:
-		show_leaderboard()
+		if return_cb.is_valid():
+			return_cb.call()
+		elif net != null and net.active():
+			show_lobby()
+		else:
+			show_leaderboard()
 	)
 
 
-func _inspect_player(uname: String, fallback_cos: Dictionary = {}) -> void:
+func _inspect_player(uname: String, fallback_cos: Dictionary = {}, return_cb: Callable = Callable()) -> void:
 	var res: Dictionary = await Account.get_profile(uname)
 	var u: Dictionary
 	if bool(res.get("ok", false)) and res.get("user") is Dictionary:
@@ -5377,7 +5382,13 @@ func _inspect_player(uname: String, fallback_cos: Dictionary = {}) -> void:
 			"registered": false,
 			"is_dev": Account.is_dev_name(uname)
 		}
-	show_player_profile(u)
+	var on_back: Callable = return_cb
+	if not on_back.is_valid():
+		if net != null and net.active():
+			on_back = func() -> void: show_lobby()
+		else:
+			on_back = func() -> void: show_leaderboard()
+	show_player_profile(u, on_back)
 
 
 func _pick_avatar_file() -> void:

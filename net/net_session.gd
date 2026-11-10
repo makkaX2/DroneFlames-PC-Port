@@ -347,8 +347,8 @@ func join_lan(ip: String, port: int = -1) -> String:
 
 ## BACKEND 1: the name of this person in a room: the account's username online, the local nick on Wi-Fi.
 func my_name() -> String:
-	if mode == Mode.ONLINE and not RtcLink.relay_only() and Account.username() != "":
-		return NetConfig.clean_nick(Account.username())  # (critic) the same limit as the guests' names
+	if Account.username() != "":
+		return NetConfig.clean_nick(Account.username())
 	return NetConfig.nick()
 
 
