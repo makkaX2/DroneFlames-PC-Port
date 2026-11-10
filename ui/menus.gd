@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.25-test (PC Port by @droneflamesmod)"
+const VERSION: String = "v0.33.5.26-test (PC Port by @droneflamesmod)"
 
 const WHATS_NEW: Array = [
+	"ВЕРИФИКАЦИЯ МОДОВ v0.33.5.26-test: официальный знак проверенных модификаций с окном сведений о надежности, анимированная цветная подсветка кнопки модификаций в главном меню, моды включены по умолчанию без экспериментального тумблера",
 	"ИСКАНДЕР & МОДЫ v0.33.5.25-test: интеграция ОТРК «Искандер-М» в меню ударов (ОФ и кассетные БЧ, гиперзвуковой полёт), ВДВ v1.3.0 с поддержкой нескольких штабов (6 цветов), ядерный удар v1.2.0 с 5-фазной вспышкой, ТОС-1А с радиусом 90-640px, сквозной клик по ярлыкам операций",
 	"СТРОИТЕЛЬСТВО v0.33.5.21-test: живой предпросмотр (обложка) постройки при зажатом Shift в реальном времени под курсором, непрерывное размещение по клику и мгновенное подтверждение по клавише E",
 	"МУЛЬТИПЛЕЕР v0.33.5.20-test: исправлена ошибка проверки TLS сертификата релей-сервера (-9984), восстановлен доступ к сетевой игре",
@@ -312,6 +313,26 @@ func _ibutton(parent: Control, text: String, colour: String, req: String, icon: 
 		b.add_theme_stylebox_override("normal", UiKit.sb("wb_btn_" + colour, 14, 4, -1))
 		b.add_theme_stylebox_override("hover", UiKit.sb("wb_btn_" + colour, 14, 4, -1))
 	return b
+
+func _apply_mods_button_outline(bb: Button) -> void:
+	UiKit.ensure()
+	if UiKit.atlas_cosm_tt == null or not UiKit.atlas_cosm_tt.has("tt_plate_dev_rgb_anim"):
+		return
+	var outline: Panel = Panel.new()
+	outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	outline.set_anchors_preset(Control.PRESET_FULL_RECT)
+	outline.offset_left = -3
+	outline.offset_top = -3
+	outline.offset_right = 3
+	outline.offset_bottom = 3
+	var sb: StyleBoxTexture = StyleBoxTexture.new()
+	sb.texture = UiKit.atlas_cosm_tt.region("tt_plate_dev_rgb_anim", 0)
+	sb.draw_center = false
+	sb.set_texture_margin_all(12)
+	outline.add_theme_stylebox_override("panel", sb)
+	outline.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	MpKit.animate_style(outline, sb, UiKit.atlas_cosm_tt, "tt_plate_dev_rgb_anim")
+	bb.add_child(outline)
 
 
 
@@ -1031,29 +1052,15 @@ func show_main() -> void :
 			b = pair
 		else:
 			var is_mods: bool = String(it[2]) == "mods"
-			if is_mods and not GameConfig.mods_enabled:
-				var m_box: = VBoxContainer.new()
-				m_box.add_theme_constant_override("separation", 2)
-				m_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				col.add_child(m_box)
-				var bb: Button = _ibutton(m_box, String(it[0]), "stone", "", String(it[4]), float(it[3]))
-				bb.disabled = true
-				bb.focus_mode = Control.FOCUS_NONE
-				bb.self_modulate = Color(0.65, 0.65, 0.65, 0.75)
-				bb.add_theme_color_override("font_disabled_color", Color(0.65, 0.65, 0.65))
-				bb.tooltip_text = "Модификации временно отключены. Скоро вернутся!"
-				var sub_lbl: Label = UiKit.lbl("СКОРО ВЕРНУТСЯ", 9, UiKit.MUTED, 1, 2)
-				sub_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-				m_box.add_child(sub_lbl)
-				b = m_box
-			else:
-				var mpl1: bool = String(it[2]) == "mp" and mp_locked()
-				var bb: Button = _ibutton(col, String(it[0]), String(it[1]), "" if mpl1 else String(it[2]), String(it[4]), float(it[3]))
-				if mpl1:
-					_android_mp_lock(bb, String(it[0]))
-				if i2 == 0:
-					bb.add_theme_font_size_override("font_size", 20)
-				b = bb
+			var mpl1: bool = String(it[2]) == "mp" and mp_locked()
+			var bb: Button = _ibutton(col, String(it[0]), String(it[1]), "" if mpl1 else String(it[2]), String(it[4]), float(it[3]))
+			if mpl1:
+				_android_mp_lock(bb, String(it[0]))
+			if is_mods:
+				_apply_mods_button_outline(bb)
+			if i2 == 0:
+				bb.add_theme_font_size_override("font_size", 20)
+			b = bb
 		if i2 == 0:
 			SavesUI.main_strip(self, col, has_save)
 		b.modulate.a = 0.0
@@ -1621,9 +1628,6 @@ func show_flag_editor(bot: int = -1) -> void :
 
 
 func show_mods(keep: bool = false) -> void:
-	if not GameConfig.mods_enabled:
-		show_mods_settings(_from_pause)
-		return
 	var ks: int = _scroll.scroll_vertical if keep and _scroll != null and is_instance_valid(_scroll) else 0
 	var vb: VBoxContainer = _screen("Модификации", 0.55, not keep)
 	current = "mods"
@@ -2804,7 +2808,6 @@ func show_settings(from_pause: bool) -> void :
 	_nav_row(vb, "УПРАВЛЕНИЕ", "КЛАВИАТУРА И МЫШЬ", show_controls.bind(from_pause))
 	_nav_row(vb, "ЗВУК", _sound_hint(), show_settings_sub.bind("audio"))
 	_nav_row(vb, "ГРАФИКА", Loc.t("ЭФФЕКТЫ: %s") % Loc.t(String(["НИЗКО", "НОРМА", "ВЫСОКО"][clampi(GameConfig.fx_level, 0, 2)])), show_settings_sub.bind("gfx"))
-	_nav_row(vb, "МОДИФИКАЦИИ", Loc.t("ВКЛЮЧЕНО") if GameConfig.mods_enabled else Loc.t("ОТКЛЮЧЕНО (СКОРО ВЕРНУТСЯ)"), func() -> void : show_mods_settings(from_pause))
 	_selector(vb, "ПОДСКАЗКИ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.hints else 1, func(i: int) -> void : GameConfig.hints = i == 0, VW_SHORT)
 	_selector(vb, "ПЛАН РАЗВИТИЯ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 1 if Hud.plan_closed else 0, func(i: int) -> void : Hud.plan_closed = i == 1, VW_SHORT)
 	_selector(vb, "ПОДТВЕРЖДЕНИЕ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.confirm_actions else 1, func(i: int) -> void : GameConfig.confirm_actions = i == 0, VW_SHORT)
@@ -3155,7 +3158,7 @@ func show_graphics_first() -> void:
 
 func show_settings_sub(kind: String) -> void :
 	if kind == "mods":
-		show_mods_settings(_from_pause)
+		show_mods()
 		return
 	var vb: VBoxContainer = _screen("Графика" if kind == "gfx" else (Loc.t("Заставка") if kind == "opening" else Loc.t("Звук")), 0.45)
 	current = "settings_" + kind

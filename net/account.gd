@@ -45,7 +45,15 @@ static func load_state() -> void:
 	seen = owned.duplicate()
 	seen_init = true
 	if not (info.get("cosmetics") is Dictionary) or info.get("cosmetics", {}).is_empty():
-		info["cosmetics"] = {"title": "tt_dev_rgb", "frame": "fr_dev", "banner": "bn_dev"}
+		info["cosmetics"] = {"title": "", "frame": "fr_steel", "banner": "bn_steel"}
+	elif info.get("cosmetics") is Dictionary:
+		var c_dict: Dictionary = info["cosmetics"]
+		if String(c_dict.get("title", "")) in ["tt_dev_rgb", "tt_dev"]:
+			c_dict["title"] = ""
+		if String(c_dict.get("frame", "")) == "fr_dev":
+			c_dict["frame"] = "fr_steel"
+		if String(c_dict.get("banner", "")) == "bn_dev":
+			c_dict["banner"] = "bn_steel"
 	if not info.has("username") or String(info.get("username", "")) == "":
 		info["username"] = "good_boy_irl"
 	info["is_multiplayer_available"] = true

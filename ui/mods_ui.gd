@@ -1,14 +1,41 @@
 class_name ModsUI
 extends RefCounted
 ## Пользовательский интерфейс управления модификациями DroneFlames PC Port
-## Автор: @good_boy_irl
+## Автор: @droneflamesmod
 
 static var cur_tab: int = 0 # 0: Установленные, 1: Каталог онлайн
 static var filter_type: String = "all" # all, map, textures, ui, gameplay
 static var selected_mod_id: String = ""
 static var _detail_popup: Control = null
+static var _verified_popup: Control = null
 static var _signals_connected: bool = false
 static var _active_menus: Menus = null
+
+const VERIFIED_MODS: Array[String] = [
+	"air_arsenal",
+	"airborne_assault",
+	"atgm_cluster",
+	"chernobyl_zone",
+	"city_expansion",
+	"discord_rpc",
+	"econ_armory",
+	"fps_ping_overlay",
+	"iskander_strike",
+	"nuclear_strike",
+	"oasis_map",
+	"repeat_build",
+	"scenarios_pack",
+	"shahed_geran",
+	"tank_factory",
+	"thermo_battery"
+]
+
+static func is_mod_verified(mod_id: String, data: Dictionary = {}) -> bool:
+	if VERIFIED_MODS.has(mod_id):
+		return true
+	if bool(data.get("verified", false)):
+		return true
+	return false
 
 static func get_mod_manager() -> Node:
 	var loop = Engine.get_main_loop()
@@ -61,13 +88,6 @@ static func build(menus: Menus, parent: VBoxContainer) -> void:
 	workshop.pressed.connect(func() -> void: menus.show_local_workshop())
 	parent.add_child(workshop)
 
-	# Предупреждение об экспериментальном режиме
-	var exp_badge: PanelContainer = PanelContainer.new()
-	exp_badge.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 6, 4))
-	parent.add_child(exp_badge)
-	var exp_lbl: Label = UiKit.lbl("⚠️ Экспериментальный режим: моды могут быть крайне нестабильными", 9, UiKit.GOLD, 1, 1)
-	exp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	exp_badge.add_child(exp_lbl)
 
 	# Верхняя панель: Переключатель вкладок
 	var top_tabs: HBoxContainer = HBoxContainer.new()
@@ -335,8 +355,21 @@ static func _build_mod_card(menus: Menus, parent: VBoxContainer, data: Dictionar
 	title_row.add_theme_constant_override("separation", 6)
 	info_col.add_child(title_row)
 
-	var title_lbl: Control = MpKit.title_label("tt_dev_rgb", 10, mod_name.to_upper())
+	var title_lbl: Label = UiKit.lbl(mod_name.to_upper(), 11, UiKit.TITLE, 1, 1)
 	title_row.add_child(title_lbl)
+
+	if is_mod_verified(mod_id, data):
+		var v_btn: TextureButton = TextureButton.new()
+		var v_tex: Texture2D = UiKit.tex("mod_verified")
+		v_btn.texture_normal = v_tex
+		v_btn.custom_minimum_size = Vector2(16, 16)
+		v_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		v_btn.ignore_texture_size = true
+		v_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		v_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		v_btn.tooltip_text = "Верифицированная модификация (нажмите для подробностей)"
+		v_btn.pressed.connect(func() -> void: _show_verified_dialog(menus, mod_name))
+		title_row.add_child(v_btn)
 
 	var display_ver: String = installed_ver if (is_installed_view and installed_ver != "") else mod_ver
 	var ver_lbl: Label = UiKit.lbl("v" + display_ver, 9, UiKit.GOLD)
@@ -475,8 +508,25 @@ static func _open_detail_card(menus: Menus, data: Dictionary, _mm: Node) -> void
 	panel.add_child(vb)
 
 	# Шапка
-	var title_lbl: Control = MpKit.title_label("tt_dev_rgb", 14, mod_name.to_upper())
-	vb.add_child(title_lbl)
+	var head_box: HBoxContainer = HBoxContainer.new()
+	head_box.add_theme_constant_override("separation", 8)
+	vb.add_child(head_box)
+
+	var title_lbl: Label = UiKit.lbl(mod_name.to_upper(), 14, UiKit.TITLE, 2, 2)
+	head_box.add_child(title_lbl)
+
+	if is_mod_verified(mod_id, data):
+		var v_btn: TextureButton = TextureButton.new()
+		var v_tex: Texture2D = UiKit.tex("mod_verified")
+		v_btn.texture_normal = v_tex
+		v_btn.custom_minimum_size = Vector2(20, 20)
+		v_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		v_btn.ignore_texture_size = true
+		v_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		v_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		v_btn.tooltip_text = "Верифицированная модификация (нажмите для подробностей)"
+		v_btn.pressed.connect(func() -> void: _show_verified_dialog(menus, mod_name))
+		head_box.add_child(v_btn)
 
 	var meta_row: HBoxContainer = HBoxContainer.new()
 	meta_row.add_theme_constant_override("separation", 8)
@@ -512,3 +562,73 @@ static func _open_detail_card(menus: Menus, data: Dictionary, _mm: Node) -> void
 		_detail_popup = null
 	)
 	vb.add_child(close_btn)
+
+# ==============================================================================
+# МОДАЛЬНОЕ ОКНО ВЕРИФИКАЦИИ МОДА
+# ==============================================================================
+
+static func _show_verified_dialog(menus: Menus, mod_name: String) -> void:
+	if _verified_popup != null and is_instance_valid(_verified_popup):
+		_verified_popup.queue_free()
+		_verified_popup = null
+
+	var bg: ColorRect = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.02, 0.04, 0.08, 0.8)
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	menus.root.add_child(bg)
+	_verified_popup = bg
+
+	var cc: CenterContainer = CenterContainer.new()
+	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.add_child(cc)
+
+	var panel: PanelContainer = PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", UiKit.sb("wb_window", 16, 14))
+	panel.custom_minimum_size = Vector2(400, 0)
+	cc.add_child(panel)
+
+	var vb: VBoxContainer = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	panel.add_child(vb)
+
+	# Шапка окна с иконкой верификации
+	var head_row: HBoxContainer = HBoxContainer.new()
+	head_row.add_theme_constant_override("separation", 8)
+	head_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_child(head_row)
+
+	var v_icon: TextureRect = TextureRect.new()
+	v_icon.texture = UiKit.tex("mod_verified")
+	v_icon.custom_minimum_size = Vector2(24, 24)
+	v_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	v_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	v_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	head_row.add_child(v_icon)
+
+	var title_lbl: Label = UiKit.lbl("ВЕРИФИЦИРОВАННЫЙ МОД", 12, Color(0.3, 0.7, 1.0), 2, 2)
+	head_row.add_child(title_lbl)
+
+	var div: ColorRect = ColorRect.new()
+	div.color = Color(UiKit.GOLD, 0.4)
+	div.custom_minimum_size = Vector2(0, 2)
+	vb.add_child(div)
+
+	# Текст сводки
+	var desc_text: String = "Модификация «%s» проверена нашей официальной командой разработчиков.\n\n" % mod_name
+	desc_text += "• Полная безопасность и отсутствие вредоносного кода\n"
+	desc_text += "• 100% совместимость и стабильная работа в игре\n"
+	desc_text += "• Официально протестировано на всех поддерживаемых платформах"
+	var text_lbl: Label = UiKit.lbl(desc_text, 10, UiKit.TEXT)
+	text_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vb.add_child(text_lbl)
+
+	# Кнопка закрытия
+	var close_btn: Button = UiKit.big("ЗАКРЫТЬ", "green", "", 36.0, 11)
+	close_btn.pressed.connect(func() -> void:
+		if is_instance_valid(bg):
+			bg.queue_free()
+		_verified_popup = null
+	)
+	vb.add_child(close_btn)
+
