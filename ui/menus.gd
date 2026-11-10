@@ -5239,13 +5239,11 @@ func _render_lead_row(parent: Control, rank: int, u: Dictionary) -> Control:
 	nh.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(nh)
 	
-	var uname: String = String(u.get("username", ""))
+	var uname: String = String(u.get("username", u.get("name", u.get("nick", "Игрок"))))
 	var is_dev: bool = bool(u.get("is_dev", false)) or Account.is_dev_name(uname)
 	var registered: bool = bool(u.get("is_registered", u.get("registered", false)))
 	
 	var nl: Label = UiKit.lbl(uname, 13, UiKit.TEXT, 3, 2)
-	nl.clip_text = true
-	nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	nh.add_child(nl)
 	
 	if is_dev:
@@ -5291,7 +5289,7 @@ func _render_lead_row(parent: Control, rank: int, u: Dictionary) -> Control:
 
 
 func show_player_profile(u: Dictionary) -> void:
-	var uname: String = String(u.get("username", "Игрок"))
+	var uname: String = String(u.get("username", u.get("name", u.get("nick", "Игрок"))))
 	var vb: VBoxContainer = _screen("Профиль: " + uname, 0.45, true)
 	current = "player_profile"
 	_top = true

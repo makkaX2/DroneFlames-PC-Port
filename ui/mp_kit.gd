@@ -835,8 +835,6 @@ static func player_card(parent: Control, uname: String, sub: String, cos: Dictio
 	nh.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(nh)
 	var n: Label = UiKit.lbl(uname, 16 if h > ROW_H else 13, UiKit.TEXT, 3, 3)
-	n.clip_text = true
-	n.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	nh.add_child(n)
 	if is_dev or Account.is_dev_name(uname) or (uname.to_lower() == Account.username().to_lower() and Account.is_dev()):
 		nh.add_child(dev_badge_button())
