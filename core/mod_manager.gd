@@ -1192,10 +1192,13 @@ func _extract_zip(zip_path: String, target_dir: String) -> bool:
 			DirAccess.make_dir_recursive_absolute(global_target.path_join(dir_name))
 		
 		var data: PackedByteArray = reader.read_file(f)
-		var out_file: String = global_target.path_join(normalized)
-		var fa: FileAccess = FileAccess.open(out_file, FileAccess.WRITE)
+		var abs_out: String = global_target.path_join(normalized)
+		var fa: FileAccess = FileAccess.open(abs_out, FileAccess.WRITE)
 		if fa == null:
-			push_error("[ModManager] Could not write extracted mod file: " + normalized)
+			DirAccess.remove_absolute(abs_out)
+			fa = FileAccess.open(abs_out, FileAccess.WRITE)
+		if fa == null:
+			push_error("[ModManager] Could not write extracted mod file: %s to %s (error: %s)" % [normalized, abs_out, error_string(FileAccess.get_open_error())])
 			reader.close()
 			return false
 		fa.store_buffer(data)

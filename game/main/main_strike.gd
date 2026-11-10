@@ -428,7 +428,7 @@ func _strike_update(delta: float) -> void :
 			_danger_t = 1.0
 			_danger = world.mil.danger_cells(world.player.id) if world.mil.has_method("smart_of") and world.mil.smart_of(world.player.id) else []
 	elif mode == Mode.MISSILE:
-		if strike.active and (strike.cur == "thermo" or strike.cur == "nuke"):
+		if strike.active and (strike.cur == "thermo" or strike.cur == "nuke" or strike.cur == "iskander"):
 			_plan_info = StrikeHubScript.plan_single(world, strike.cur, plan_target, plan_has_target)
 			var av_m: int = int(_plan_info.get("available", 0))
 			if plan_list.is_empty():
@@ -492,7 +492,7 @@ func _strike_done(all: Dictionary, r: Dictionary) -> void :
 			cam_lock = false
 			hud.set_key_pressed("follow", false)
 			_follow_done_t = 0.0
-	elif single == "tel" or single == "hyper":
+	elif single == "tel" or single == "hyper" or single == "iskander":
 		_await_missile = true
 	elif single == "":
 		hud.show_toast(Loc.t(String(r["text"])) + ((Loc.msg(Loc.mk(" · не ушли: %s", [", ".join(failed)]))) if not failed.is_empty() else ""))

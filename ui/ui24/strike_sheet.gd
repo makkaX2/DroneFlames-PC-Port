@@ -203,6 +203,25 @@ func _build_right() -> Control:
 				xb.add_theme_stylebox_override(stn, sbx)
 		_extras.add_child(xb)
 		_ex_btn[act] = xb
+	for ab in [["isk_he", Loc.t("ФУГАС"), "he"], ["isk_cluster", Loc.t("КАССЕТА"), "cluster"]]:
+		var tb: Button = UiKit.big(String(ab[1]), "stone", "", 44.0, 10)
+		tb.toggle_mode = true
+		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tb.custom_minimum_size.x = 0
+		var am_t: String = String(ab[2])
+		tb.pressed.connect(func() -> void:
+			if main.world != null:
+				main.world.set_meta("iskander_strike_ammo", am_t)
+			_ex_sync())
+		for stn: String in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+			var sbx: StyleBox = tb.get_theme_stylebox(stn)
+			if sbx != null:
+				sbx = sbx.duplicate()
+				sbx.content_margin_left = 3.0
+				sbx.content_margin_right = 3.0
+				tb.add_theme_stylebox_override(stn, sbx)
+		_extras.add_child(tb)
+		_ex_btn[String(ab[0])] = tb
 	var row: = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	col.add_child(row)
@@ -372,13 +391,27 @@ func _ex_sync() -> void :
 	var p: Country = main.world.player
 	if p == null:
 		return
-	(_ex_btn["route"] as Button).set_pressed_no_signal(bool(main.route_mode))
-	(_ex_btn["plan_standing"] as Button).set_pressed_no_signal(bool(main._standing_on()))
+	if _ex_btn.has("route"):
+		(_ex_btn["route"] as Button).set_pressed_no_signal(bool(main.route_mode))
+	if _ex_btn.has("plan_standing"):
+		(_ex_btn["plan_standing"] as Button).set_pressed_no_signal(bool(main._standing_on()))
 	var mil = main.world.mil
-	(_ex_btn["smart_toggle"] as Button).set_pressed_no_signal(mil.has_method("smart_of") and bool(mil.smart_of(p.id)))
-	for k9: String in _ex_btn:
-		var b9: Button = _ex_btn[k9]
-		_set_btn(b9, "%s\n%s" % [{"route": Loc.t("МАРШРУТ"), "plan_standing": Loc.t("АВТОПУСК"), "smart_toggle": Loc.t("УМНЫЕ БПЛА")}[k9], Loc.t("ВКЛ") if b9.button_pressed else Loc.t("ВЫКЛ")])
+	if _ex_btn.has("smart_toggle"):
+		(_ex_btn["smart_toggle"] as Button).set_pressed_no_signal(mil.has_method("smart_of") and bool(mil.smart_of(p.id)))
+	for k9: String in ["route", "plan_standing", "smart_toggle"]:
+		if _ex_btn.has(k9):
+			var b9: Button = _ex_btn[k9]
+			_set_btn(b9, "%s\n%s" % [{"route": Loc.t("МАРШРУТ"), "plan_standing": Loc.t("АВТОПУСК"), "smart_toggle": Loc.t("УМНЫЕ БПЛА")}[k9], Loc.t("ВКЛ") if b9.button_pressed else Loc.t("ВЫКЛ")])
+
+	var cur_ammo: String = String(main.world.get_meta("iskander_strike_ammo", "he"))
+	if _ex_btn.has("isk_he"):
+		var bhe: Button = _ex_btn["isk_he"]
+		bhe.set_pressed_no_signal(cur_ammo == "he")
+		_set_btn(bhe, "%s\n%s" % [Loc.t("ФУГАС"), Loc.t("ВКЛ") if cur_ammo == "he" else Loc.t("ВЫКЛ")])
+	if _ex_btn.has("isk_cluster"):
+		var bcl: Button = _ex_btn["isk_cluster"]
+		bcl.set_pressed_no_signal(cur_ammo == "cluster")
+		_set_btn(bcl, "%s\n%s" % [Loc.t("КАССЕТА"), Loc.t("ВКЛ") if cur_ammo == "cluster" else Loc.t("ВЫКЛ")])
 
 
 
@@ -403,7 +436,7 @@ func refresh(delta: float) -> void :
 		_sig = tsig
 		_cur_mp = Hub.plan(gw, cur, cur_t) if not cur_t.is_empty() else {}
 		var av: int = int((rdy.get(cur, [0, ""]) as Array)[0])
-		if cur == "ship" or cur == "art" or cur == "bomber" or cur == "hyper" or cur == "thermo" or cur == "nuke":
+		if cur == "ship" or cur == "art" or cur == "bomber" or cur == "hyper" or cur == "thermo" or cur == "nuke" or cur == "iskander":
 			main._plan_info = {"available": av}
 
 	var all_n: int = 0
@@ -477,11 +510,18 @@ func refresh(delta: float) -> void :
 	_set_txt(_info, info)
 	_info.add_theme_color_override("font_color", UiKit.RED if bad else UiKit.TEXT)
 	var drone: bool = cur == "drone" or cur == "jet"
-	if _extras.visible != drone:
-		_extras.visible = drone
-	if drone:
+	var is_isk: bool = cur == "iskander"
+	if _extras.visible != (drone or is_isk):
+		_extras.visible = (drone or is_isk)
+	for dk: String in ["route", "plan_standing", "smart_toggle"]:
+		if _ex_btn.has(dk):
+			(_ex_btn[dk] as Button).visible = drone
+	for tk: String in ["isk_he", "isk_cluster"]:
+		if _ex_btn.has(tk):
+			(_ex_btn[tk] as Button).visible = is_isk
+	if drone or is_isk:
 		_ex_sync()
-	if cur == "thermo" or cur == "nuke":
+	if cur == "thermo" or cur == "nuke" or cur == "iskander":
 		var av_mod: int = int((rdy.get(cur, [0, ""]) as Array)[0])
 		var tot_mod: int = Hub.n_of(cur_t)
 		if _plus != null:

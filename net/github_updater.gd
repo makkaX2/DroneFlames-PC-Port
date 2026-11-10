@@ -39,6 +39,9 @@ static func clean_version_string(v: String) -> String:
 	var paren: int = s.find("(")
 	if paren != -1:
 		s = s.substr(0, paren)
+	var dash: int = s.find("-")
+	if dash != -1:
+		s = s.substr(0, dash)
 	return s.strip_edges()
 
 static func get_installed_version() -> String:

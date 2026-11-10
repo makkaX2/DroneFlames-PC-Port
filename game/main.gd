@@ -783,7 +783,7 @@ func _on_action(nm: String) -> void :
 			plan_count = maxi(1, plan_count - 1)
 			_plan_per_all()
 		"plan_plus":
-			var is_mod_weapon: bool = strike.active and (strike.cur == "thermo" or strike.cur == "nuke")
+			var is_mod_weapon: bool = strike.active and (strike.cur == "thermo" or strike.cur == "nuke" or strike.cur == "iskander")
 			var av: int = int(_plan_info.get("available", 0)) if is_mod_weapon else int(_plan_info.get("available", 1))
 			if is_mod_weapon:
 				var cur_targets: Array = _plan_targets()
@@ -791,7 +791,7 @@ func _on_action(nm: String) -> void :
 				for t: Dictionary in cur_targets:
 					tot += int(t["n"])
 				if tot >= av or av <= 0:
-					var w_name: String = "залпы" if strike.cur == "thermo" else "МБР"
+					var w_name: String = "залпы" if strike.cur == "thermo" else ("ракеты «Искандер»" if strike.cur == "iskander" else "МБР")
 					hud.show_toast(Loc.msg(Loc.mk("Все %s распределены: %d", [w_name, av])))
 					if ClassDB.class_exists("UiKit"):
 						UiKit.snd("ui_error")

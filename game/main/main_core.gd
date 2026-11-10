@@ -330,7 +330,7 @@ func _plan_tap(pos: Vector2, wp: Vector2) -> void :
 			plan_wps.insert(_insert_index(p), p)
 		return
 	if (mode == Mode.TARGET or _missile_multi()) and plan_has_target:
-		var is_mod_weapon: bool = strike.active and (strike.cur == "thermo" or strike.cur == "nuke")
+		var is_mod_weapon: bool = strike.active and (strike.cur == "thermo" or strike.cur == "nuke" or strike.cur == "iskander")
 		var av_check: int = int(_missile_mp().get("available", 0)) if is_mod_weapon else 999
 		var cur_tot: int = 0
 		if is_mod_weapon:
@@ -339,7 +339,7 @@ func _plan_tap(pos: Vector2, wp: Vector2) -> void :
 
 		if cam.world_to_screen(plan_target).distance_to(pos) <= GRAB_R:
 			if is_mod_weapon and cur_tot >= av_check:
-				var w_name: String = "залпы" if strike.cur == "thermo" else "МБР"
+				var w_name: String = "залпы" if strike.cur == "thermo" else ("ракеты «Искандер»" if strike.cur == "iskander" else "МБР")
 				hud.show_toast(Loc.msg(Loc.mk("Все %s распределены: %d", [w_name, av_check])))
 				UiKit.snd("ui_error")
 				return
@@ -349,7 +349,7 @@ func _plan_tap(pos: Vector2, wp: Vector2) -> void :
 		for t: Dictionary in plan_list:
 			if cam.world_to_screen(t["pos"]).distance_to(pos) <= GRAB_R:
 				if is_mod_weapon and cur_tot >= av_check:
-					var w_name: String = "залпы" if strike.cur == "thermo" else "МБР"
+					var w_name: String = "залпы" if strike.cur == "thermo" else ("ракеты «Искандер»" if strike.cur == "iskander" else "МБР")
 					hud.show_toast(Loc.msg(Loc.mk("Все %s распределены: %d", [w_name, av_check])))
 					UiKit.snd("ui_error")
 					return
@@ -357,7 +357,7 @@ func _plan_tap(pos: Vector2, wp: Vector2) -> void :
 				overlay.ripple(t["pos"], "alert_red")
 				return
 		if is_mod_weapon and cur_tot >= av_check:
-			var w_name: String = "залпы" if strike.cur == "thermo" else "МБР"
+			var w_name: String = "залпы" if strike.cur == "thermo" else ("ракеты «Искандер»" if strike.cur == "iskander" else "МБР")
 			hud.show_toast(Loc.msg(Loc.mk("Все %s распределены: %d", [w_name, av_check])))
 			UiKit.snd("ui_error")
 			return
@@ -386,7 +386,7 @@ func _missile_multi() -> bool:
 
 func _missile_mp() -> Dictionary:
 	if mode == Mode.MISSILE:
-		if strike.active and (strike.cur == "thermo" or strike.cur == "nuke"):
+		if strike.active and (strike.cur == "thermo" or strike.cur == "nuke" or strike.cur == "iskander"):
 			return StrikeHubScript.plan(world, strike.cur, _plan_targets())
 		return world.mil.missile_multi_plan(world.player, _plan_targets())
 	if mode == Mode.SHIP_CR:
@@ -398,10 +398,10 @@ func _missile_mp() -> Dictionary:
 
 
 func _missile_tap(pos: Vector2, wp: Vector2) -> void :
-	var is_mod_weapon: bool = strike.active and (strike.cur == "thermo" or strike.cur == "nuke")
+	var is_mod_weapon: bool = strike.active and (strike.cur == "thermo" or strike.cur == "nuke" or strike.cur == "iskander")
 	var av: int = int(_missile_mp().get("available", 0))
 	if is_mod_weapon and av <= 0:
-		var w_name: String = "залпов «Солнцепёк»" if strike.cur == "thermo" else "снаряжённых шахт МБР"
+		var w_name: String = "залпов «Солнцепёк»" if strike.cur == "thermo" else ("ракет «Искандер»" if strike.cur == "iskander" else "снаряжённых шахт МБР")
 		hud.show_toast(Loc.msg(Loc.mk("Нет готовых %s для пуска", [w_name])))
 		UiKit.snd("ui_error")
 		return
@@ -414,6 +414,8 @@ func _missile_tap(pos: Vector2, wp: Vector2) -> void :
 			if strike.active:
 				if strike.cur == "thermo":
 					w_name = "залпы"
+				elif strike.cur == "iskander":
+					w_name = "ракеты «Искандер»"
 				elif strike.cur == "nuke":
 					w_name = "МБР"
 			hud.show_toast(Loc.msg(Loc.mk("Все %s распределены: %d", [w_name, av])))

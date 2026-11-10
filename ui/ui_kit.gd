@@ -175,11 +175,20 @@ static func _all() -> Array:
 
 static func has(sprite_name: String) -> bool:
 	ensure()
+	if Engine.get_main_loop() != null:
+		var loop = Engine.get_main_loop()
+		if "root" in loop and loop.root != null and loop.root.has_node("ModManager"):
+			var mm = loop.root.get_node("ModManager")
+			if mm != null and mm.has_method("get_custom_texture"):
+				if mm.get_custom_texture(sprite_name) != null:
+					return true
 	if sprite_name.begins_with("d331_") or sprite_name.begins_with("r332_") or sprite_name.begins_with("u335_"):
 		return _at(sprite_name) != null
 	for at: SpriteAtlas in _all():
 		if at.has(sprite_name):
 			return true
+	if sprite_name == "icon_refresh":
+		return has("net_refresh")
 	return sprite_name == "icon_play_big" or sprite_name == "icon_attack_jet"
 
 
@@ -252,6 +261,8 @@ static func tex(sprite_name: String) -> Texture2D:
 		return atlas7.region("icon_play")
 	if sprite_name == "icon_attack_jet":
 		return _attack_icon()
+	if sprite_name == "icon_refresh":
+		return tex("net_refresh")
 	var at: SpriteAtlas = _at(sprite_name)
 	if at == null:
 		if ResourceLoader.exists("res://assets/sprites/" + sprite_name + ".png"):

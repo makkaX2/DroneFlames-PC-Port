@@ -694,7 +694,7 @@ func _update_ops(delta: float) -> void :
 		if not _missile_multi_card():
 			hud.show_aircraft(hb, world.mil.air, world.player)
 		return
-	if mode == Mode.MISSILE:
+	if mode == Mode.MISSILE and not strike.active:
 		_plan_info = world.mil.missile_plan(world.player, plan_target, plan_has_target)
 		if _missile_multi_card():
 			return

@@ -29,7 +29,7 @@ func tick() -> void :
 
 func _icon(n: String) -> Texture2D:
 	if not _tex.has(n):
-		_tex[n] = UiKit.tex(n) if UiKit.has(n) else null
+		_tex[n] = UiKit.tex(n)
 	return _tex[n]
 
 
@@ -70,7 +70,7 @@ func _mark(sp: Vector2, w: String, n: int, font: Font, full: bool, cd: String) -
 	draw_arc(sp, r - 1.0, 0.0, TAU, 28, col, 3.0 if full else 2.5, true)
 	var tx: Texture2D = _icon(Hub.icon(w))
 	if tx != null:
-		var s: float = 14.0 if full else 12.0
+		var s: float = 16.0 if full else 14.0
 		draw_texture_rect(tx, Rect2(sp - Vector2(s, s) * 0.5, Vector2(s, s)), false)
 	if full:
 		draw_line(sp + Vector2( - r - 5.0, 0), sp + Vector2( - r - 1.0, 0), col, 2.0)

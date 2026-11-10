@@ -12,7 +12,7 @@ extends RefCounted
 
 const NavyStrike = preload("res://game/navy_strike.gd")
 const BASE_W_IDS: Array[String] = ["drone", "jet", "tel", "ship", "art", "bomber", "hyper"]
-const W_IDS: Array[String] = ["drone", "jet", "tel", "ship", "art", "bomber", "hyper", "thermo", "nuke"]
+const W_IDS: Array[String] = ["drone", "jet", "tel", "ship", "art", "bomber", "hyper", "thermo", "nuke", "iskander"]
 
 static func active_w_ids(gw: GameWorld = null) -> Array[String]:
 	var out: Array[String] = BASE_W_IDS.duplicate()
@@ -23,11 +23,15 @@ static func active_w_ids(gw: GameWorld = null) -> Array[String]:
 			out.append("thermo")
 		if mm.is_mod_loaded("nuclear_strike"):
 			out.append("nuke")
+		if mm.is_mod_loaded("iskander_strike"):
+			out.append("iskander")
 	elif gw != null:
 		if gw.has_meta("thermo_battery_mod"):
 			out.append("thermo")
 		if gw.has_meta("nuclear_strike_mod"):
 			out.append("nuke")
+		if gw.has_meta("iskander_strike_mod"):
+			out.append("iskander")
 	return out
 const W_INFO: Dictionary = {
 	"drone": {"short": "БПЛА", "title": "Ударные БПЛА", "sub": "дронопорты", "icon": "icon_launch", "col": Color("ffb000"), "unit": "БПЛА"}, 
@@ -39,6 +43,7 @@ const W_INFO: Dictionary = {
 	"hyper": {"short": "ГИПЕР", "title": "Гиперзвук", "sub": "истребители", "icon": "icon_m_hyper", "col": Color("ff72d6"), "unit": "ракет"}, 
 	"thermo": {"short": "СОЛНЦЕПЁК", "title": "Батарея «Солнцепёк»", "sub": "ТОС-1А · термобар", "icon": "icon_mlrs", "col": Color("ff8c3c"), "unit": "залпов"}, 
 	"nuke": {"short": "МБР", "title": "Шахта МБР «Сармат»", "sub": "стратегический ядерный", "icon": "icon_m_ballistic", "col": Color("ff3333"), "unit": "ракет"}, 
+	"iskander": {"short": "ИСКАНДЕР", "title": "ОТРК «Искандер-М»", "sub": "баллистика · 9К720", "icon": "icon_iskander", "col": Color("e84128"), "unit": "ракет"}, 
 }
 
 const AIR_TAKEOFF: float = 4.5
@@ -175,7 +180,26 @@ func _ready(gw: GameWorld, wid: String) -> Array:
 			return [0, Loc.t("Нет дронов: постройте дронный завод")]
 		"tel":
 			var mp: Dictionary = mil.missile_multi_plan(p, [])
-			return [int(mp["available"]), String(mp["why"])]
+			if int(mp["available"]) > 0 or mil.has_kind(p.id, Facility.Kind.TEL):
+				return [int(mp["available"]), String(mp["why"])]
+			return [0, Loc.t("Нет ОТРК: АРМИЯ › ОТРК")]
+		"iskander":
+			var isk_cnt: int = 0
+			var isk_total: int = 0
+			var isk_why: String = ""
+			if mil != null:
+				for f in mil.facilities:
+					if f != null and is_instance_valid(f) and f.country_id == p.id and (f.army_build == "iskander_tel" or bool(f.get_meta("is_iskander_tel", false))) and f.hp > 0.0:
+						isk_total += 1
+						if bool(f.get_meta("has_missile", false)) and not bool(f.get_meta("is_reloading", false)):
+							isk_cnt += 1
+						elif isk_why == "":
+							isk_why = Loc.t("ОТРК «Искандер-М» перезаряжается")
+			if isk_total > 0:
+				if isk_cnt > 0:
+					return [isk_cnt, ""]
+				return [0, isk_why]
+			return [0, Loc.t("Нет ОТРК: АРМИЯ › ИСКАНДЕР")]
 		"ship":
 			var sp: Dictionary = NavyStrike.plan(gw, p.id, [])
 			return [int(sp["available"]), String(sp["why"])]
@@ -235,6 +259,14 @@ static func plan(gw: GameWorld, wid: String, targets: Array) -> Dictionary:
 			mp["assigned"] = int(mp.get("launch", 0))
 		"tel":
 			mp = gw.mil.missile_multi_plan(p, targets)
+		"iskander":
+			var isk_free: Array[Facility] = []
+			if gw.mil != null:
+				for f: Facility in gw.mil.facilities:
+					if f != null and is_instance_valid(f) and f.country_id == p.id and (f.army_build == "iskander_tel" or bool(f.get_meta("is_iskander_tel", false))) and f.hp > 0.0:
+						if bool(f.get_meta("has_missile", false)) and not bool(f.get_meta("is_reloading", false)):
+							isk_free.append(f)
+			mp = _iskander_plan(gw, p, targets, isk_free)
 		"ship":
 			mp = NavyStrike.plan(gw, p.id, targets)
 		"art":
@@ -263,7 +295,32 @@ static func plan_single(gw: GameWorld, wid: String, target: Vector2, has_target:
 	var info: Dictionary = {"tel": null, "from": Vector2.ZERO, "launch": Vector2.ZERO, "dist": 0.0, "in_range": false, "available": 0, "flight": 0.0, "alt0": 0.0}
 	if p == null or gw == null:
 		return info
-	if wid == "thermo":
+	if wid == "tel":
+		return gw.mil.missile_plan(p, target, has_target)
+	elif wid == "iskander":
+		var best: Facility = null
+		var bd: float = INF
+		var avail: int = 0
+		if gw.mil != null:
+			for f: Facility in gw.mil.facilities:
+				if f != null and is_instance_valid(f) and f.country_id == p.id and (f.army_build == "iskander_tel" or bool(f.get_meta("is_iskander_tel", false))) and f.hp > 0.0:
+					if bool(f.get_meta("has_missile", false)) and not bool(f.get_meta("is_reloading", false)):
+						avail += 1
+						var d: float = f.center_px().distance_to(target) if has_target else 0.0
+						if d < bd:
+							bd = d
+							best = f
+		info["available"] = avail
+		info["tel"] = best
+		if best != null:
+			info["from"] = best.center_px()
+			info["launch"] = best.center_px()
+			if has_target:
+				info["dist"] = bd
+				info["in_range"] = true
+				info["flight"] = clampf(bd / 380.0, 4.5, 9.0)
+		return info
+	elif wid == "thermo":
 		var best: Facility = null
 		var bd: float = INF
 		var avail: int = 0
@@ -312,6 +369,47 @@ static func plan_single(gw: GameWorld, wid: String, target: Vector2, has_target:
 				info["flight"] = clampf(5.5 + bd * 0.002, 6.5, 9.5)
 		return info
 	return info
+
+
+static func _iskander_plan(gw: GameWorld, p: Country, targets: Array, free: Array[Facility]) -> Dictionary:
+	var out: Dictionary = {"ok": false, "total": 0, "available": free.size(), "assigned": 0, "per_target": [], "plan": [], "why": "", "tels": 0}
+	if p == null or gw == null:
+		return out
+	var avail: int = free.size()
+	var used: Dictionary = {}
+	var pts: Array = _strike_pts(targets)
+	for e: Array in pts:
+		var tp: Vector2 = e[0]
+		var n: int = int(e[1])
+		out["total"] = int(out["total"]) + n
+		var got: int = 0
+		for i in n:
+			if int(out["assigned"]) >= avail:
+				break
+			var best: Facility = null
+			var bd: float = INF
+			for f: Facility in free:
+				if used.has(f):
+					continue
+				var d: float = f.center_px().distance_to(tp)
+				if d < bd:
+					bd = d
+					best = f
+			if best == null:
+				break
+			used[best] = true
+			(out["plan"] as Array).append([best, tp])
+			got += 1
+			out["assigned"] = int(out["assigned"]) + 1
+		var why: String = ""
+		if got < n:
+			why = Loc.t("Не хватает боеготовых ОТРК «Искандер-М»")
+		(out["per_target"] as Array).append({"ok": got == n, "reason": why, "n": n, "got": got, "pos": tp})
+	out["tels"] = used.size()
+	out["ok"] = int(out["assigned"]) > 0
+	if int(out["assigned"]) == 0 and not targets.is_empty():
+		out["why"] = Loc.t("Нет готовых ОТРК «Искандер-М»")
+	return out
 
 
 static func _thermo_plan(gw: GameWorld, p: Country, targets: Array) -> Dictionary:
@@ -437,6 +535,14 @@ static func eta(gw: GameWorld, wid: String, mp: Dictionary) -> float:
 				var qi: int = int(q.get(f, 0))
 				q[f] = qi + 1
 				sum += Military.ERECT_TIME + Missile.IGNITE_TIME + Military.flight_time_for(f.center_px().distance_to(e[1])) + float(qi) * TEL_NEXT
+				n += 1
+		"iskander":
+			var q_isk: Dictionary = {}
+			for e_isk: Array in mp.get("plan", []):
+				var f_isk: Facility = e_isk[0]
+				var qi_isk: int = int(q_isk.get(f_isk, 0))
+				q_isk[f_isk] = qi_isk + 1
+				sum += clampf(f_isk.center_px().distance_to(e_isk[1]) / 380.0, 4.5, 9.0) + float(qi_isk) * 1.5
 				n += 1
 		"ship":
 			var nv: Navy = gw.get("navy") as Navy
@@ -595,6 +701,20 @@ func _launch_now(gw: GameWorld, wid: String, targets: Array, eta_s: float) -> in
 				n = int(gw.mil.launch_multi_ex(p, targets, jet)["launched"])
 		"tel":
 			n = int(gw.mil.launch_missiles_multi(p, targets)["launched"])
+		"iskander":
+			var isk_mod: Object = gw.get_meta("iskander_strike_mod", null)
+			var mp_isk: Dictionary = plan(gw, "iskander", targets)
+			if isk_mod != null and not (mp_isk.get("plan", []) as Array).is_empty():
+				var ammo_type: String = String(gw.get_meta("iskander_strike_ammo", "he"))
+				for e in mp_isk["plan"]:
+					var f: Facility = e[0]
+					var tp: Vector2 = e[1]
+					if isk_mod.has_method("launch_missile_at"):
+						if isk_mod.launch_missile_at(f, tp, ammo_type):
+							n += 1
+				if n > 0 and not bool(gw.get_meta("strike_quiet", false)):
+					var ammo_title: String = "«ФУГАС»" if ammo_type == "he" else "«КАССЕТА»"
+					gw.say(p, Loc.mk("ОТРК «Искандер-М»: произведён пуск %d ракет (%s) по целям!", [n, ammo_title]))
 		"ship":
 			var r: Dictionary = NavyStrike.launch(gw, p.id, targets)
 			n = int(r.get("launched", 0))
