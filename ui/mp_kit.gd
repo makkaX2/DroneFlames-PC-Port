@@ -289,7 +289,8 @@ static func slot_row(parent: Control, idx: int, nick: String, host: bool, you: b
 	if not cos.is_empty():
 		p.custom_minimum_size.y = SLOT_H + 4
 		banner_bg(p, cos.get("banner"))
-		row.add_child(avatar_framed(cos.get("frame"), 48.0))
+		var a_tex: Texture2D = Account.get_avatar_texture(String(cos.get("avatar_b64", "")))
+		row.add_child(avatar_framed(cos.get("frame"), 48.0, a_tex))
 		var tc: String = Cosmetics.shown("title", cos.get("title"))
 		if tc != "":
 			var v: = VBoxContainer.new()
@@ -298,10 +299,16 @@ static func slot_row(parent: Control, idx: int, nick: String, host: bool, you: b
 			v.add_theme_constant_override("separation", 1)
 			v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			row.add_child(v)
+			var nh: = HBoxContainer.new()
+			nh.add_theme_constant_override("separation", 4)
+			nh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			v.add_child(nh)
 			var nl: Label = UiKit.lbl(nick, 13, UiKit.TEXT, 3, 2)
 			nl.clip_text = true
 			nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-			v.add_child(nl)
+			nh.add_child(nl)
+			if Account.is_dev_name(nick) or bool(cos.get("is_dev", false)):
+				nh.add_child(dev_badge_button())
 			var tl2: Control = title_label(tc, 10)
 			v.add_child(tl2)
 			if sub != "":
@@ -309,7 +316,16 @@ static func slot_row(parent: Control, idx: int, nick: String, host: bool, you: b
 				sl.clip_text = true
 				v.add_child(sl)
 		else:
-			_two_lines(row, nick, sub)
+			var nh: = HBoxContainer.new()
+			nh.add_theme_constant_override("separation", 4)
+			nh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(nh)
+			var nl: Label = UiKit.lbl(nick, 13, UiKit.TEXT, 3, 2)
+			nl.clip_text = true
+			nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			nh.add_child(nl)
+			if Account.is_dev_name(nick) or bool(cos.get("is_dev", false)):
+				nh.add_child(dev_badge_button())
 	else:
 		_two_lines(row, nick, sub)
 	if you:
@@ -641,18 +657,62 @@ static func stat_card(parent: Control, title: String, sub: String, value: String
 
 
 
-static func avatar_framed(frame_code: Variant, px: float = 48.0) -> Control:
+static func avatar_framed(frame_code: Variant, px: float = 48.0, avatar_tex: Texture2D = null) -> Control:
 	var box: = Control.new()
 	box.custom_minimum_size = Vector2(px, px)
 	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var code: String = Cosmetics.shown("frame", frame_code)
-	var p: TextureRect = UiKit.icon_rect("acc_pilot", px * 2.0 / 3.0)
-	p.position = Vector2(px / 6.0, px / 6.0)
-	box.add_child(p)
+	if avatar_tex != null:
+		var p: = TextureRect.new()
+		p.texture = avatar_tex
+		p.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		p.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		p.custom_minimum_size = Vector2(px * 0.72, px * 0.72)
+		p.size = p.custom_minimum_size
+		p.position = Vector2(px * 0.14, px * 0.14)
+		box.add_child(p)
+	else:
+		var p: TextureRect = UiKit.icon_rect("acc_pilot", px * 2.0 / 3.0)
+		p.position = Vector2(px / 6.0, px / 6.0)
+		box.add_child(p)
 	var fr: TextureRect = UiKit.icon_rect(code if UiKit.tex(code) != null else "acc_frame", px)
 	box.add_child(fr)
 	return box
+
+
+static func dev_badge_button() -> TextureButton:
+	var tb: = TextureButton.new()
+	tb.texture_normal = UiKit.tex("icon_ok")
+	tb.custom_minimum_size = Vector2(16, 16)
+	tb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	tb.modulate = Color("66e6ff")
+	tb.tooltip_text = "Разработчик порта DroneFlames"
+	tb.pressed.connect(func() -> void:
+		UiKit.snd("ui_click")
+		toast("Разработчик порта DroneFlames")
+	)
+	return tb
+
+
+static func toast(text: String) -> void:
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return
+	var tip: = PanelContainer.new()
+	tip.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_gold", 8, 4))
+	tip.top_level = true
+	tip.z_index = 200
+	var lbl: Label = UiKit.lbl(text, 12, UiKit.TEXT, 3, 3)
+	tip.add_child(lbl)
+	tree.root.add_child(tip)
+	var vp_size: Vector2 = tree.root.get_viewport().get_visible_rect().size
+	tip.position = Vector2((vp_size.x - 240) / 2.0, vp_size.y * 0.15)
+	var tw: Tween = tip.create_tween()
+	tw.tween_property(tip, "modulate:a", 1.0, 0.2).from(0.0)
+	tw.tween_interval(2.2)
+	tw.tween_property(tip, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(tip.queue_free)
 
 
 
@@ -742,7 +802,7 @@ static func title_label(code: String, size: int = 11, display_name: String = "")
 
 
 
-static func player_card(parent: Control, uname: String, sub: String, cos: Dictionary, h: float = ROW_H, on_tap: Callable = Callable(), right: Control = null) -> Control:
+static func player_card(parent: Control, uname: String, sub: String, cos: Dictionary, h: float = ROW_H, on_tap: Callable = Callable(), right: Control = null, is_dev: bool = false, avatar_b64: String = "") -> Control:
 	var b: Control
 	if on_tap.is_valid():
 		var bt: Button = card_button(h)
@@ -759,17 +819,27 @@ static func player_card(parent: Control, uname: String, sub: String, cos: Dictio
 	parent.add_child(b)
 	banner_bg(b, cos.get("banner"))
 	var row: HBoxContainer = _hbox(b, 10, 8)
-	row.add_child(avatar_framed(cos.get("frame"), 48.0))
+	var a_b64: String = avatar_b64
+	if a_b64 == "" and uname.to_lower() == Account.username().to_lower():
+		a_b64 = Account.avatar_b64
+	var a_tex: Texture2D = Account.get_avatar_texture(a_b64)
+	row.add_child(avatar_framed(cos.get("frame"), 48.0, a_tex))
 	var v: = VBoxContainer.new()
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_theme_constant_override("separation", 2)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(v)
+	var nh: = HBoxContainer.new()
+	nh.add_theme_constant_override("separation", 4)
+	nh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(nh)
 	var n: Label = UiKit.lbl(uname, 16 if h > ROW_H else 13, UiKit.TEXT, 3, 3)
 	n.clip_text = true
 	n.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	v.add_child(n)
+	nh.add_child(n)
+	if is_dev or Account.is_dev_name(uname) or (uname.to_lower() == Account.username().to_lower() and Account.is_dev()):
+		nh.add_child(dev_badge_button())
 	var tc: String = Cosmetics.shown("title", cos.get("title"))
 	if tc != "":
 		v.add_child(title_label(tc))
@@ -795,7 +865,8 @@ static func ranked_row(parent: Control, pl: Dictionary, host: bool, you: bool, s
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(row)
-	row.add_child(avatar_framed(pl.get("frame"), 48.0))
+	var a_tex: Texture2D = Account.get_avatar_texture(String(pl.get("avatar_b64", "")))
+	row.add_child(avatar_framed(pl.get("frame"), 48.0, a_tex))
 	var v: = VBoxContainer.new()
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -808,11 +879,14 @@ static func ranked_row(parent: Control, pl: Dictionary, host: bool, you: bool, s
 	v.add_child(nh)
 	if host:
 		nh.add_child(icon("net_host"))
-	var nl: Label = UiKit.lbl(String(pl.get("name", "")), 13, UiKit.DIM if state == "left" else (UiKit.GOLD if you else UiKit.TEXT), 3, 2)
+	var pl_name: String = String(pl.get("name", ""))
+	var nl: Label = UiKit.lbl(pl_name, 13, UiKit.DIM if state == "left" else (UiKit.GOLD if you else UiKit.TEXT), 3, 2)
 	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nl.clip_text = true
 	nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	nh.add_child(nl)
+	if Account.is_dev_name(pl_name) or bool(pl.get("is_dev", false)):
+		nh.add_child(dev_badge_button())
 	if you:
 		nh.add_child(UiKit.lbl("ВЫ", 10, UiKit.GOLD, 3, 2))
 	if state == "left":

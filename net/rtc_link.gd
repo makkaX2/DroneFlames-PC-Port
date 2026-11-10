@@ -89,7 +89,7 @@ static func open_socket(ws: WebSocketPeer) -> int:
 
 
 func host(pub: bool = false, code: String = "") -> void :
-	_start({"t": "host", "v": NetConfig.version(), "pub": pub, "code": code, "name": NetConfig.nick() if relay_only() else Account.username()})
+	_start({"t": "host", "v": NetConfig.version(), "pub": pub, "code": code, "name": Account.username(), "auth_user": Account.username(), "auth_token": Account.token})
 
 
 
@@ -99,7 +99,7 @@ func set_pub(pub: bool) -> void :
 
 func join(room: String, tok: String = "") -> void :
 	var msg: Dictionary = {"t": "join", "code": NetConfig.clean_code(room), "v": NetConfig.version(), "late": true,
-		"name": NetConfig.nick() if relay_only() else Account.username()}
+		"name": Account.username(), "auth_user": Account.username(), "auth_token": Account.token}
 	if tok != "":
 		msg["rejoin"] = true
 		msg["tok_h"] = tok.sha256_text()
@@ -125,7 +125,8 @@ var snap: int = 0
 
 
 func resume(mid: String, tok: String = "") -> void :
-	var msg: Dictionary = {"t": "resume", "match": mid, "v": NetConfig.version(), "epoch": epoch, "snap": snap}
+	var msg: Dictionary = {"t": "resume", "match": mid, "v": NetConfig.version(), "epoch": epoch, "snap": snap,
+		"name": Account.username(), "auth_user": Account.username(), "auth_token": Account.token}
 	if tok != "":
 		msg["tok_h"] = tok.sha256_text()
 	_start(msg, my_id == 1 and peer != null)
@@ -263,7 +264,8 @@ func _process(delta: float) -> void :
 		_ra_wait -= delta
 		if _ra_wait < 0.0:
 			_want = {"t": "reattach", "code": code, "id": my_id, "tok_h": _auth_tok_h,
-				"v": NetConfig.version(), "name": NetConfig.nick() if relay_only() else Account.username()}
+				"v": NetConfig.version(), "name": Account.username(),
+				"auth_user": Account.username(), "auth_token": Account.token}
 			_connect()
 		return
 	if _ws == null:

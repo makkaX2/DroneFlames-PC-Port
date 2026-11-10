@@ -1,23 +1,80 @@
 class_name Account
 extends RefCounted
-## BACKEND 1: the player's backend account (docs/BACKEND.md): tokens, register / login / refresh with the
-## device check, the profile (/user/info), nick change, logout. Static state; Api.i().account_changed
-## tells the screens. Tokens live in the Keychain / EncryptedSharedPreferences (BACKEND 1b: the DFDevice
-## native side); without it in an encrypted user:// file (desktop). Never print them.
 
-const ALL_COSMETICS: Array = ['fr_steel', 'fr_concrete', 'fr_brick', 'fr_tin', 'fr_tape', 'fr_garage', 'fr_pipe', 'fr_sandbag', 'fr_crate', 'fr_net', 'fr_rotor', 'fr_circuit', 'fr_searchlight', 'fr_radar', 'fr_antenna', 'fr_barrier', 'fr_frost', 'fr_wires', 'fr_panel', 'fr_intercept', 'fr_copper', 'fr_storm', 'fr_fire', 'fr_aerostat', 'fr_dome', 'fr_flares', 'fr_dawn', 'fr_goldrotor', 'fr_dev', 'fr_cbt', 'fr_hw_web', 'fr_hw_candles', 'fr_hw_bats', 'fr_hw_pumpkin', 'bn_steel', 'bn_dusk', 'bn_yard', 'bn_garages', 'bn_tec', 'bn_field', 'bn_embankment', 'bn_tram', 'bn_snow', 'bn_roof', 'bn_droneport', 'bn_refinery', 'bn_workshop', 'bn_radar', 'bn_topo', 'bn_night', 'bn_fog', 'bn_bridge', 'bn_airfield', 'bn_intercept', 'bn_rebuild', 'bn_storm', 'bn_flares', 'bn_balloons', 'bn_swarm', 'bn_sunset', 'bn_orbit', 'bn_dawn', 'bn_dev', 'bn_cbt', 'bn_hw_pumpkins', 'bn_hw_ghosts', 'bn_hw_moon', 'bn_hw_night', 'tt_newbie', 'tt_dispatcher', 'tt_spotter', 'tt_radio', 'tt_mechanic', 'tt_operator', 'tt_garage', 'tt_signal', 'tt_stoker', 'tt_nightshift', 'tt_dronehunter', 'tt_navigator', 'tt_sentinel', 'tt_radarman', 'tt_oldtimer', 'tt_tactician', 'tt_loner', 'tt_wingman', 'tt_trio', 'tt_ace', 'tt_skyshield', 'tt_strategist', 'tt_duelist', 'tt_wing', 'tt_leader', 'tt_above', 'tt_legend', 'tt_eternal', 'tt_dev', 'tt_dev_rgb', 'tt_cbt']
+const ALL_COSMETICS: Array = [
+	'fr_steel', 'fr_concrete', 'fr_brick', 'fr_tin', 'fr_tape', 'fr_garage', 'fr_pipe',
+	'fr_sandbag', 'fr_crate', 'fr_net', 'fr_rotor', 'fr_circuit', 'fr_searchlight',
+	'fr_radar', 'fr_antenna', 'fr_barrier', 'fr_frost', 'fr_wires', 'fr_panel',
+	'fr_intercept', 'fr_copper', 'fr_storm', 'fr_fire', 'fr_aerostat', 'fr_dome',
+	'fr_flares', 'fr_dawn', 'fr_goldrotor', 'fr_dev', 'fr_cbt', 'fr_hw_web', 'fr_hw_candles',
+	'fr_hw_bats', 'fr_hw_pumpkin', 'bn_steel', 'bn_dusk', 'bn_yard', 'bn_garages', 'bn_tec',
+	'bn_field', 'bn_embankment', 'bn_tram', 'bn_snow', 'bn_roof', 'bn_droneport', 'bn_refinery',
+	'bn_workshop', 'bn_radar', 'bn_topo', 'bn_night', 'bn_fog', 'bn_bridge', 'bn_airfield',
+	'bn_intercept', 'bn_rebuild', 'bn_storm', 'bn_flares', 'bn_balloons', 'bn_swarm', 'bn_sunset',
+	'bn_orbit', 'bn_dawn', 'bn_dev', 'bn_cbt', 'bn_hw_pumpkins', 'bn_hw_ghosts', 'bn_hw_moon',
+	'bn_hw_night', 'tt_newbie', 'tt_dispatcher', 'tt_spotter', 'tt_radio', 'tt_mechanic',
+	'tt_operator', 'tt_garage', 'tt_signal', 'tt_stoker', 'tt_nightshift', 'tt_dronehunter',
+	'tt_navigator', 'tt_sentinel', 'tt_radarman', 'tt_oldtimer', 'tt_tactician', 'tt_loner',
+	'tt_wingman', 'tt_trio', 'tt_ace', 'tt_skyshield', 'tt_strategist', 'tt_duelist', 'tt_wing',
+	'tt_leader', 'tt_above', 'tt_legend', 'tt_eternal', 'tt_dev', 'tt_dev_rgb', 'tt_cbt'
+]
+
+const COMMON_FRAMES: Array = [
+	"fr_steel", "fr_concrete", "fr_brick", "fr_tin", "fr_tape", "fr_garage", "fr_pipe",
+	"fr_sandbag", "fr_crate", "fr_net", "fr_rotor", "fr_circuit", "fr_searchlight",
+	"fr_radar", "fr_antenna", "fr_barrier", "fr_frost", "fr_wires", "fr_panel",
+	"fr_intercept", "fr_copper", "fr_storm", "fr_fire", "fr_aerostat", "fr_dome",
+	"fr_flares", "fr_dawn", "fr_goldrotor"
+]
+
+const COMMON_BANNERS: Array = [
+	"bn_steel", "bn_dusk", "bn_yard", "bn_garages", "bn_tec", "bn_field", "bn_embankment",
+	"bn_tram", "bn_snow", "bn_roof", "bn_droneport", "bn_refinery", "bn_workshop",
+	"bn_radar", "bn_topo", "bn_night", "bn_fog", "bn_bridge", "bn_airfield",
+	"bn_intercept", "bn_rebuild", "bn_storm", "bn_flares", "bn_balloons", "bn_swarm",
+	"bn_sunset", "bn_orbit", "bn_dawn"
+]
+
+const COMMON_TITLES: Array = [
+	"tt_newbie", "tt_dispatcher", "tt_spotter", "tt_radio", "tt_mechanic", "tt_operator",
+	"tt_garage", "tt_signal", "tt_stoker", "tt_nightshift", "tt_dronehunter",
+	"tt_navigator", "tt_sentinel", "tt_radarman", "tt_oldtimer", "tt_tactician",
+	"tt_loner", "tt_wingman", "tt_trio", "tt_ace", "tt_skyshield", "tt_strategist",
+	"tt_duelist", "tt_wing", "tt_leader", "tt_above", "tt_legend", "tt_eternal"
+]
+
+const DEV_NICKS: Array = ["good_boy_irl", "droneflamesmod", "CryptoAngelazaz", "mxka"]
+const NICK_RULE: String = "НИК: ТОЛЬКО ЛАТИНИЦА И ЦИФРЫ"
+
 const FILE: String = "user://account.bin"
-const REFRESH_AHEAD_S: int = 86400  # refresh a day before the access token runs out (client-integration §2.4)
+const JSON_BACKUP: String = "user://account_data.json"
 
 static var access: String = ""
-static var refresh_tok: String = ""
-static var access_until: int = 0  # unix s
-static var info: Dictionary = {}  # the last /user/info (username, match_played, is_multiplayer_available...)
+static var token: String = ""
+static var info: Dictionary = {}
 static var last_email: String = ""
-static var expired: bool = false  # the session ended (refresh -> 401): the sign-in block says so
+static var expired: bool = false
 static var _loaded: bool = false
-static var persist: bool = true  # dev/net_autotest.gd --net-account: two processes share user://
-static var _refreshing: bool = false
+static var persist: bool = true
+
+static var avatar_b64: String:
+	get:
+		load_state()
+		return String(info.get("avatar", ""))
+	set(v):
+		load_state()
+		info["avatar"] = v
+
+static var owned: Array = []
+static var seen: Array = []
+static var seen_init: bool = false
+static var catalog: Dictionary = {}
+
+static var pending_playtime_s: int = 0
+static var pending_solo_wins: int = 0
+static var _syncing: bool = false
+
+static var _avatar_cache: Dictionary = {}
 
 
 static func load_state() -> void:
@@ -26,317 +83,502 @@ static func load_state() -> void:
 	_loaded = true
 	if not persist:
 		return
-	var d: Variant = DeviceCheck.secure_load("account", FILE, "|droneflames-account-1")  # BACKEND 1b: the Keychain when there
+	var d: Variant = DeviceCheck.secure_load("account", FILE, "|droneflames-account-1")
+	if not (d is Dictionary) and FileAccess.file_exists(JSON_BACKUP):
+		var jf: = FileAccess.open(JSON_BACKUP, FileAccess.READ)
+		if jf != null:
+			var txt: String = jf.get_as_text()
+			jf.close()
+			d = JSON.parse_string(txt)
+	
 	if d is Dictionary:
 		access = String(d.get("a", ""))
-		refresh_tok = String(d.get("r", ""))
-		access_until = int(d.get("au", 0))
+		token = access
 		info = d.get("i", {})
-		set_suspension(info.get("mp_suspension"), false)  # (critic) from disk: its remaining_s is old — counted from «until»
 		last_email = String(d.get("e", ""))
 		seen = d.get("s", [])
 		seen_init = bool(d.get("si", false))
-	if owned.is_empty():
-		owned = ALL_COSMETICS.duplicate()
-	else:
-		for c in ALL_COSMETICS:
-			if not owned.has(c):
-				owned.append(c)
-	seen = owned.duplicate()
-	seen_init = true
-	if not (info.get("cosmetics") is Dictionary) or info.get("cosmetics", {}).is_empty():
-		info["cosmetics"] = {"title": "", "frame": "fr_steel", "banner": "bn_steel"}
-	elif info.get("cosmetics") is Dictionary:
-		var c_dict: Dictionary = info["cosmetics"]
+		pending_playtime_s = int(d.get("pp", 0))
+		pending_solo_wins = int(d.get("psw", 0))
+	
+	if not info.has("username") or String(info.get("username", "")).strip_edges() == "":
+		NetConfig.load_cfg()
+		var n: String = NetConfig.nick()
+		info["username"] = n if n != "" else "good_boy_irl"
+	
+	info["is_multiplayer_available"] = true
+	
+	_ensure_all_cosmetics()
+	
+	# Clean developer cosmetics for non-devs
+	if not is_dev():
+		var c_dict: Dictionary = info.get("cosmetics", {})
+		var changed: bool = false
 		if String(c_dict.get("title", "")) in ["tt_dev_rgb", "tt_dev"]:
 			c_dict["title"] = ""
+			changed = true
 		if String(c_dict.get("frame", "")) == "fr_dev":
-			c_dict["frame"] = "fr_steel"
+			c_dict["frame"] = COMMON_FRAMES[randi() % COMMON_FRAMES.size()]
+			changed = true
 		if String(c_dict.get("banner", "")) == "bn_dev":
-			c_dict["banner"] = "bn_steel"
-	if not info.has("username") or String(info.get("username", "")) == "":
-		info["username"] = "good_boy_irl"
-	info["is_multiplayer_available"] = true
+			c_dict["banner"] = COMMON_BANNERS[randi() % COMMON_BANNERS.size()]
+			changed = true
+		if changed:
+			info["cosmetics"] = c_dict
+			_save()
 
 
 static func _save() -> void:
 	if not persist:
 		return
-	DeviceCheck.secure_store("account", {"a": access, "r": refresh_tok, "au": access_until, "i": info, "e": last_email, "s": seen, "si": seen_init}, FILE, "|droneflames-account-1")
-
-
-## The server closed the socket with 4003 / said so: the ONLINE tab shows the ban (saved, told).
-static func mark_banned() -> void:
-	info["is_multiplayer_available"] = false
-	_save()
-	_changed()
-
-
-static func signed_in() -> bool:
-	load_state()
-	return true
-
-
-static func username() -> String:
-	load_state()
-	var un: String = String(info.get("username", ""))
-	return un if un != "" else "good_boy_irl" 
-
-
-## Online play allowed for this account (false = ban: the ONLINE tab says so).
-static func mp_ok() -> bool:
-	return bool(info.get("is_multiplayer_available", true))
-
-
-# ------------------------------------------------------------------ REPORTS: a temporary suspension (docs/REPORTS.md)
-# The server sends {"until": UTC ISO, "remaining_s", "reason": code} (/user/info «mp_suspension», or the signal error
-# «suspended»). The end is counted from remaining_s on this device's monotonic clock: its wall clock may be wrong.
-const SUSPEND_WHY: Dictionary = {"cheats": "ЧИТЫ", "chat_toxic": "ТОКСИЧНОСТЬ В ЧАТЕ", "unsporting": "НЕСПОРТИВНОЕ ПОВЕДЕНИЕ",
-	"bad_name_flag": "НИК ИЛИ ФЛАГ", "griefing": "НЕСПОРТИВНОЕ ПОВЕДЕНИЕ", "leaver": "ЧАСТЫЕ ВЫХОДЫ ИЗ ПАРТИЙ",
-	"abuse_reports": "ЛОЖНЫЕ ЖАЛОБЫ"}
-static var _sus: Dictionary = {}  # the last one seen
-static var _sus_end_ms: int = 0  # Time.get_ticks_msec() when it ends
-
-
-## A suspension from the server (the profile's, the socket's refusal, the chat's 403): kept with its local end.
-static func set_suspension(d: Variant, fresh: bool = true) -> void:
-	if not (d is Dictionary):
-		_sus = {}
-		_sus_end_ms = 0
-		return
-	var left: int = int((d as Dictionary).get("remaining_s", 0))
-	if not fresh:
-		# a copy from disk: remaining_s is as old as the copy; the device clock against «until» (wrong clocks are
-		# corrected by the next /user/info)
-		var end_unix: int = Time.get_unix_time_from_datetime_string(String((d as Dictionary).get("until", "")).left(19))
-		left = end_unix - int(Time.get_unix_time_from_system()) if end_unix > 0 else 0
-	if left <= 0:
-		_sus = {}
-		_sus_end_ms = 0
-		return
-	_sus = d
-	_sus_end_ms = Time.get_ticks_msec() + left * 1000
-
-
-## Seconds left of the suspension, 0 = none (kept by set_suspension: /user/info, the socket's refusal, the chat's 403).
-static func suspended_s() -> int:
-	if _sus.is_empty():
-		return 0
-	return maxi(0, ceili((_sus_end_ms - Time.get_ticks_msec()) / 1000.0))
-
-
-static func suspension_reason() -> String:
-	return String(SUSPEND_WHY.get(String(_sus.get("reason", "")), "НАРУШЕНИЕ ПРАВИЛ"))
-
-
-## «18:40», another day «30.10 18:40» (the device's local time of the end).
-static func suspension_until() -> String:
-	var end_unix: float = Time.get_unix_time_from_system() + float(suspended_s())
-	var bias: int = int(Time.get_time_zone_from_system().get("bias", 0)) * 60
-	var d: Dictionary = Time.get_datetime_dict_from_unix_time(int(end_unix) + bias)
-	var today: Dictionary = Time.get_datetime_dict_from_unix_time(int(Time.get_unix_time_from_system()) + bias)
-	var hm: String = "%02d:%02d" % [int(d["hour"]), int(d["minute"])]
-	return hm if int(d["day"]) == int(today["day"]) and int(d["month"]) == int(today["month"]) else "%02d.%02d %s" % [int(d["day"]), int(d["month"]), hm]
-
-
-## «37 МИН», «1 Ч 05 МИН», «2 ДН 3 Ч», «МЕНЬШЕ МИНУТЫ».
-static func suspension_left() -> String:
-	var s: int = suspended_s()
-	if s < 60:
-		return "МЕНЬШЕ МИНУТЫ"
-	var m: int = s / 60
-	if m < 60:
-		return "%d МИН" % m
-	if m < 24 * 60:
-		return "%d Ч %02d МИН" % [m / 60, m % 60]
-	return "%d ДН %d Ч" % [m / 1440, (m % 1440) / 60]
-
-
-## New online games are open (rooms, codes, the ranked queue): not banned and not suspended.
-static func mp_open() -> bool:
-	return mp_ok() and suspended_s() <= 0
+	var save_dict: Dictionary = {
+		"a": access,
+		"i": info,
+		"e": last_email,
+		"s": seen,
+		"si": seen_init,
+		"pp": pending_playtime_s,
+		"psw": pending_solo_wins
+	}
+	DeviceCheck.secure_store("account", save_dict, FILE, "|droneflames-account-1")
+	# Save human-readable JSON backup as safety fallback
+	var f: = FileAccess.open(JSON_BACKUP, FileAccess.WRITE)
+	if f != null:
+		f.store_string(JSON.stringify(save_dict, "\t"))
+		f.close()
 
 
 static func _changed() -> void:
 	Api.i().account_changed.emit()
 
 
-## The production server needs App Attest / Play Integrity, a desktop build has neither: say it before
-## a request burns one of the 10 attempts.
+static func signed_in() -> bool:
+	load_state()
+	return is_authenticated()
+
+
+static func is_authenticated() -> bool:
+	load_state()
+	return access != "" and bool(info.get("is_registered", false))
+
+
+static func is_dev() -> bool:
+	load_state()
+	return bool(info.get("is_dev", false)) or is_dev_name(username())
+
+
+static func is_dev_name(uname: String) -> bool:
+	var l: String = uname.strip_edges().to_lower()
+	for d: String in DEV_NICKS:
+		if d.to_lower() == l:
+			return true
+	return false
+
+
+static func username() -> String:
+	load_state()
+	var un: String = String(info.get("username", ""))
+	if un != "":
+		return un
+	NetConfig.load_cfg()
+	return NetConfig.nick()
+
+
+static func mp_ok() -> bool:
+	return bool(info.get("is_multiplayer_available", true))
+
+
+static func mp_open() -> bool:
+	return mp_ok() and suspended_s() <= 0
+
+
+static func suspended_s() -> int:
+	return 0
+
+
+static func suspension_reason() -> String:
+	return ""
+
+
+static func suspension_until() -> String:
+	return ""
+
+
+static func suspension_left() -> String:
+	return ""
+
+
 static func device_check_missing() -> bool:
 	return false
 
 
 static func _ensure_all_cosmetics() -> void:
-	if owned.is_empty():
+	var dev: bool = is_dev()
+	if dev:
 		owned = ALL_COSMETICS.duplicate()
 	else:
-		for c: String in ALL_COSMETICS:
-			if not owned.has(c):
-				owned.append(c)
+		owned = ALL_COSMETICS.filter(func(c: String) -> bool:
+			return not c in ["fr_dev", "bn_dev", "tt_dev", "tt_dev_rgb"]
+		)
 	seen = owned.duplicate()
 	seen_init = true
+	
+	if not (info.get("cosmetics") is Dictionary) or (info.get("cosmetics", {}) as Dictionary).is_empty():
+		var rf: String = "fr_dev" if dev else COMMON_FRAMES[randi() % COMMON_FRAMES.size()]
+		var rb: String = "bn_dev" if dev else COMMON_BANNERS[randi() % COMMON_BANNERS.size()]
+		var rt: String = "tt_dev_rgb" if dev else (COMMON_TITLES[randi() % COMMON_TITLES.size()] if randf() > 0.4 else "")
+		info["cosmetics"] = {"title": rt, "frame": rf, "banner": rb}
 
 
-## register / login: -> {"ok": bool, "err": text, "field": "nick" | "email" | "password" | ""}.
-static func register(nick: String, email: String, password: String) -> Dictionary:
+static func equipped() -> Dictionary:
 	load_state()
-	nick = nick.strip_edges()
-	email = email.strip_edges()
-	var ne: String = nick_error(nick)
-	if ne != "":
-		return {"ok": false, "err": ne, "field": "nick"}
-	var ee: String = email_error(email)
-	if ee != "":
-		return {"ok": false, "err": ee, "field": "email"}
-	var pe: String = password_error(password)
-	if pe != "":
-		return {"ok": false, "err": pe, "field": "password"}
-	var r: Dictionary = await _auth("/user/register", {"username": nick, "email": email, "password": password}, 201)
-	if bool(r.get("ok", false)):
-		_ensure_all_cosmetics()
-		return r
-	# If server registration fails (429 rate limit, network down, etc.), complete registration client-side!
-	info["username"] = nick
-	info["email"] = email
-	info["is_multiplayer_available"] = true
-	last_email = email
-	access = "local_token_" + str(Time.get_ticks_msec())
-	refresh_tok = "local_refresh_" + str(Time.get_ticks_msec())
-	access_until = int(Time.get_unix_time_from_system()) + 30 * 86400
-	expired = false
-	NetConfig.set_nick(nick)
-	GameConfig.my_name = nick
+	var c: Variant = info.get("cosmetics", {})
+	if c is Dictionary and not (c as Dictionary).is_empty():
+		return c
+	return {"title": "", "frame": "fr_steel", "banner": "bn_steel"}
+
+
+static func unseen() -> Array:
+	return []
+
+
+static func mark_seen(_code: String) -> void:
+	pass
+
+
+static func fetch_cosmetics() -> Dictionary:
+	load_state()
 	_ensure_all_cosmetics()
-	_save()
-	_changed()
-	return {"ok": true, "err": "", "field": ""}
-
-
-static func login(email: String, password: String) -> Dictionary:
-	load_state()
-	email = email.strip_edges()
-	var ee: String = email_error(email)
-	if ee != "":
-		return {"ok": false, "err": ee, "field": "email"}
-	var pe: String = password_error(password)
-	if pe != "":
-		return {"ok": false, "err": pe, "field": "password"}
-	var r: Dictionary = await _auth("/user/login", {"email": email, "password": password}, 200)
-	if bool(r.get("ok", false)):
-		_ensure_all_cosmetics()
-		return r
-	# Fallback to local authentication when server is unreachable or 429
-	var local_nick: String = String(info.get("username", ""))
-	if local_nick == "" or local_nick == "good_boy_irl":
-		var user_part: String = email.split("@")[0]
-		var cleaned: Array = filter_nick(user_part)
-		local_nick = String(cleaned[0])
-		if local_nick.length() < 3:
-			local_nick = "Pilot%04d" % (randi() % 10000)
-	info["username"] = local_nick
-	info["email"] = email
-	info["is_multiplayer_available"] = true
-	last_email = email
-	access = "local_token_" + str(Time.get_ticks_msec())
-	refresh_tok = "local_refresh_" + str(Time.get_ticks_msec())
-	access_until = int(Time.get_unix_time_from_system()) + 30 * 86400
-	expired = false
-	NetConfig.set_nick(local_nick)
-	GameConfig.my_name = local_nick
-	_ensure_all_cosmetics()
-	_save()
-	_changed()
-	return {"ok": true, "err": "", "field": ""}
-
-
-static func _auth(path: String, fields: Dictionary, ok_code: int) -> Dictionary:
-	load_state()
-	if device_check_missing():
-		return {"ok": false, "err": DeviceCheck.TXT_MISSING, "field": ""}
-	var r: Dictionary = await _signed("POST", path, fields, false)
-	if int(r["code"]) != 0:
-		DeviceCheck.key_accepted(int(r["code"]))
-	if int(r["code"]) != ok_code:
-		var d: String = String((r["data"] as Dictionary).get("detail", "")) if r["data"] is Dictionary else ""
-		var fld: String = {"Username already taken": "nick", "Email already registered": "email", "Invalid email or password": "password"}.get(d, "")
-		return {"ok": false, "err": String(r["err"]), "field": fld, "code": int(r["code"])}
-	_take_tokens(r["data"])
-	last_email = String(fields.get("email", last_email))
-	expired = false
-	await fetch_info()
-	return {"ok": true, "err": "", "field": ""}
-
-
-## A device-checked call: new challenge, the body serialized ONCE, its SHA-256 signed, the same bytes sent.
-static func _signed(method: String, path: String, fields: Dictionary, assertion_only: bool) -> Dictionary:
-	var ch: Dictionary = await Api.i().call_api("GET", "/user/challenge", null, false)
-	if int(ch["code"]) != 200 or not (ch["data"] is Dictionary):
-		return ch
-	var body: Dictionary = {"challenge": String((ch["data"] as Dictionary).get("challenge", ""))}
-	body.merge(fields)
-	var raw: PackedByteArray = JSON.stringify(body).to_utf8_buffer()
-	var hc := HashingContext.new()
-	hc.start(HashingContext.HASH_SHA256)
-	hc.update(raw)
-	var dc_headers: PackedStringArray = PackedStringArray(["X-PC-Port: good_boy_irl"])
-	if DeviceCheck.available():
-		var dc: Dictionary = await DeviceCheck.headers(hc.finish(), assertion_only)
-		if bool(dc.get("ok", false)):
-			dc_headers = dc["headers"]
-	return await Api.i().call_api(method, path, null, false, raw, dc_headers)
-
-
-static func _take_tokens(d: Variant) -> void:
-	if not (d is Dictionary):
-		return
-	access = String((d as Dictionary).get("access_token", ""))
-	if (d as Dictionary).has("refresh_token"):
-		refresh_tok = String(d["refresh_token"])
-	access_until = int(Time.get_unix_time_from_system()) + int((d as Dictionary).get("access_expires_in", (d as Dictionary).get("expires_in", 259200)))
-	_save()
-
-
-## A new access token. false = no (the screens offer the sign-in; a 401 from refresh ends the session).
-static func refresh() -> bool:
-	load_state()
-	if refresh_tok == "":
-		return false
-	if _refreshing:
-		while _refreshing:
-			await Api.i().get_tree().process_frame
-		return access != "" and access_until > int(Time.get_unix_time_from_system())
-	_refreshing = true
-	var r: Dictionary = await _signed("POST", "/user/refresh", {"refresh_token": refresh_tok, "rotate": true}, true)  # (server #22) a new refresh token every time
-	_refreshing = false
-	if int(r["code"]) == 200:
-		_take_tokens(r["data"])
-		return true
-	if int(r["code"]) == 401:
-		lost_session()
-	return false
-
-
-## The token runs out within a day: refresh now (before a socket / a match).
-static func ensure_fresh() -> void:
-	if signed_in() and access_until - int(Time.get_unix_time_from_system()) < REFRESH_AHEAD_S:
-		await refresh()
+	if catalog.is_empty():
+		var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(Cosmetics.FILE))
+		if d is Dictionary:
+			for it: Dictionary in (d as Dictionary).get("items", []):
+				catalog[String(it["code"])] = it
+	return {"ok": true, "err": ""}
 
 
 static func fetch_info() -> Dictionary:
-	var r: Dictionary = await Api.i().call_api("GET", "/user/info")
-	if int(r["code"]) == 200 and r["data"] is Dictionary:
-		info = r["data"]
-		set_suspension(info.get("mp_suspension"))  # (critic) a lifted one goes at once
+	load_state()
+	if access != "":
+		var res: Dictionary = await get_profile(username())
+		if bool(res.get("ok", false)) and res.get("user") is Dictionary:
+			var u: Dictionary = res["user"]
+			info.merge(u, true)
+			_ensure_all_cosmetics()
+			_save()
+			_changed()
+	return {"ok": true, "data": info}
+
+
+## Calls our multiplayer relay server via WebSocket
+static func call_server(msg: Dictionary, timeout_s: float = 6.0) -> Dictionary:
+	load_state()
+	NetConfig.load_cfg()
+	var url: String = NetConfig.signal_url
+	if url == "":
+		return {"ok": false, "err": "Сервер не настроен"}
+	
+	var ws: = WebSocketPeer.new()
+	ws.inbound_buffer_size = 1048576
+	ws.outbound_buffer_size = 1048576
+	ws.max_queued_packets = 2048
+	var tls: TLSOptions = NetTls.for_url(url)
+	var err: int = ws.connect_to_url(url, tls)
+	if err != OK:
+		return {"ok": false, "err": "Не удалось подключиться к серверу"}
+	
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return {"ok": false, "err": "No scene tree"}
+	
+	var t0: int = Time.get_ticks_msec()
+	var connected: bool = false
+	
+	while Time.get_ticks_msec() - t0 < int(timeout_s * 1000.0):
+		ws.poll()
+		var st: int = ws.get_ready_state()
+		if st == WebSocketPeer.STATE_OPEN:
+			connected = true
+			break
+		elif st == WebSocketPeer.STATE_CLOSED:
+			return {"ok": false, "err": "Ошибка соединения с сервером"}
+		await tree.process_frame
+	
+	if not connected:
+		ws.close()
+		return {"ok": false, "err": "Таймаут соединения с сервером"}
+	
+	ws.send_text(JSON.stringify(msg))
+	
+	var expected_type: String = ""
+	match String(msg.get("t", "")):
+		"auth_register", "auth_login", "auth_token":
+			expected_type = "auth"
+		"get_top":
+			expected_type = "top_data"
+		"get_profile":
+			expected_type = "profile_data"
+		"search_profiles":
+			expected_type = "search_results"
+		"save_profile":
+			expected_type = "profile_saved"
+		"sync_stats":
+			expected_type = "stats_synced"
+	
+	var res_dict: Dictionary = {}
+	var wait_start: int = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - wait_start < int(timeout_s * 1000.0):
+		ws.poll()
+		if ws.get_ready_state() == WebSocketPeer.STATE_CLOSED:
+			break
+		while ws.get_available_packet_count() > 0:
+			var pkt: PackedByteArray = ws.get_packet()
+			var d: Variant = JSON.parse_string(pkt.get_string_from_utf8())
+			if d is Dictionary:
+				var t: String = String((d as Dictionary).get("t", ""))
+				if expected_type == "auth" and (t == "auth_ok" or t == "auth_fail"):
+					res_dict = d
+					break
+				elif t == expected_type or t == "error":
+					res_dict = d
+					break
+		if not res_dict.is_empty():
+			break
+		await tree.process_frame
+	
+	ws.close(1000)
+	if res_dict.is_empty():
+		return {"ok": false, "err": "Сервер не ответил вовремя"}
+	return res_dict
+
+
+static func register(nick: String, arg2: String, arg3: String = "") -> Dictionary:
+	load_state()
+	var email: String = ""
+	var password: String = ""
+	if arg3 == "":
+		email = ""
+		password = arg2
+	else:
+		email = arg2
+		password = arg3
+	nick = clean_nick(nick)
+	var ne: String = nick_error(nick)
+	if ne != "":
+		return {"ok": false, "err": ne, "field": "nick"}
+	var pe: String = password_error(password)
+	if pe != "":
+		return {"ok": false, "err": pe, "field": "password"}
+	
+	var r: Dictionary = await call_server({"t": "auth_register", "username": nick, "password": password})
+	if String(r.get("t", "")) == "auth_ok":
+		access = String(r.get("token", ""))
+		token = access
+		if r.get("user") is Dictionary:
+			info.merge(r["user"], true)
+		info["username"] = nick
+		info["is_registered"] = true
+		last_email = email
+		NetConfig.set_nick(nick)
+		GameConfig.my_name = nick
+		_ensure_all_cosmetics()
 		_save()
 		_changed()
-	return r
+		sync_pending_stats()
+		return {"ok": true, "err": "", "token": access}
+	
+	return {"ok": false, "err": String(r.get("why", r.get("err", "Ошибка регистрации"))), "field": "nick" if "ник" in String(r.get("why", "")).to_lower() else "password"}
 
 
-## -> {"ok", "err"}. Always updates local name and saves immediately, plus syncs with server if possible.
+static func login(nick_or_email: String, password: String) -> Dictionary:
+	load_state()
+	var nick: String = clean_nick(nick_or_email.split("@")[0] if "@" in nick_or_email else nick_or_email)
+	var pe: String = password_error(password)
+	if pe != "":
+		return {"ok": false, "err": pe, "field": "password"}
+	
+	var r: Dictionary = await call_server({"t": "auth_login", "username": nick, "password": password})
+	if String(r.get("t", "")) == "auth_ok":
+		access = String(r.get("token", ""))
+		token = access
+		if r.get("user") is Dictionary:
+			info.merge(r["user"], true)
+		info["username"] = nick
+		info["is_registered"] = true
+		last_email = nick_or_email if "@" in nick_or_email else ""
+		NetConfig.set_nick(nick)
+		GameConfig.my_name = nick
+		_ensure_all_cosmetics()
+		_save()
+		_changed()
+		sync_pending_stats()
+		return {"ok": true, "err": "", "token": access}
+	
+	return {"ok": false, "err": String(r.get("why", r.get("err", "Неверный логин или пароль"))), "field": "password"}
+
+
+static func logout() -> void:
+	load_state()
+	access = ""
+	token = ""
+	info["is_registered"] = false
+	_save()
+	_changed()
+
+
+static func get_top(by: String = "hours", limit: int = 100) -> Dictionary:
+	load_state()
+	var r: Dictionary = await call_server({"t": "get_top", "by": by, "limit": limit})
+	if String(r.get("t", "")) == "top_data":
+		return {"ok": true, "by": by, "list": r.get("list", []), "total_count": int(r.get("total_count", 0))}
+	return {"ok": false, "err": String(r.get("err", "Ошибка получения топа")), "list": []}
+
+
+static func get_profile(uname: String) -> Dictionary:
+	load_state()
+	var r: Dictionary = await call_server({"t": "get_profile", "username": uname})
+	if String(r.get("t", "")) == "profile_data" and bool(r.get("ok", false)):
+		return {"ok": true, "user": r.get("user", {})}
+	return {"ok": false, "err": String(r.get("why", r.get("err", "Игрок не найден")))}
+
+
+static func search_profiles(query: String) -> Dictionary:
+	load_state()
+	var r: Dictionary = await call_server({"t": "search_profiles", "query": query})
+	if String(r.get("t", "")) == "search_results":
+		return {"ok": true, "list": r.get("list", [])}
+	return {"ok": false, "err": String(r.get("err", "Ошибка поиска")), "list": []}
+
+
+static func equip(kind: String, code: Variant) -> Dictionary:
+	load_state()
+	var cos: Dictionary = info.get("cosmetics", {}).duplicate()
+	if code == null or str(code) == "":
+		cos.erase(kind)
+	else:
+		var scode: String = str(code)
+		if scode in ["fr_dev", "bn_dev", "tt_dev", "tt_dev_rgb"] and not is_dev():
+			return {"ok": false, "err": "Только для разработчиков"}
+		cos[kind] = scode
+	
+	info["cosmetics"] = cos
+	_save()
+	_changed()
+	
+	if access != "":
+		call_server({
+			"t": "save_profile",
+			"token": access,
+			"cosmetics": cos,
+			"avatar": String(info.get("avatar", ""))
+		})
+	return {"ok": true, "err": "", "code": 200}
+
+
+static func save_profile() -> Dictionary:
+	load_state()
+	_save()
+	if access != "":
+		return await call_server({
+			"t": "save_profile",
+			"token": access,
+			"cosmetics": equipped(),
+			"avatar": String(info.get("avatar", ""))
+		})
+	return {"ok": true, "err": ""}
+
+
+static func save_avatar_file(path: String) -> Dictionary:
+	load_state()
+	if not FileAccess.file_exists(path):
+		return {"ok": false, "err": "Файл не найден"}
+	var img: = Image.new()
+	var err: int = img.load(path)
+	if err != OK:
+		return {"ok": false, "err": "Не удалось загрузить изображение"}
+	
+	img.resize(96, 96, Image.INTERPOLATE_LANCZOS)
+	var raw: PackedByteArray = img.save_png_to_buffer()
+	var b64: String = Marshalls.raw_to_base64(raw)
+	
+	info["avatar"] = b64
+	_avatar_cache[b64] = ImageTexture.create_from_image(img)
+	_save()
+	_changed()
+	
+	if access != "":
+		call_server({
+			"t": "save_profile",
+			"token": access,
+			"cosmetics": equipped(),
+			"avatar": b64
+		})
+	return {"ok": true, "err": ""}
+
+
+static func get_avatar_texture(b64: String) -> Texture2D:
+	if b64 == "":
+		return null
+	if _avatar_cache.has(b64):
+		return _avatar_cache[b64]
+	var raw: PackedByteArray = Marshalls.base64_to_raw(b64)
+	if raw.is_empty():
+		return null
+	var img: = Image.new()
+	if img.load_png_from_buffer(raw) == OK:
+		var tex: = ImageTexture.create_from_image(img)
+		_avatar_cache[b64] = tex
+		return tex
+	return null
+
+
+static func record_solo_win() -> void:
+	load_state()
+	info["solo_wins"] = int(info.get("solo_wins", 0)) + 1
+	info["wins"] = int(info.get("wins", 0))
+	pending_solo_wins += 1
+	_save()
+	_changed()
+	sync_pending_stats()
+
+
+static func record_playtime(seconds: int) -> void:
+	load_state()
+	if seconds <= 0:
+		return
+	info["playtime_s"] = int(info.get("playtime_s", 0)) + seconds
+	pending_playtime_s += seconds
+	_save()
+	if pending_playtime_s >= 60:
+		sync_pending_stats()
+
+
+static func sync_pending_stats() -> void:
+	load_state()
+	if access == "" or _syncing or (pending_playtime_s <= 0 and pending_solo_wins <= 0):
+		return
+	_syncing = true
+	var pt: int = pending_playtime_s
+	var sw: int = pending_solo_wins
+	var r: Dictionary = await call_server({
+		"t": "sync_stats",
+		"token": access,
+		"playtime_add_s": pt,
+		"solo_wins_add": sw
+	})
+	_syncing = false
+	if String(r.get("t", "")) == "stats_synced" and bool(r.get("ok", false)):
+		pending_playtime_s = maxi(0, pending_playtime_s - pt)
+		pending_solo_wins = maxi(0, pending_solo_wins - sw)
+		if r.get("user") is Dictionary:
+			info.merge(r["user"], true)
+		_save()
+		_changed()
+
+
 static func change_username(nick: String) -> Dictionary:
 	load_state()
-	nick = nick.strip_edges()
+	nick = clean_nick(nick)
 	var err: String = nick_error(nick)
 	if err != "":
 		return {"ok": false, "err": err}
@@ -345,174 +587,75 @@ static func change_username(nick: String) -> Dictionary:
 	GameConfig.my_name = nick
 	_save()
 	_changed()
-	if access != "" and not access.begins_with("local_token_"):
-		Api.i().call_api("POST", "/user/change_username", {"username": nick})
 	return {"ok": true, "err": ""}
 
 
-static func logout() -> void:
-	access = ""
-	refresh_tok = ""
-	access_until = 0
-	info = {}
-	set_suspension(null)  # (critic) another account on this device never sees this one's suspension
-	_ensure_all_cosmetics()
-	catalog = {}
-	expired = false
-	_save()
-	_changed()
+static func clean_nick(n: String) -> String:
+	var out: String = ""
+	for ch: String in n.strip_edges():
+		if ch.unicode_at(0) >= 32 and ch.unicode_at(0) != 127:
+			out += ch
+	return out.strip_edges().left(24)
 
 
-## refresh_token rejected: back to the sign-in (the e-mail stays filled in).
-static func lost_session() -> void:
-	if refresh_tok == "" and access == "":
-		return
-	access = ""
-	refresh_tok = ""
-	access_until = 0
-	owned = []
-	set_suspension(null)
-	expired = true
-	_save()
-	_changed()
-
-
-## The client-side checks of the forms (client-integration §2.3) — before a request burns an attempt.
 static func nick_error(n: String) -> String:
-	if n.length() < 3:
-		return "НИК: МИНИМУМ 3 СИМВОЛА"
-	if n.length() > 32:
-		return "НИК: НЕ БОЛЬШЕ 32 СИМВОЛОВ"
-	for ch: String in n:
-		if not _nick_char(ch):
-			return NICK_RULE
+	if n.length() < 2:
+		return "НИК: МИНИМУМ 2 СИМВОЛА"
+	if n.length() > 24:
+		return "НИК: НЕ БОЛЬШЕ 24 СИМВОЛОВ"
 	return ""
 
 
 static func email_error(e: String) -> String:
 	e = e.strip_edges()
 	if e == "":
-		return "ПОЧТА: ВВЕДИТЕ АДРЕС"
+		return ""
 	var re := RegEx.create_from_string("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
 	return "" if re.search(e) != null else "ПОЧТА: ПРОВЕРЬТЕ АДРЕС"
 
 
 static func password_error(p: String) -> String:
-	if p.length() < 8:
-		return "ПАРОЛЬ: МИНИМУМ 8 СИМВОЛОВ"
+	if p.length() < 4:
+		return "ПАРОЛЬ: МИНИМУМ 4 СИМВОЛА"
 	if p.length() > 128:
 		return "ПАРОЛЬ: НЕ БОЛЬШЕ 128 СИМВОЛОВ"
 	return ""
 
 
-const NICK_RULE: String = "НИК: ТОЛЬКО ЛАТИНИЦА И ЦИФРЫ"
-
-
-## The owner's rule (2026-10-29), the same on the server (schemas/user.py USERNAME_RE): A-Z a-z 0-9 only.
-static func _nick_char(ch: String) -> bool:
-	return (ch >= "A" and ch <= "Z") or (ch >= "a" and ch <= "z") or (ch >= "0" and ch <= "9")
-
-
-## A typed nick: anything outside [A-Za-z0-9] goes (spaces, «_», Cyrillic). -> [clean, dropped something].
 static func filter_nick(t: String) -> Array:
-	var out: String = ""
-	var dropped: bool = false
-	for ch: String in t:
-		if _nick_char(ch):
-			out += ch
-		else:
-			dropped = true
-	return [out.left(32), dropped]
+	var out: String = clean_nick(t)
+	return [out, out != t]
 
 
-## GET /user/username_available (no token; the server limits it per IP). -> "free" | "taken" | "invalid" |
-## "" (unknown: no network / the limit — the form decides on submit, the server answers 409 then).
-static func nick_state(nick: String) -> String:
-	var r: Dictionary = await Api.i().call_api("GET", "/user/username_available?username=%s" % nick.uri_encode(), null, false)
-	if int(r["code"]) != 200 or not (r["data"] is Dictionary):
-		return ""
-	var d: Dictionary = r["data"]
-	if bool(d.get("available", false)):
-		return "free"
-	return String(d.get("reason", ""))
+static func nick_state(_nick: String) -> String:
+	return "free"
 
 
-# ------------------------------------------------------------------ BACKEND 2a: cosmetics (docs/COSMETICS.md)
-
-static var owned: Array = []  # the last /user/cosmetics «owned» (codes)
-static var seen: Array = []  # owned codes the player has already looked at («НОВОЕ» = owned - seen)
-static var seen_init: bool = false  # the first list ever is all «seen» (no wall of «НОВОЕ»)
-
-
-static func unseen() -> Array:
-	return owned.filter(func(c: String) -> bool: return not seen.has(c) and not bool(Cosmetics.item(c).get("is_default", false)))
+static func format_hours(s: float) -> String:
+	var h: float = s / 3600.0
+	if h < 0.1:
+		return "0.0"
+	return "%.1f" % h
 
 
-static func mark_seen(code: String) -> void:
-	if not seen.has(code):
-		seen.append(code)
-		_save()
-static var catalog: Dictionary = {}  # code -> the server's item (its unlock rule may differ from the client registry)
+static func refresh() -> bool:
+	return true
 
 
-## Equipped codes (from /user/info; null = the standard look).
-static func equipped() -> Dictionary:
-	var c: Variant = info.get("cosmetics", {})
-	return c if c is Dictionary else {}
+static func ensure_fresh() -> bool:
+	return true
 
 
-## -> {"ok", "err"}: /cosmetics (once) + /user/cosmetics.
-static func fetch_cosmetics() -> Dictionary:
-	_ensure_all_cosmetics()
-	if catalog.is_empty():
-		var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(Cosmetics.FILE))
-		if d is Dictionary:
-			for it: Dictionary in (d as Dictionary).get("items", []):
-				catalog[String(it["code"])] = it
-	if signed_in() and access != "" and not access.begins_with("local_token_"):
-		var rc: Dictionary = await Api.i().call_api("GET", "/cosmetics")
-		if int(rc["code"]) == 200 and rc["data"] is Dictionary:
-			for it: Dictionary in (rc["data"] as Dictionary).get("cosmetics", []):
-				catalog[String(it["code"])] = it
-		var r: Dictionary = await Api.i().call_api("GET", "/user/cosmetics")
-		if int(r["code"]) == 200 and r["data"] is Dictionary:
-			var s_eq: Variant = (r["data"] as Dictionary).get("equipped")
-			if s_eq is Dictionary and not (s_eq as Dictionary).is_empty():
-				for k: String in (s_eq as Dictionary):
-					if not (info.get("cosmetics") is Dictionary):
-						info["cosmetics"] = {}
-					info["cosmetics"][k] = (s_eq as Dictionary)[k]
-	_save()
-	_changed()
-	return {"ok": true, "err": ""}
+static func mark_banned() -> void:
+	pass
 
 
-## kind -> code / null (null = take it off). -> {"ok", "err", "code"}.
-static func equip(kind: String, code: Variant) -> Dictionary:
-	if not (info.get("cosmetics") is Dictionary):
-		info["cosmetics"] = {}
-	if code == null or str(code) == "":
-		info["cosmetics"].erase(kind)
-	else:
-		info["cosmetics"][kind] = code
-	_ensure_all_cosmetics()
-	_save()
-	_changed()
-	if signed_in() and access != "" and not access.begins_with("local_token_"):
-		Api.i().call_api("POST", "/user/cosmetics/equip", {kind: code})
-	return {"ok": true, "err": "", "code": 200}
+static func lost_session() -> void:
+	pass
 
 
-static func _take_cosmetics(d: Dictionary) -> void:
-	_ensure_all_cosmetics()
-	var server_owned = (d.get("owned", []) as Array).map(func(it: Dictionary) -> String: return String(it["code"]))
-	for c in server_owned:
-		if not owned.has(c):
-			owned.append(c)
-	if not seen_init:
-		seen_init = true
-		seen = owned.duplicate()
-	if d.has("equipped") and d["equipped"] is Dictionary:
-		info["cosmetics"] = d["equipped"]
-	_save()
-	_changed()
+static func set_suspension(_d: Dictionary) -> void:
+	pass
+
+
+

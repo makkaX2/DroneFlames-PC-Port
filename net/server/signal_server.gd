@@ -1,25 +1,7 @@
 extends SceneTree
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const ALPHABET: String = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 const MAX_PEERS: int = 8
-
 
 const TURN_TTL: int = 4 * 3600
 const MAX_CONN_PER_IP: int = 12
@@ -33,7 +15,7 @@ const DIAG_INTERVAL_S: float = 30.0
 const MAX_CLIENTS: int = 64
 const MAX_ROOMS: int = 24
 const LIST_MAX: int = 30
-const NAME_MAX: int = 16
+const NAME_MAX: int = 24
 
 var _tcp: = TCPServer.new()
 var _tls: TLSOptions = null
@@ -51,6 +33,37 @@ const CF_STUN: Dictionary = {"urls": ["stun:stun.cloudflare.com:3478"]}
 var _proxied: bool = false
 var _diag_elapsed: float = 0.0
 
+# User database and persistent stats
+var _users: Dictionary = {}
+var _db_file: String = ""
+var _db_dirty: bool = false
+var _db_save_timer: float = 0.0
+
+const DEV_NICKS: Array = ["good_boy_irl", "droneflamesmod", "CryptoAngelazaz", "mxka"]
+
+const COMMON_FRAMES: Array = [
+	"fr_steel", "fr_concrete", "fr_brick", "fr_tin", "fr_tape", "fr_garage", "fr_pipe",
+	"fr_sandbag", "fr_crate", "fr_net", "fr_rotor", "fr_circuit", "fr_searchlight",
+	"fr_radar", "fr_antenna", "fr_barrier", "fr_frost", "fr_wires", "fr_panel",
+	"fr_intercept", "fr_copper", "fr_storm", "fr_fire", "fr_aerostat", "fr_dome",
+	"fr_flares", "fr_dawn", "fr_goldrotor"
+]
+
+const COMMON_BANNERS: Array = [
+	"bn_steel", "bn_dusk", "bn_yard", "bn_garages", "bn_tec", "bn_field", "bn_embankment",
+	"bn_tram", "bn_snow", "bn_roof", "bn_droneport", "bn_refinery", "bn_workshop",
+	"bn_radar", "bn_topo", "bn_night", "bn_fog", "bn_bridge", "bn_airfield",
+	"bn_intercept", "bn_rebuild", "bn_storm", "bn_flares", "bn_balloons", "bn_swarm",
+	"bn_sunset", "bn_orbit", "bn_dawn"
+]
+
+const COMMON_TITLES: Array = [
+	"tt_newbie", "tt_dispatcher", "tt_spotter", "tt_radio", "tt_mechanic", "tt_operator",
+	"tt_garage", "tt_signal", "tt_stoker", "tt_nightshift", "tt_dronehunter",
+	"tt_navigator", "tt_sentinel", "tt_radarman", "tt_oldtimer", "tt_tactician",
+	"tt_loner", "tt_wingman", "tt_trio", "tt_ace", "tt_skyshield", "tt_strategist",
+	"tt_duelist", "tt_wing", "tt_leader", "tt_above", "tt_legend", "tt_eternal"
+]
 
 
 func _initialize() -> void :
@@ -75,6 +88,8 @@ func _initialize() -> void :
 			key = v
 		elif a.begins_with("--cf-api="):
 			_cf_api = v
+		elif a.begins_with("--db="):
+			_db_file = v
 		elif a == "--behind-proxy":
 			_proxied = true
 	_secret = OS.get_environment("DF_TURN_SECRET")
@@ -93,11 +108,151 @@ func _initialize() -> void :
 		printerr("[Signal] cannot listen on %d: %s" % [port, error_string(err)])
 		quit(1)
 		return
+	
+	_init_users_db()
+	
 	var turn_mode: String = "Cloudflare Realtime TURN" if _cf_key != "" and _cf_token != "" else ("own coturn" if not _turn.is_empty() and _secret != "" else "OFF (no --turn + DF_TURN_SECRET, no DF_CF_TURN_KEY_ID + DF_CF_TURN_TOKEN)")
 	print("[Signal] listening on %d (%s), TURN: %s%s" % [port, "wss" if _tls != null else "ws", turn_mode, ", behind a proxy (client IP from ?rip=)" if _proxied else ""])
 	_event("server_started", {"port": port, "transport": "wss" if _tls != null else "ws", "turn": turn_mode,
 		"behind_proxy": _proxied, "godot": String(Engine.get_version_info().get("string", "unknown")),
-		"max_players": MAX_PEERS, "max_clients": MAX_CLIENTS, "max_rooms": MAX_ROOMS})
+		"max_players": MAX_PEERS, "max_clients": MAX_CLIENTS, "max_rooms": MAX_ROOMS, "users_count": _users.size()})
+
+
+func _init_users_db() -> void:
+	if _db_file == "":
+		if FileAccess.file_exists("/var/lib/df-relay-test/users_db.json"):
+			_db_file = "/var/lib/df-relay-test/users_db.json"
+		elif DirAccess.dir_exists_absolute("/var/lib/df-relay-test"):
+			_db_file = "/var/lib/df-relay-test/users_db.json"
+		else:
+			_db_file = "user://users_db.json"
+	
+	if FileAccess.file_exists(_db_file):
+		var f: = FileAccess.open(_db_file, FileAccess.READ)
+		if f != null:
+			var txt: String = f.get_as_text()
+			f.close()
+			var d: Variant = JSON.parse_string(txt)
+			if d is Dictionary:
+				_users = d
+				print("[Signal] Loaded %d users from database: %s" % [_users.size(), _db_file])
+	
+	if _users.is_empty():
+		for p: String in [
+			"/opt/df-relay-test/seed_users.json",
+			"res://net/server/seed_users.json",
+			"res://seed_users.json",
+			"net/server/seed_users.json",
+			"seed_users.json"
+		]:
+			if FileAccess.file_exists(p):
+				var f2: = FileAccess.open(p, FileAccess.READ)
+				if f2 != null:
+					var txt2: String = f2.get_as_text()
+					f2.close()
+					var d2: Variant = JSON.parse_string(txt2)
+					if d2 is Dictionary:
+						_users = d2
+						print("[Signal] Seeded %d users from: %s" % [_users.size(), p])
+						_save_users(true)
+						break
+	
+	for dn: String in DEV_NICKS:
+		var u: Dictionary = _find_user(dn)
+		if u.is_empty():
+			_users[dn] = {
+				"username": dn,
+				"password_hash": "",
+				"salt": "",
+				"is_registered": false,
+				"is_dev": true,
+				"token": "",
+				"created_at": int(Time.get_unix_time_from_system()),
+				"last_seen": int(Time.get_unix_time_from_system()),
+				"playtime_s": 54000,
+				"matches_played": 35,
+				"wins": 25,
+				"losses": 10,
+				"solo_wins": 15,
+				"avatar": "",
+				"cosmetics": {"frame": "fr_dev", "banner": "bn_dev", "title": "tt_dev_rgb"}
+			}
+			_db_dirty = true
+		else:
+			u["is_dev"] = true
+	
+	if _db_dirty:
+		_save_users(true)
+
+
+func _save_users(immediate: bool = false) -> void:
+	if immediate:
+		_db_dirty = false
+		_db_save_timer = 0.0
+		if _db_file == "":
+			return
+		var tmp: String = _db_file + ".tmp"
+		var f: = FileAccess.open(tmp, FileAccess.WRITE)
+		if f != null:
+			f.store_string(JSON.stringify(_users, "\t"))
+			f.close()
+			var pdir: String = _db_file.get_base_dir()
+			var da: DirAccess = DirAccess.open(pdir if pdir != "" else ".")
+			if da != null:
+				if da.file_exists(_db_file.get_file()):
+					da.remove(_db_file.get_file())
+				da.rename(tmp.get_file(), _db_file.get_file())
+		else:
+			var f2: = FileAccess.open(_db_file, FileAccess.WRITE)
+			if f2 != null:
+				f2.store_string(JSON.stringify(_users, "\t"))
+				f2.close()
+	else:
+		_db_dirty = true
+
+
+func _find_user(uname: String) -> Dictionary:
+	var target: String = uname.strip_edges().to_lower()
+	for k: String in _users:
+		if k.to_lower() == target:
+			return _users[k]
+	return {}
+
+
+func _find_user_by_token(tok: String) -> Dictionary:
+	if tok == "":
+		return {}
+	for k: String in _users:
+		if String(_users[k].get("token", "")) == tok and bool(_users[k].get("is_registered", false)):
+			return _users[k]
+	return {}
+
+
+func _is_dev(uname: String) -> bool:
+	var l: String = uname.strip_edges().to_lower()
+	for d: String in DEV_NICKS:
+		if d.to_lower() == l:
+			return true
+	return false
+
+
+func _public_user(u: Dictionary) -> Dictionary:
+	return {
+		"username": String(u.get("username", "")),
+		"is_registered": bool(u.get("is_registered", false)),
+		"is_dev": bool(u.get("is_dev", false)),
+		"created_at": int(u.get("created_at", 0)),
+		"last_seen": int(u.get("last_seen", 0)),
+		"playtime_s": int(u.get("playtime_s", 0)),
+		"hours": snappedf(float(u.get("playtime_s", 0)) / 3600.0, 0.1),
+		"matches_played": int(u.get("matches_played", 0)),
+		"wins": int(u.get("wins", 0)),
+		"losses": int(u.get("losses", 0)),
+		"solo_wins": int(u.get("solo_wins", 0)),
+		"total_wins": int(u.get("wins", 0)) + int(u.get("solo_wins", 0)),
+		"avatar": String(u.get("avatar", "")),
+		"cosmetics": u.get("cosmetics", {})
+	}
 
 
 func _process(delta: float) -> bool:
@@ -151,7 +306,7 @@ func _process(delta: float) -> bool:
 			var connected_ms: int = Time.get_ticks_msec()
 			_clients[_next_key] = {"ws": w, "room": "", "id": 0, "ip": cip, "t0": connected_ms, "last": connected_ms,
 				"connected_at": int(Time.get_unix_time_from_system()), "joined_at": 0, "name": "", "version": "",
-				"msg_s": 0, "msg_n": 0, "join_m": 0, "join_n": 0}
+				"msg_s": 0, "msg_n": 0, "join_m": 0, "join_n": 0, "auth": false, "auth_user": ""}
 			_event("client_connected", {"client": _next_key, "ip": cip, "via_proxy": _proxied})
 			_next_key += 1
 			_pending.remove_at(i)
@@ -203,6 +358,12 @@ func _process(delta: float) -> bool:
 		if bad and _clients.has(ck):
 			ws2.close(1008, "rate")
 			_drop(ck, "rate_or_packet_size_limit")
+	
+	if _db_dirty:
+		_db_save_timer += delta
+		if _db_save_timer >= 2.0:
+			_save_users(true)
+
 	_diag_elapsed += delta
 	if _diag_elapsed >= DIAG_INTERVAL_S:
 		_diag_elapsed = 0.0
@@ -223,9 +384,23 @@ func _player_rows(room: Dictionary) -> Array:
 		if not _clients.has(client_id):
 			continue
 		var client: Dictionary = _clients[client_id]
-		out.append({"slot": peer_id, "name": String(client.get("name", "")), "ip": String(client.get("ip", "")),
-			"version": String(client.get("version", "")), "joined_at": int(client.get("joined_at", 0)),
-			"connection_started_at": int(client.get("connected_at", 0))})
+		var uname: String = String(client.get("auth_user", client.get("name", "")))
+		var u: Dictionary = _find_user(uname)
+		var is_dev: bool = bool(u.get("is_dev", false)) if not u.is_empty() else _is_dev(uname)
+		var cos: Dictionary = u.get("cosmetics", {}) if not u.is_empty() else {}
+		var av: String = String(u.get("avatar", "")) if not u.is_empty() else ""
+		out.append({
+			"slot": peer_id,
+			"name": uname,
+			"ip": String(client.get("ip", "")),
+			"version": String(client.get("version", "")),
+			"joined_at": int(client.get("joined_at", 0)),
+			"connection_started_at": int(client.get("connected_at", 0)),
+			"is_dev": is_dev,
+			"is_registered": bool(u.get("is_registered", false)) if not u.is_empty() else false,
+			"cosmetics": cos,
+			"avatar": av
+		})
 	return out
 
 
@@ -259,8 +434,7 @@ func _status_snapshot() -> void:
 			idle_clients.append({"name": String(client.get("name", "")), "ip": String(client.get("ip", "")),
 				"version": String(client.get("version", "")), "connected_at": int(client.get("connected_at", 0)),
 				"connected_s": _elapsed_seconds(int(client.get("connected_at", 0)))})
-	_event("status_snapshot", {"connections": _clients.size(), "rooms": rooms, "unassigned": idle_clients})
-
+	_event("status_snapshot", {"connections": _clients.size(), "rooms": rooms, "unassigned": idle_clients, "users_count": _users.size()})
 
 
 func _url_ip(url: String, fallback: String) -> String:
@@ -287,15 +461,52 @@ func _send(ck: int, d: Dictionary) -> void :
 		(_clients[ck]["ws"] as WebSocketPeer).send_text(JSON.stringify(d))
 
 
+func _check_auth(ck: int, d: Dictionary) -> bool:
+	var cl: Dictionary = _clients[ck]
+	if bool(cl.get("auth", false)):
+		return true
+	var tok: String = String(d.get("auth_token", ""))
+	var uname: String = String(d.get("auth_user", cl.get("name", "")))
+	if tok != "" and uname != "":
+		var u: Dictionary = _find_user(uname)
+		if not u.is_empty() and String(u.get("token", "")) == tok and bool(u.get("is_registered", false)):
+			cl["auth"] = true
+			cl["auth_user"] = String(u["username"])
+			cl["name"] = String(u["username"])
+			return true
+	return false
+
+
 func _on_msg(ck: int, d: Dictionary) -> void :
 	var cl: Dictionary = _clients[ck]
 	if d.get("v") is String:
 		cl["version"] = String(d["v"])
 	if d.get("name") is String and String(d["name"]).strip_edges() != "":
 		cl["name"] = _clean_name(String(d["name"]))
+	
 	match String(d.get("t", "")):
+		"auth_register":
+			_handle_auth_register(ck, d)
+		"auth_login":
+			_handle_auth_login(ck, d)
+		"auth_token":
+			_handle_auth_token(ck, d)
+		"get_top":
+			_handle_get_top(ck, d)
+		"get_profile":
+			_handle_get_profile(ck, d)
+		"search_profiles":
+			_handle_search_profiles(ck, d)
+		"save_profile":
+			_handle_save_profile(ck, d)
+		"sync_stats":
+			_handle_sync_stats(ck, d)
+
 		"host":
 			if String(cl["room"]) != "":
+				return
+			if not _check_auth(ck, d):
+				_send(ck, {"t": "error", "why": "Требуется авторизация в сети DroneFlames Multiplayer"})
 				return
 			var mine: int = 0
 			for k: int in _clients:
@@ -309,7 +520,7 @@ func _on_msg(ck: int, d: Dictionary) -> void :
 				return
 			var want: String = String(d.get("code", "")).to_upper()
 			var code: String = want if _code_ok(want) and not _rooms.has(want) else _new_code()
-			var host_name: String = _clean_name(String(d.get("name", "")))
+			var host_name: String = String(cl.get("auth_user", _clean_name(String(d.get("name", "")))))
 			var host_version: String = String(d.get("v", ""))
 			var created_at: int = int(Time.get_unix_time_from_system())
 			_rooms[code] = {"v": host_version, "peers": {1: ck}, "sealed": false,
@@ -324,6 +535,9 @@ func _on_msg(ck: int, d: Dictionary) -> void :
 			_event("room_created", {"room": code, "name": host_name, "ip": String(cl.get("ip", "")),
 				"version": host_version, "public": bool(d.get("pub", false)), "max_players": MAX_PEERS})
 		"reattach":
+			if not _check_auth(ck, d):
+				_send(ck, {"t": "error", "why": "Требуется авторизация в сети DroneFlames Multiplayer"})
+				return
 			var re_code: String = String(d.get("code", "")).to_upper()
 			var re_room: Dictionary = _rooms.get(re_code, {})
 			var re_id: int = int(d.get("id", 0))
@@ -344,7 +558,7 @@ func _on_msg(ck: int, d: Dictionary) -> void :
 			re_peers[re_id] = ck
 			cl["room"] = re_code
 			cl["id"] = re_id
-			cl["name"] = _clean_name(String(d.get("name", "")))
+			cl["name"] = String(cl.get("auth_user", _clean_name(String(d.get("name", "")))))
 			cl["version"] = String(d.get("v", ""))
 			cl["joined_at"] = int(Time.get_unix_time_from_system())
 			_with_ice(ck, re_id, func(ice: Array) -> void :
@@ -363,6 +577,9 @@ func _on_msg(ck: int, d: Dictionary) -> void :
 				_event("connection_rejected", {"ip": String(cl.get("ip", "")), "name": String(d.get("name", "")),
 					"version": String(d.get("v", "")), "reason": "join_rate_limit"})
 				_send(ck, {"t": "error", "why": "Слишком много попыток входа, подождите минуту"})
+				return
+			if not _check_auth(ck, d):
+				_send(ck, {"t": "error", "why": "Требуется авторизация в сети DroneFlames Multiplayer"})
 				return
 			var code2: String = String(d.get("code", "")).to_upper()
 			var r: Dictionary = _rooms.get(code2, {})
@@ -396,7 +613,7 @@ func _on_msg(ck: int, d: Dictionary) -> void :
 			peer_list[id] = ck
 			cl["room"] = code2
 			cl["id"] = id
-			cl["name"] = _clean_name(String(d.get("name", "")))
+			cl["name"] = String(cl.get("auth_user", _clean_name(String(d.get("name", "")))))
 			cl["version"] = String(d.get("v", ""))
 			cl["joined_at"] = int(Time.get_unix_time_from_system())
 			_with_ice(ck, id, func(ice: Array) -> void :
@@ -427,6 +644,15 @@ func _on_msg(ck: int, d: Dictionary) -> void :
 					_event("match_started", {"room": String(cl.get("room", "")), "match": String(r2["match"]),
 						"name": String(r2.get("name", "")), "version": String(r2.get("v", "")),
 						"started_at": int(r2.get("started_at", 0)), "players": _player_rows(r2)})
+					for pid: int in (r2["peers"] as Dictionary):
+						var pck: int = int((r2["peers"] as Dictionary)[pid])
+						if _clients.has(pck):
+							var pu: String = String(_clients[pck].get("auth_user", ""))
+							if pu != "":
+								var usr: Dictionary = _find_user(pu)
+								if not usr.is_empty():
+									usr["matches_played"] = int(usr.get("matches_played", 0)) + 1
+									_db_dirty = true
 				var started: Dictionary = {"t": "turn", "match": String(r2["match"]), "ice": []}
 				for peer_id: int in (r2["peers"] as Dictionary):
 					_send(int((r2["peers"] as Dictionary)[peer_id]), started)
@@ -437,9 +663,19 @@ func _on_msg(ck: int, d: Dictionary) -> void :
 				if int(end_room.get("ended_at", 0)) == 0:
 					end_room["ended_at"] = int(Time.get_unix_time_from_system())
 					end_room["end_reason"] = String(d.get("reason", "host_closed")).left(40)
+					var mdur: int = _room_duration(end_room)
+					for pid2: int in (end_room.get("peers", {}) as Dictionary):
+						var pck2: int = int((end_room["peers"] as Dictionary)[pid2])
+						if _clients.has(pck2):
+							var pu2: String = String(_clients[pck2].get("auth_user", ""))
+							if pu2 != "":
+								var usr2: Dictionary = _find_user(pu2)
+								if not usr2.is_empty():
+									usr2["playtime_s"] = int(usr2.get("playtime_s", 0)) + mdur
+									_db_dirty = true
 					_event("match_ended", {"room": String(cl.get("room", "")), "match": String(end_room.get("match", "")),
 						"name": String(end_room.get("name", "")), "version": String(end_room.get("v", "")),
-						"reason": String(end_room["end_reason"]), "duration_s": _room_duration(end_room),
+						"reason": String(end_room["end_reason"]), "duration_s": mdur,
 						"played_s": float(d.get("played_s", 0.0)), "players": _player_rows(end_room)})
 		"reserve":
 			var reserve_room: Dictionary = _rooms.get(String(cl["room"]), {})
@@ -498,6 +734,220 @@ func _on_msg(ck: int, d: Dictionary) -> void :
 				"room": String(cl.get("room", "")), "type": String(d.get("t", "")), "reason": "unknown_message_type"})
 
 
+func _handle_auth_register(ck: int, d: Dictionary) -> void:
+	var raw_name: String = String(d.get("username", ""))
+	var uname: String = _clean_name(raw_name)
+	var pw: String = String(d.get("password", ""))
+	if uname.length() < 2 or uname.length() > NAME_MAX:
+		_send(ck, {"t": "auth_fail", "why": "Длина ника от 2 до %d символов" % NAME_MAX})
+		return
+	if pw.length() < 4:
+		_send(ck, {"t": "auth_fail", "why": "Пароль минимум 4 символа"})
+		return
+	
+	var existing: Dictionary = _find_user(uname)
+	if not existing.is_empty() and bool(existing.get("is_registered", false)):
+		_send(ck, {"t": "auth_fail", "why": "Этот ник уже зарегистрирован. Войдите по паролю."})
+		return
+	
+	var salt: String = Crypto.new().generate_random_bytes(16).hex_encode()
+	var hash: String = (salt + ":" + pw).sha256_text()
+	var tok: String = Crypto.new().generate_random_bytes(24).hex_encode()
+	var now: int = int(Time.get_unix_time_from_system())
+	
+	var u: Dictionary
+	if not existing.is_empty():
+		u = existing
+		u["password_hash"] = hash
+		u["salt"] = salt
+		u["is_registered"] = true
+		u["is_dev"] = _is_dev(uname)
+		u["token"] = tok
+		u["last_seen"] = now
+	else:
+		var is_dev: bool = _is_dev(uname)
+		var fr: String = "fr_dev" if is_dev else COMMON_FRAMES[randi() % COMMON_FRAMES.size()]
+		var bn: String = "bn_dev" if is_dev else COMMON_BANNERS[randi() % COMMON_BANNERS.size()]
+		var tt: String = "tt_dev_rgb" if is_dev else (COMMON_TITLES[randi() % COMMON_TITLES.size()] if randf() > 0.3 else "")
+		u = {
+			"username": uname,
+			"password_hash": hash,
+			"salt": salt,
+			"is_registered": true,
+			"is_dev": is_dev,
+			"token": tok,
+			"created_at": now,
+			"last_seen": now,
+			"playtime_s": 0,
+			"matches_played": 0,
+			"wins": 0,
+			"losses": 0,
+			"solo_wins": 0,
+			"avatar": "",
+			"cosmetics": {"frame": fr, "banner": bn, "title": tt}
+		}
+		_users[uname] = u
+	
+	_save_users(true)
+	if _clients.has(ck):
+		var cl: Dictionary = _clients[ck]
+		cl["auth"] = true
+		cl["auth_user"] = u["username"]
+		cl["name"] = u["username"]
+	_send(ck, {"t": "auth_ok", "token": tok, "user": _public_user(u)})
+	_event("user_registered", {"username": u["username"], "is_dev": u["is_dev"]})
+
+
+func _handle_auth_login(ck: int, d: Dictionary) -> void:
+	var uname: String = String(d.get("username", "")).strip_edges()
+	var pw: String = String(d.get("password", ""))
+	var u: Dictionary = _find_user(uname)
+	if u.is_empty():
+		_send(ck, {"t": "auth_fail", "why": "Аккаунт не найден. Зарегистрируйтесь."})
+		return
+	if not bool(u.get("is_registered", false)):
+		_send(ck, {"t": "auth_fail", "why": "Аккаунт еще не зарегистрирован в сети. Создайте пароль."})
+		return
+	var salt: String = String(u.get("salt", ""))
+	var expected_hash: String = String(u.get("password_hash", ""))
+	var given_hash: String = (salt + ":" + pw).sha256_text()
+	if given_hash != expected_hash:
+		_send(ck, {"t": "auth_fail", "why": "Неверный пароль"})
+		return
+	var tok: String = Crypto.new().generate_random_bytes(24).hex_encode()
+	u["token"] = tok
+	u["last_seen"] = int(Time.get_unix_time_from_system())
+	_save_users(true)
+	if _clients.has(ck):
+		var cl: Dictionary = _clients[ck]
+		cl["auth"] = true
+		cl["auth_user"] = u["username"]
+		cl["name"] = u["username"]
+	_send(ck, {"t": "auth_ok", "token": tok, "user": _public_user(u)})
+	_event("user_logged_in", {"username": u["username"]})
+
+
+func _handle_auth_token(ck: int, d: Dictionary) -> void:
+	var uname: String = String(d.get("username", "")).strip_edges()
+	var tok: String = String(d.get("token", ""))
+	var u: Dictionary = _find_user(uname)
+	if not u.is_empty() and tok != "" and String(u.get("token", "")) == tok and bool(u.get("is_registered", false)):
+		u["last_seen"] = int(Time.get_unix_time_from_system())
+		if _clients.has(ck):
+			var cl: Dictionary = _clients[ck]
+			cl["auth"] = true
+			cl["auth_user"] = u["username"]
+			cl["name"] = u["username"]
+		_send(ck, {"t": "auth_ok", "token": tok, "user": _public_user(u)})
+	else:
+		_send(ck, {"t": "auth_fail", "why": "Сессия устарела. Войдите снова."})
+
+
+func _handle_get_top(ck: int, d: Dictionary) -> void:
+	var by: String = String(d.get("by", "hours"))
+	var limit: int = clampi(int(d.get("limit", 100)), 1, 1000)
+	var list: Array = []
+	for k: String in _users:
+		var u: Dictionary = _users[k]
+		list.append(_public_user(u))
+	
+	if by == "wins":
+		list.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			var wa: int = int(a.get("total_wins", 0))
+			var wb: int = int(b.get("total_wins", 0))
+			return wa > wb if wa != wb else int(a.get("playtime_s", 0)) > int(b.get("playtime_s", 0))
+		)
+	elif by == "matches":
+		list.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			var ma: int = int(a.get("matches_played", 0))
+			var mb: int = int(b.get("matches_played", 0))
+			return ma > mb if ma != mb else int(a.get("playtime_s", 0)) > int(b.get("playtime_s", 0))
+		)
+	else:
+		list.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			var pa: int = int(a.get("playtime_s", 0))
+			var pb: int = int(b.get("playtime_s", 0))
+			return pa > pb if pa != pb else int(a.get("total_wins", 0)) > int(b.get("total_wins", 0))
+		)
+	
+	var out: Array = []
+	var rank: int = 1
+	for row: Dictionary in list.slice(0, limit):
+		row["rank"] = rank
+		out.append(row)
+		rank += 1
+	
+	_send(ck, {"t": "top_data", "by": by, "list": out, "total_count": list.size()})
+
+
+func _handle_get_profile(ck: int, d: Dictionary) -> void:
+	var uname: String = String(d.get("username", "")).strip_edges()
+	var u: Dictionary = _find_user(uname)
+	if not u.is_empty():
+		_send(ck, {"t": "profile_data", "ok": true, "user": _public_user(u)})
+	else:
+		_send(ck, {"t": "profile_data", "ok": false, "why": "Игрок не найден"})
+
+
+func _handle_search_profiles(ck: int, d: Dictionary) -> void:
+	var q: String = String(d.get("query", "")).strip_edges().to_lower()
+	var res: Array = []
+	if q != "":
+		for k: String in _users:
+			if k.to_lower().contains(q):
+				res.append(_public_user(_users[k]))
+				if res.size() >= 30:
+					break
+	_send(ck, {"t": "search_results", "query": d.get("query", ""), "list": res})
+
+
+func _handle_save_profile(ck: int, d: Dictionary) -> void:
+	var tok: String = String(d.get("token", ""))
+	var u: Dictionary = _find_user_by_token(tok)
+	if u.is_empty():
+		_send(ck, {"t": "profile_saved", "ok": false, "why": "Требуется авторизация"})
+		return
+	
+	var is_dev: bool = bool(u.get("is_dev", false))
+	if d.get("cosmetics") is Dictionary:
+		var cos: Dictionary = d["cosmetics"]
+		var fr: String = String(cos.get("frame", "fr_steel"))
+		var bn: String = String(cos.get("banner", "bn_steel"))
+		var tt: String = String(cos.get("title", ""))
+		if not is_dev:
+			if fr == "fr_dev": fr = "fr_steel"
+			if bn == "bn_dev": bn = "bn_steel"
+			if tt in ["tt_dev", "tt_dev_rgb"]: tt = ""
+		u["cosmetics"] = {"frame": fr, "banner": bn, "title": tt}
+	
+	if d.has("avatar") and d["avatar"] is String:
+		var av: String = String(d["avatar"])
+		if av.length() <= 200000:
+			u["avatar"] = av
+	
+	_save_users(true)
+	_send(ck, {"t": "profile_saved", "ok": true, "user": _public_user(u)})
+	_event("profile_updated", {"username": u["username"]})
+
+
+func _handle_sync_stats(ck: int, d: Dictionary) -> void:
+	var tok: String = String(d.get("token", ""))
+	var u: Dictionary = _find_user_by_token(tok)
+	if u.is_empty():
+		_send(ck, {"t": "stats_synced", "ok": false, "why": "Требуется авторизация"})
+		return
+	
+	var add_pt: int = clampi(int(d.get("playtime_add_s", 0)), 0, 86400)
+	var add_sw: int = clampi(int(d.get("solo_wins_add", 0)), 0, 100)
+	
+	u["playtime_s"] = int(u.get("playtime_s", 0)) + add_pt
+	u["solo_wins"] = int(u.get("solo_wins", 0)) + add_sw
+	u["last_seen"] = int(Time.get_unix_time_from_system())
+	_save_users()
+	_send(ck, {"t": "stats_synced", "ok": true, "user": _public_user(u)})
+	_event("stats_synced", {"username": u["username"], "add_playtime": add_pt, "add_solo_wins": add_sw})
+
+
 func _drop(ck: int, reason: String = "disconnected") -> void :
 	if not _clients.has(ck):
 		return
@@ -517,8 +967,16 @@ func _drop(ck: int, reason: String = "disconnected") -> void :
 		if bool(room.get("sealed", false)) and int(room.get("ended_at", 0)) == 0:
 			room["ended_at"] = int(Time.get_unix_time_from_system())
 			room["end_reason"] = "host_disconnected"
+			var dur: int = _room_duration(room)
+			for p_row: Dictionary in old_players:
+				var pu: String = String(p_row.get("name", ""))
+				if pu != "":
+					var usr: Dictionary = _find_user(pu)
+					if not usr.is_empty():
+						usr["playtime_s"] = int(usr.get("playtime_s", 0)) + dur
+						_db_dirty = true
 			_event("match_ended", {"room": code, "match": String(room.get("match", "")), "reason": "host_disconnected",
-				"duration_s": _elapsed_seconds(int(room.get("started_at", 0))), "players": old_players})
+				"duration_s": dur, "players": old_players})
 		_event("room_closed", {"room": code, "match": String(room.get("match", "")), "reason": reason.left(80), "players": old_players})
 		for id: int in peers:
 			_send(int(peers[id]), {"t": "error", "why": "Хост закрыл комнату"})
@@ -528,7 +986,6 @@ func _drop(ck: int, reason: String = "disconnected") -> void :
 		_event("player_left", {"room": code, "match": String(room.get("match", "")), "slot": int(cl.get("id", 0)),
 			"name": String(cl.get("name", "")), "ip": String(cl.get("ip", "")), "version": String(cl.get("version", "")),
 			"reason": reason.left(80), "match_duration_s": _room_duration(room)})
-
 
 
 func _public_rooms() -> Array:
@@ -544,7 +1001,6 @@ func _public_rooms() -> Array:
 	for e: Dictionary in out:
 		e.erase("t")
 	return out
-
 
 
 static func _clean_name(s: String) -> String:
@@ -571,9 +1027,6 @@ func _new_code() -> String:
 		for i in 6:
 			code += ALPHABET[randi() % ALPHABET.length()]
 	return code
-
-
-
 
 
 func _with_ice(ck: int, id: int, done: Callable) -> void :
@@ -605,7 +1058,6 @@ func _with_ice(ck: int, id: int, done: Callable) -> void :
 		done.call([CF_STUN])
 
 
-
 func _cf_filter(servers: Array) -> Array:
 	var out: Array = []
 	for sv: Variant in servers:
@@ -620,7 +1072,6 @@ func _cf_filter(servers: Array) -> Array:
 			e["urls"] = urls
 			out.append(e)
 	return out if not out.is_empty() else [CF_STUN]
-
 
 
 func _ice(id: int) -> Array:
