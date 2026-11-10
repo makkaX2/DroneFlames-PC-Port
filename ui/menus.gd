@@ -5166,7 +5166,8 @@ func show_leaderboard(metric: String = "") -> void:
 			return
 		for idx in players.size():
 			var p_dict: Dictionary = players[idx]
-			_render_lead_row(list_box, idx + 1, p_dict)
+			var rank_num: int = int(p_dict.get("rank", idx + 1))
+			_render_lead_row(list_box, rank_num, p_dict)
 	
 	se.text_changed.connect(func(query: String) -> void:
 		_lead_search = query.strip_edges()
@@ -5179,7 +5180,7 @@ func show_leaderboard(metric: String = "") -> void:
 			if filtered.size() < 5 and query.length() >= 2:
 				var s_res: Dictionary = await Account.search_profiles(_lead_search)
 				if is_instance_valid(list_box) and _lead_search == query.strip_edges():
-					var s_list: Array = s_res.get("users", [])
+					var s_list: Array = s_res.get("list", s_res.get("users", []))
 					fill_rows.call(s_list if not s_list.is_empty() else filtered)
 			else:
 				fill_rows.call(filtered)
@@ -5189,7 +5190,12 @@ func show_leaderboard(metric: String = "") -> void:
 	var res: Dictionary = await Account.get_top(_lead_metric, 100)
 	if not is_instance_valid(list_box) or current != "leaderboard":
 		return
-	_lead_data = res.get("top", [])
+	if not bool(res.get("ok", false)):
+		for ch in list_box.get_children():
+			ch.queue_free()
+		MpKit.placeholder(list_box, "net_err", "ОШИБКА ЗАГРУЗКИ", String(res.get("err", "Не удалось связаться с сервером")), false, 72.0)
+		return
+	_lead_data = res.get("list", res.get("top", []))
 	fill_rows.call(_lead_data)
 	
 	var br: HBoxContainer = _bottom_row()
@@ -5235,7 +5241,7 @@ func _render_lead_row(parent: Control, rank: int, u: Dictionary) -> Control:
 	
 	var uname: String = String(u.get("username", ""))
 	var is_dev: bool = bool(u.get("is_dev", false)) or Account.is_dev_name(uname)
-	var registered: bool = bool(u.get("registered", false))
+	var registered: bool = bool(u.get("is_registered", u.get("registered", false)))
 	
 	var nl: Label = UiKit.lbl(uname, 13, UiKit.TEXT, 3, 2)
 	nl.clip_text = true
@@ -5254,10 +5260,13 @@ func _render_lead_row(parent: Control, rank: int, u: Dictionary) -> Control:
 	tag_p.add_child(tag_l)
 	nh.add_child(tag_p)
 	
+	var total_w: int = int(u.get("total_wins", int(u.get("wins", 0)) + int(u.get("solo_wins", 0))))
+	var matches_cnt: int = int(u.get("matches_played", u.get("matches", 0)))
+	var play_s: float = float(u.get("playtime_s", float(u.get("hours", 0.0)) * 3600.0))
 	var sub: String = "Побед: %d · Матчей: %d · Часов: %s" % [
-		int(u.get("wins", 0)),
-		int(u.get("matches", 0)),
-		Account.format_hours(float(u.get("playtime_s", 0.0)))
+		total_w,
+		matches_cnt,
+		Account.format_hours(play_s)
 	]
 	var sl: Label = UiKit.lbl(sub, 10, UiKit.MUTED, 1, 1)
 	v.add_child(sl)
@@ -5265,11 +5274,11 @@ func _render_lead_row(parent: Control, rank: int, u: Dictionary) -> Control:
 	var stat_text: String
 	match _lead_metric:
 		"hours":
-			stat_text = "%s Ч" % Account.format_hours(float(u.get("playtime_s", 0.0)))
+			stat_text = "%s Ч" % Account.format_hours(play_s)
 		"wins":
-			stat_text = "%d ПОБЕД" % int(u.get("wins", 0))
+			stat_text = "%d ПОБЕД" % total_w
 		"matches":
-			stat_text = "%d ИГР" % int(u.get("matches", 0))
+			stat_text = "%d ИГР" % matches_cnt
 	var stat_l: Label = UiKit.lbl(stat_text, 13, UiKit.GOLD, 3, 2)
 	stat_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(stat_l)
@@ -5288,7 +5297,7 @@ func show_player_profile(u: Dictionary) -> void:
 	_top = true
 	
 	var is_dev: bool = bool(u.get("is_dev", false)) or Account.is_dev_name(uname)
-	var registered: bool = bool(u.get("registered", false))
+	var registered: bool = bool(u.get("is_registered", u.get("registered", false)))
 	var cos: Dictionary = u.get("cosmetics", {}) if u.get("cosmetics") is Dictionary else {}
 	var a_b64: String = String(u.get("avatar_b64", u.get("avatar", "")))
 	
@@ -5298,14 +5307,24 @@ func show_player_profile(u: Dictionary) -> void:
 	if is_dev:
 		MpKit.status_bar(vb, "РАЗРАБОТЧИК ПОРТА DRONEFLAMES", "ok", "icon_ok")
 	
-	MpKit.section(vb, "СТАТИСТИКА")
-	MpKit.stat_card(vb, "ВРЕМЯ В ИГРЕ", "ЧАСЫ И МИНУТЫ", Account.format_hours(float(u.get("playtime_s", 0.0))), false, "icon_time")
-	MpKit.stat_card(vb, "ПОБЕДЫ", "СОЛО И ОНЛАЙН", str(int(u.get("wins", 0))), false, "acc_ranked")
-	MpKit.stat_card(vb, "МАТЧЕЙ СЫГРАНО", "ВСЕГО ПАРТИЙ", str(int(u.get("matches", 0))), false, "icon_stats")
+	var total_w: int = int(u.get("total_wins", int(u.get("wins", 0)) + int(u.get("solo_wins", 0))))
+	var matches_cnt: int = int(u.get("matches_played", u.get("matches", 0)))
+	var play_s: float = float(u.get("playtime_s", float(u.get("hours", 0.0)) * 3600.0))
 	
-	var ls: String = String(u.get("last_seen", ""))
-	if ls != "":
-		MpKit.stat_card(vb, "АКТИВНОСТЬ", "ПОСЛЕДНЯЯ ИГРА", ls.left(10), false, "net_sync")
+	MpKit.section(vb, "СТАТИСТИКА")
+	MpKit.stat_card(vb, "ВРЕМЯ В ИГРЕ", "ЧАСЫ И МИНУТЫ", Account.format_hours(play_s), false, "icon_time")
+	MpKit.stat_card(vb, "ПОБЕДЫ", "СОЛО И ОНЛАЙН", str(total_w), false, "acc_ranked")
+	MpKit.stat_card(vb, "МАТЧЕЙ СЫГРАНО", "ВСЕГО ПАРТИЙ", str(matches_cnt), false, "icon_stats")
+	
+	var ls_raw: Variant = u.get("last_seen", 0)
+	var ls_str: String = ""
+	if ls_raw is int and int(ls_raw) > 0:
+		var dt: Dictionary = Time.get_datetime_dict_from_unix_time(int(ls_raw))
+		ls_str = "%02d.%02d.%04d %02d:%02d" % [dt.day, dt.month, dt.year, dt.hour, dt.minute]
+	elif ls_raw is String and String(ls_raw) != "":
+		ls_str = String(ls_raw).left(16)
+	if ls_str != "":
+		MpKit.stat_card(vb, "АКТИВНОСТЬ", "ПОСЛЕДНЯЯ ИГРА", ls_str, false, "net_sync")
 	
 	MpKit.section(vb, "ОФОРМЛЕНИЕ")
 	var fr_name: String = Cosmetics.name_of(String(cos.get("frame", "")))

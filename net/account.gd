@@ -430,8 +430,9 @@ static func get_top(by: String = "hours", limit: int = 100) -> Dictionary:
 	load_state()
 	var r: Dictionary = await call_server({"t": "get_top", "by": by, "limit": limit})
 	if String(r.get("t", "")) == "top_data":
-		return {"ok": true, "by": by, "list": r.get("list", []), "total_count": int(r.get("total_count", 0))}
-	return {"ok": false, "err": String(r.get("err", "Ошибка получения топа")), "list": []}
+		var l: Array = r.get("list", [])
+		return {"ok": true, "by": by, "list": l, "top": l, "total_count": int(r.get("total_count", 0))}
+	return {"ok": false, "err": String(r.get("err", "Ошибка получения топа")), "list": [], "top": []}
 
 
 static func get_profile(uname: String) -> Dictionary:
@@ -446,8 +447,9 @@ static func search_profiles(query: String) -> Dictionary:
 	load_state()
 	var r: Dictionary = await call_server({"t": "search_profiles", "query": query})
 	if String(r.get("t", "")) == "search_results":
-		return {"ok": true, "list": r.get("list", [])}
-	return {"ok": false, "err": String(r.get("err", "Ошибка поиска")), "list": []}
+		var l: Array = r.get("list", [])
+		return {"ok": true, "list": l, "users": l}
+	return {"ok": false, "err": String(r.get("err", "Ошибка поиска")), "list": [], "users": []}
 
 
 static func equip(kind: String, code: Variant) -> Dictionary:
