@@ -248,6 +248,8 @@ static func _at(sprite_name: String) -> SpriteAtlas:
 	return null
 
 
+static var _custom_tex_cache: Dictionary = {}
+
 static func tex(sprite_name: String) -> Texture2D:
 	ensure()
 	if Engine.get_main_loop() != null:
@@ -265,8 +267,24 @@ static func tex(sprite_name: String) -> Texture2D:
 		return tex("net_refresh")
 	var at: SpriteAtlas = _at(sprite_name)
 	if at == null:
-		if ResourceLoader.exists("res://assets/sprites/" + sprite_name + ".png"):
-			return load("res://assets/sprites/" + sprite_name + ".png")
+		if _custom_tex_cache.has(sprite_name):
+			return _custom_tex_cache[sprite_name]
+		var p: String = "res://assets/sprites/" + sprite_name + ".png"
+		if ResourceLoader.exists(p):
+			var res = load(p)
+			if res is Texture2D:
+				_custom_tex_cache[sprite_name] = res
+				return res
+		if FileAccess.file_exists(p):
+			var fa: FileAccess = FileAccess.open(p, FileAccess.READ)
+			if fa:
+				var buf: PackedByteArray = fa.get_buffer(fa.get_length())
+				fa.close()
+				var img: Image = Image.new()
+				if img.load_png_from_buffer(buf) == OK and not img.is_empty():
+					var itex: Texture2D = ImageTexture.create_from_image(img)
+					_custom_tex_cache[sprite_name] = itex
+					return itex
 		return null
 	return at.region(sprite_name)
 

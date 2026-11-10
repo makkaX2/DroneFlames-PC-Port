@@ -12,30 +12,16 @@ static var _signals_connected: bool = false
 static var _active_menus: Menus = null
 
 const VERIFIED_MODS: Array[String] = [
-	"air_arsenal",
-	"airborne_assault",
-	"atgm_cluster",
-	"chernobyl_zone",
-	"city_expansion",
-	"discord_rpc",
-	"econ_armory",
-	"fps_ping_overlay",
+	"thermo_battery",
 	"iskander_strike",
 	"nuclear_strike",
-	"oasis_map",
-	"repeat_build",
-	"scenarios_pack",
-	"shahed_geran",
-	"tank_factory",
-	"thermo_battery"
+	"airborne_assault",
+	"fps_ping_overlay",
+	"oasis_map"
 ]
 
-static func is_mod_verified(mod_id: String, data: Dictionary = {}) -> bool:
-	if VERIFIED_MODS.has(mod_id):
-		return true
-	if bool(data.get("verified", false)):
-		return true
-	return false
+static func is_mod_verified(mod_id: String, _data: Dictionary = {}) -> bool:
+	return VERIFIED_MODS.has(mod_id)
 
 static func get_mod_manager() -> Node:
 	var loop = Engine.get_main_loop()
@@ -359,17 +345,18 @@ static func _build_mod_card(menus: Menus, parent: VBoxContainer, data: Dictionar
 	title_row.add_child(title_lbl)
 
 	if is_mod_verified(mod_id, data):
-		var v_btn: TextureButton = TextureButton.new()
 		var v_tex: Texture2D = UiKit.tex("mod_verified")
-		v_btn.texture_normal = v_tex
-		v_btn.custom_minimum_size = Vector2(16, 16)
-		v_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		v_btn.ignore_texture_size = true
-		v_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		v_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		v_btn.tooltip_text = "Верифицированная модификация (нажмите для подробностей)"
-		v_btn.pressed.connect(func() -> void: _show_verified_dialog(menus, mod_name))
-		title_row.add_child(v_btn)
+		if v_tex != null:
+			var v_btn: TextureButton = TextureButton.new()
+			v_btn.texture_normal = v_tex
+			v_btn.custom_minimum_size = Vector2(16, 16)
+			v_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+			v_btn.ignore_texture_size = true
+			v_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			v_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			v_btn.tooltip_text = "Верифицированная модификация (нажмите для подробностей)"
+			v_btn.pressed.connect(func() -> void: _show_verified_dialog(menus, mod_name))
+			title_row.add_child(v_btn)
 
 	var display_ver: String = installed_ver if (is_installed_view and installed_ver != "") else mod_ver
 	var ver_lbl: Label = UiKit.lbl("v" + display_ver, 9, UiKit.GOLD)
@@ -516,17 +503,18 @@ static func _open_detail_card(menus: Menus, data: Dictionary, _mm: Node) -> void
 	head_box.add_child(title_lbl)
 
 	if is_mod_verified(mod_id, data):
-		var v_btn: TextureButton = TextureButton.new()
 		var v_tex: Texture2D = UiKit.tex("mod_verified")
-		v_btn.texture_normal = v_tex
-		v_btn.custom_minimum_size = Vector2(20, 20)
-		v_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		v_btn.ignore_texture_size = true
-		v_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		v_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		v_btn.tooltip_text = "Верифицированная модификация (нажмите для подробностей)"
-		v_btn.pressed.connect(func() -> void: _show_verified_dialog(menus, mod_name))
-		head_box.add_child(v_btn)
+		if v_tex != null:
+			var v_btn: TextureButton = TextureButton.new()
+			v_btn.texture_normal = v_tex
+			v_btn.custom_minimum_size = Vector2(20, 20)
+			v_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+			v_btn.ignore_texture_size = true
+			v_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			v_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			v_btn.tooltip_text = "Верифицированная модификация (нажмите для подробностей)"
+			v_btn.pressed.connect(func() -> void: _show_verified_dialog(menus, mod_name))
+			head_box.add_child(v_btn)
 
 	var meta_row: HBoxContainer = HBoxContainer.new()
 	meta_row.add_theme_constant_override("separation", 8)
