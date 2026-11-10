@@ -16,6 +16,7 @@ extends Node
 ## differs gets the host's snapshot (Save codec) and continues from there ("periodic sync").
 
 signal lobby_changed
+signal mods_required(required_mods: Array)
 signal player_left(nick: String, lost: bool)  # NET 29: a person left a running match (the AI took his country); lost = the link died
 signal status_changed(text: String)
 signal speed_changed(old: int, new: int)
@@ -94,6 +95,7 @@ var mode: int = Mode.OFF
 var is_host: bool = false
 var in_match: bool = false
 var slots: Array = []  # lobby / match roster: [{"peer", "name", "ready", "left"}], index = slot
+var host_mods: Array = []  # active/required gameplay mods on the host
 var local_slot: int = -1
 var room_code: String = ""
 var room_pub: bool = false  # NET 29: online room listed publicly (host's choice)
@@ -356,6 +358,22 @@ func host_name() -> String:
 	if slots.size() > 0:
 		return String(slots[0].get("name", "Хост"))
 	return "Хост"
+
+
+func _my_mod_versions() -> Dictionary:
+	if has_node("/root/ModManager"):
+		var mm = get_node("/root/ModManager")
+		if mm.has_method("get_installed_mod_versions"):
+			return mm.get_installed_mod_versions()
+	return {}
+
+
+func resend_hello_with_mods() -> void:
+	if is_host or multiplayer.multiplayer_peer == null:
+		return
+	if not multiplayer.get_peers().has(1):
+		return
+	_hello.rpc_id(1, NetConfig.version(), my_name(), clampi(GameConfig.arch_i, 0, 3), String(_rejoin.get("tok", "")) if reconnecting else "", my_cos(), my_flag(), _my_mod_versions())
 
 
 static func get_lan_ips() -> Array[String]:
@@ -812,7 +830,13 @@ func _on_rtc_joined() -> void:
 
 
 func _make_host_slot() -> void:
-	slots = [{"peer": 1, "name": my_name(), "ready": true, "left": false, "arch": clampi(GameConfig.arch_i, 0, 3), "cos": my_cos(), "flag": my_flag()}]
+	var h_mods: Array = []
+	if has_node("/root/ModManager"):
+		var mm = get_node("/root/ModManager")
+		if mm.has_method("get_required_mp_mods"):
+			h_mods = mm.get_required_mp_mods()
+	host_mods = h_mods
+	slots = [{"peer": 1, "name": my_name(), "ready": true, "left": false, "arch": clampi(GameConfig.arch_i, 0, 3), "cos": my_cos(), "flag": my_flag(), "mods": h_mods}]
 	local_slot = 0
 	lobby_changed.emit()
 
@@ -958,7 +982,7 @@ func _on_connected() -> void:
 		var hp: ENetPacketPeer = (multiplayer.multiplayer_peer as ENetMultiplayerPeer).get_peer(1)
 		if hp != null:
 			hp.set_timeout(0, 30000, 90000)  # a host in the background = a pause for 90 s, not a dropped match
-	_hello.rpc_id(1, NetConfig.version(), my_name(), clampi(GameConfig.arch_i, 0, 3), String(_rejoin.get("tok", "")) if reconnecting else "", my_cos(), my_flag())
+	_hello.rpc_id(1, NetConfig.version(), my_name(), clampi(GameConfig.arch_i, 0, 3), String(_rejoin.get("tok", "")) if reconnecting else "", my_cos(), my_flag(), _my_mod_versions())
 	if reconnecting:
 		# (2026-10-31) the host is reached: a host that has just resumed may still be building its world (we wait in
 		# its queue for _rejoin_ok). Was: the short «ВЕРНУТЬСЯ» limit (15 s) ran on and gave «ХОСТ ЕЩЁ НЕ ПРОДОЛЖИЛ
@@ -974,7 +998,7 @@ func _send_relay_hello() -> void:
 	if _relay_hello_sent or is_host or mode != Mode.ONLINE or multiplayer.multiplayer_peer != rtc.tunnel or rtc.tunnel == null:
 		return
 	_relay_hello_sent = true
-	_hello.rpc_id(1, NetConfig.version(), my_name(), clampi(GameConfig.arch_i, 0, 3), String(_rejoin.get("tok", "")) if reconnecting else "", my_cos(), my_flag())
+	_hello.rpc_id(1, NetConfig.version(), my_name(), clampi(GameConfig.arch_i, 0, 3), String(_rejoin.get("tok", "")) if reconnecting else "", my_cos(), my_flag(), _my_mod_versions())
 	if reconnecting:
 		_rc_reached_at = rc_t
 	_rc_resume = false
@@ -1434,13 +1458,20 @@ func _slot_of(peer: int) -> int:
 
 
 @rpc("any_peer", "call_remote", "reliable")
-func _hello(ver: String, nm: String, arch: int = 0, tok: String = "", cos: Dictionary = {}, flag: String = "") -> void:
+func _hello(ver: String, nm: String, arch: int = 0, tok: String = "", cos: Dictionary = {}, flag: String = "", client_mods: Dictionary = {}) -> void:
 	if not is_host:
 		return
 	var from: int = multiplayer.get_remote_sender_id()
 	var why: String = ""  # R333 I18N: a code on the wire («full» / «running» / «version:<host>»); the guest words it (_kick_text)
 	if ver != NetConfig.version():
 		why = "version:" + NetConfig.version()
+	elif not host_mods.is_empty() and has_node("/root/ModManager"):
+		var mm = get_node("/root/ModManager")
+		if mm.has_method("check_missing_mp_mods"):
+			var missing: Array = mm.check_missing_mp_mods(host_mods, client_mods)
+			if not missing.is_empty():
+				_require_mods.rpc_id(from, host_mods)
+				return
 	elif in_match and _tok_slot(tok) >= 0 and (go or resume_wait):
 		_rejoin_slot(_tok_slot(tok), from)  # NET 32: the same person back into his seat
 		return
@@ -1547,8 +1578,16 @@ func _hello(ver: String, nm: String, arch: int = 0, tok: String = "", cos: Dicti
 
 
 @rpc("authority", "call_remote", "reliable")
+func _require_mods(req_mods: Array) -> void:
+	host_mods = req_mods
+	mods_required.emit(req_mods)
+
+
+@rpc("authority", "call_remote", "reliable")
 func _roster(list: Array) -> void:
 	slots = list
+	if not slots.is_empty() and slots[0].has("mods"):
+		host_mods = slots[0]["mods"]
 	local_slot = _slot_of(multiplayer.get_unique_id())
 	if not rtc.ranked.is_empty() and not is_host and not _ranked_ready_sent and local_slot >= 0:
 		_ranked_ready_sent = true

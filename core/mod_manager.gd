@@ -469,6 +469,70 @@ func is_mod_loaded(mod_id: String) -> bool:
 		return false
 	return bool(installed_mods[mod_id].get("_loaded", false))
 
+const CLIENT_ONLY_MODS: Array[String] = [
+	"fps_ping_overlay",
+	"discord_rpc"
+]
+
+## Возвращает список всех включённых модов, влияющих на геймплей/мир для сетевой игры
+func get_required_mp_mods() -> Array:
+	var result: Array = []
+	for mod_id in installed_mods.keys():
+		if is_mod_enabled(mod_id):
+			if CLIENT_ONLY_MODS.has(mod_id):
+				continue
+			var m: Dictionary = installed_mods[mod_id]
+			var m_type: String = String(m.get("type", "gameplay")).to_lower()
+			var dl_url: String = String(m.get("url", m.get("download_url", "")))
+			if dl_url == "":
+				for c in catalog_mods:
+					if String(c.get("id", "")) == mod_id:
+						dl_url = String(c.get("url", c.get("download_url", "")))
+						break
+			if dl_url == "":
+				dl_url = "https://raw.githubusercontent.com/makkaX2/DroneFlames-Mods/main/mods/%s/%s.dfmod" % [mod_id, mod_id]
+
+			result.append({
+				"id": mod_id,
+				"name": String(m.get("name", mod_id)),
+				"version": String(m.get("version", "1.0.0")),
+				"type": m_type,
+				"url": dl_url,
+				"description": String(m.get("description", ""))
+			})
+	return result
+
+## Возвращает словарь {mod_id: version} для всех включённых модов на данном клиенте
+func get_installed_mod_versions() -> Dictionary:
+	var res: Dictionary = {}
+	for mod_id in installed_mods.keys():
+		if is_mod_enabled(mod_id):
+			res[mod_id] = String(installed_mods[mod_id].get("version", "1.0.0"))
+	return res
+
+## Проверяет список модов хоста против текущих установленных/включённых у клиента
+func check_missing_mp_mods(host_required_mods: Array, client_mods: Dictionary = {}) -> Array:
+	var missing: Array = []
+	var client_v: Dictionary = client_mods if not client_mods.is_empty() else get_installed_mod_versions()
+	for hm in host_required_mods:
+		if not (hm is Dictionary):
+			continue
+		var mid: String = String(hm.get("id", "")).strip_edges()
+		if mid == "" or CLIENT_ONLY_MODS.has(mid):
+			continue
+		var req_ver: String = String(hm.get("version", "")).strip_edges()
+		var client_ver: String = String(client_v.get(mid, "")).strip_edges()
+		if not client_v.has(mid):
+			var m_copy: Dictionary = hm.duplicate()
+			m_copy["is_installed_disabled"] = is_mod_installed(mid) and not is_mod_enabled(mid)
+			missing.append(m_copy)
+		elif req_ver != "" and client_ver != "" and req_ver != client_ver:
+			var m_copy2: Dictionary = hm.duplicate()
+			m_copy2["version_mismatch"] = true
+			m_copy2["client_version"] = client_ver
+			missing.append(m_copy2)
+	return missing
+
 func _prepare_external_mod_source(source_code: String) -> String:
 	var class_line := RegEx.new()
 	class_line.compile("(?m)^class_name\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*\\r?\\n")
@@ -505,6 +569,10 @@ func toggle_mod(mod_id: String, enable: bool) -> void:
 	_save_config()
 	mod_toggled.emit(mod_id, enable)
 	mods_updated.emit()
+
+func enable_mod(mod_id: String, enable: bool = true) -> bool:
+	toggle_mod(mod_id, enable)
+	return is_mod_enabled(mod_id)
 
 func _load_mod(mod_id: String) -> bool:
 	if not installed_mods.has(mod_id):

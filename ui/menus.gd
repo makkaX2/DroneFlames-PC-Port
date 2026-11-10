@@ -54,7 +54,15 @@ const WHATS_NEW: Array = [
 ]
 
 var gw: GameWorld
-var net: NetSession
+var net: NetSession:
+	set(value):
+		if net != null and is_instance_valid(net):
+			if net.has_signal("mods_required") and net.mods_required.is_connected(_on_net_mods_required):
+				net.mods_required.disconnect(_on_net_mods_required)
+		net = value
+		if net != null and is_instance_valid(net):
+			if net.has_signal("mods_required") and not net.mods_required.is_connected(_on_net_mods_required):
+				net.mods_required.connect(_on_net_mods_required)
 const KeybindManager = preload("res://core/keybind_manager.gd")
 const SavesUI = preload("res://ui/saves_ui.gd")
 const ModsUI = preload("res://ui/mods_ui.gd")
@@ -113,6 +121,7 @@ static var _more_open: bool = false
 
 static var _update_dialog_shown: bool = false
 var _up_dialog: Control = null
+var _mp_mods_dialog: Control = null
 
 func setup(world: GameWorld) -> void :
 	gw = world
@@ -154,6 +163,9 @@ func close() -> void :
 	if _up_dialog != null and is_instance_valid(_up_dialog):
 		_up_dialog.queue_free()
 	_up_dialog = null
+	if _mp_mods_dialog != null and is_instance_valid(_mp_mods_dialog):
+		_mp_mods_dialog.queue_free()
+	_mp_mods_dialog = null
 	if _prefs_dirty:
 		_prefs_dirty = false
 		Save.save_prefs()
@@ -3109,6 +3121,263 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 			_up_dialog = null
 	)
 	vb.add_child(later_btn)
+
+
+func _on_net_mods_required(required_mods: Array) -> void:
+	_show_required_mods_dialog.call_deferred(required_mods)
+
+
+func _show_required_mods_dialog(required_mods: Array) -> void:
+	if _mp_mods_dialog != null and is_instance_valid(_mp_mods_dialog):
+		_mp_mods_dialog.queue_free()
+		_mp_mods_dialog = null
+
+	var mm: Node = null
+	if has_node("/root/ModManager"):
+		mm = get_node("/root/ModManager")
+
+	var missing_info: Array = []
+	if mm != null and mm.has_method("check_missing_mp_mods"):
+		missing_info = mm.check_missing_mp_mods(required_mods)
+	else:
+		missing_info = required_mods
+
+	var bg := ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.02, 0.04, 0.1, 0.78)
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(bg)
+	_mp_mods_dialog = bg
+
+	var cc := CenterContainer.new()
+	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.add_child(cc)
+
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", UiKit.sb("wb_window", 16, 14))
+	var win_w: float = minf(490.0, root.size.x - 30.0)
+	panel.custom_minimum_size = Vector2(win_w, 0)
+	cc.add_child(panel)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	panel.add_child(vb)
+
+	var hr := HBoxContainer.new()
+	hr.add_theme_constant_override("separation", 8)
+	vb.add_child(hr)
+
+	var title_lbl: Label = UiKit.title(Loc.t("ТРЕБУЮТСЯ МОДЫ ДЛЯ СЕТЕВОЙ ИГРЫ"), 18, UiKit.GOLD)
+	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hr.add_child(title_lbl)
+
+	var close_btn: Button = UiKit.close_btn(32.0)
+	close_btn.pressed.connect(func() -> void:
+		UiKit.snd("ui_close")
+		if _mp_mods_dialog != null and is_instance_valid(_mp_mods_dialog):
+			_mp_mods_dialog.queue_free()
+			_mp_mods_dialog = null
+		if net != null:
+			net.leave()
+	)
+	hr.add_child(close_btn)
+
+	var sub_lbl: Label = UiKit.lbl(Loc.t("У хоста включены моды, изменяющие игровой мир. Без них подключение к серверу запрещено во избежание рассинхронизации:"), 10, UiKit.MUTED, 1)
+	sub_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vb.add_child(sub_lbl)
+
+	# Список требуемых модов
+	var list_panel: PanelContainer = PanelContainer.new()
+	list_panel.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 10, 8))
+	vb.add_child(list_panel)
+
+	var sc := ScrollContainer.new()
+	sc.custom_minimum_size = Vector2(0, mini(int(required_mods.size() * 52 + 10), 180))
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	list_panel.add_child(sc)
+
+	var mod_list_vb := VBoxContainer.new()
+	mod_list_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mod_list_vb.add_theme_constant_override("separation", 6)
+	sc.add_child(mod_list_vb)
+
+	for m_item in required_mods:
+		if not (m_item is Dictionary):
+			continue
+		var mid: String = String(m_item.get("id", ""))
+		var mname: String = String(m_item.get("name", mid))
+		var mver: String = String(m_item.get("version", "1.0.0"))
+
+		var is_inst: bool = mm != null and mm.is_mod_installed(mid)
+		var is_en: bool = mm != null and mm.is_mod_enabled(mid)
+		var cur_v: String = String(mm.installed_mods.get(mid, {}).get("version", "")) if is_inst else ""
+
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		mod_list_vb.add_child(row)
+
+		var info_v := VBoxContainer.new()
+		info_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(info_v)
+
+		var title_row := UiKit.lbl("%s (v%s)" % [mname, mver], 11, UiKit.TEXT, 1)
+		info_v.add_child(title_row)
+
+		var st_lbl: Label = null
+		if is_en and (cur_v == "" or cur_v == mver):
+			st_lbl = UiKit.lbl("✓ Установлен и готов", 9, UiKit.GREEN)
+		elif is_inst and (cur_v == "" or cur_v == mver):
+			st_lbl = UiKit.lbl("● Установлен (требуется включить)", 9, UiKit.GOLD)
+		elif is_inst and cur_v != mver:
+			st_lbl = UiKit.lbl("⚠ Требуется обновление (у вас: v%s)" % cur_v, 9, UiKit.RED)
+		else:
+			st_lbl = UiKit.lbl("↓ Не установлен (будет скачан)", 9, UiKit.RED)
+		info_v.add_child(st_lbl)
+
+	# Панель индикатора прогресса
+	var pbar_vbox := VBoxContainer.new()
+	pbar_vbox.add_theme_constant_override("separation", 4)
+	vb.add_child(pbar_vbox)
+
+	var status_text_lbl: Label = UiKit.lbl("Готово к установке пака модов", 10, UiKit.TEXT, 1)
+	status_text_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	pbar_vbox.add_child(status_text_lbl)
+
+	var pbar: ProgressBar = ModsUI.create_styled_progress_bar()
+	pbar.value = 0.0
+	pbar.visible = true
+	pbar_vbox.add_child(pbar)
+
+	# Нижняя панель кнопок
+	var btn_row := HBoxContainer.new()
+	btn_row.add_theme_constant_override("separation", 8)
+	vb.add_child(btn_row)
+
+	var cancel_btn: Button = UiKit.big("ОТМЕНА", "stone", "", 36.0, 10)
+	cancel_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cancel_btn.pressed.connect(func() -> void:
+		UiKit.snd("ui_close")
+		if _mp_mods_dialog != null and is_instance_valid(_mp_mods_dialog):
+			_mp_mods_dialog.queue_free()
+			_mp_mods_dialog = null
+		if net != null:
+			net.leave()
+	)
+	btn_row.add_child(cancel_btn)
+
+	var install_btn: Button = UiKit.big("СКАЧАТЬ И ВОЙТИ", "green", "", 36.0, 10)
+	install_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_row.add_child(install_btn)
+
+	# Логика скачивания и входа
+	install_btn.pressed.connect(func() -> void:
+		install_btn.disabled = true
+		cancel_btn.disabled = true
+		install_btn.text = "УСТАНОВКА..."
+
+		if mm == null:
+			status_text_lbl.text = "Ошибка: ModManager не найден"
+			status_text_lbl.modulate = UiKit.RED
+			install_btn.disabled = false
+			cancel_btn.disabled = false
+			return
+
+		var to_process: Array = required_mods.duplicate()
+		var total_count: int = to_process.size()
+		var completed_count: int = 0
+
+		for m in to_process:
+			if not (m is Dictionary):
+				continue
+			var mid: String = String(m.get("id", ""))
+			var mname: String = String(m.get("name", mid))
+			var mver: String = String(m.get("version", ""))
+
+			var is_installed: bool = mm.is_mod_installed(mid)
+			var cur_ver: String = String(mm.installed_mods.get(mid, {}).get("version", "")) if is_installed else ""
+
+			if is_installed and (cur_ver == "" or cur_ver == mver or mver == ""):
+				# Мод уже есть — просто активируем
+				status_text_lbl.text = "Активация «%s»..." % mname
+				mm.toggle_mod(mid, true)
+				completed_count += 1
+				pbar.value = clampf(float(completed_count) / float(maxi(1, total_count)) * 100.0, 0.0, 100.0)
+				await get_tree().process_frame
+			else:
+				# Нужно скачать или обновить
+				status_text_lbl.text = "Скачивание «%s»..." % mname
+				var dl_done: Array = [false]
+				var dl_err: Array = [""]
+
+				var on_prog = func(_id: String, rec: int, tot: int, pct: float) -> void:
+					if _id == mid:
+						var base_pct: float = float(completed_count) / float(maxi(1, total_count)) * 100.0
+						var step_pct: float = (pct / 100.0) * (100.0 / float(maxi(1, total_count)))
+						pbar.value = clampf(base_pct + step_pct, 0.0, 100.0)
+						var rec_mb: float = float(rec) / (1024.0 * 1024.0)
+						var tot_mb: float = float(tot) / (1024.0 * 1024.0)
+						if tot > 0:
+							status_text_lbl.text = "Загрузка «%s»: %d%% (%.1f / %.1f МБ)" % [mname, int(pct), rec_mb, tot_mb]
+						else:
+							status_text_lbl.text = "Загрузка «%s»: %d%%" % [mname, int(pct)]
+
+				var on_done = func(_id: String) -> void:
+					if _id == mid:
+						dl_done[0] = true
+
+				var on_failed = func(_id: String, err_msg: String) -> void:
+					if _id == mid:
+						dl_err[0] = err_msg
+						dl_done[0] = true
+
+				if mm.has_signal("mod_download_progress"):
+					mm.mod_download_progress.connect(on_prog)
+				if mm.has_signal("mod_download_completed"):
+					mm.mod_download_completed.connect(on_done)
+				if mm.has_signal("mod_download_failed"):
+					mm.mod_download_failed.connect(on_failed)
+
+				mm.download_and_install_mod(m)
+
+				# Ждём завершения скачивания с таймаутом
+				var wait_t: float = 0.0
+				while not dl_done[0] and wait_t < 60.0:
+					await get_tree().create_timer(0.1).timeout
+					wait_t += 0.1
+
+				if mm.has_signal("mod_download_progress") and mm.mod_download_progress.is_connected(on_prog):
+					mm.mod_download_progress.disconnect(on_prog)
+				if mm.has_signal("mod_download_completed") and mm.mod_download_completed.is_connected(on_done):
+					mm.mod_download_completed.disconnect(on_done)
+				if mm.has_signal("mod_download_failed") and mm.mod_download_failed.is_connected(on_failed):
+					mm.mod_download_failed.disconnect(on_failed)
+
+				if dl_err[0] != "":
+					status_text_lbl.text = "Ошибка при загрузке «%s»: %s" % [mname, dl_err[0]]
+					status_text_lbl.modulate = UiKit.RED
+					install_btn.disabled = false
+					cancel_btn.disabled = false
+					install_btn.text = "ПОВТОРИТЬ"
+					return
+
+				mm.toggle_mod(mid, true)
+				completed_count += 1
+				pbar.value = clampf(float(completed_count) / float(maxi(1, total_count)) * 100.0, 0.0, 100.0)
+
+		# Все моды установлены и активированы!
+		status_text_lbl.text = "Все моды готовы! Входим на сервер..."
+		status_text_lbl.modulate = UiKit.GREEN
+		pbar.value = 100.0
+		await get_tree().create_timer(0.4).timeout
+
+		if _mp_mods_dialog != null and is_instance_valid(_mp_mods_dialog):
+			_mp_mods_dialog.queue_free()
+			_mp_mods_dialog = null
+
+		if net != null and net.has_method("resend_hello_with_mods"):
+			net.resend_hello_with_mods()
+	)
 
 
 const PerfProbe: = preload("res://ui/perf_probe.gd")

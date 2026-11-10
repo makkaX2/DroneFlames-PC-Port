@@ -12,7 +12,10 @@ static var _signals_connected: bool = false
 static var _active_menus: Menus = null
 static var _status_banner_text: String = ""
 static var _status_banner_type: String = "info" # "info", "error", "success", "progress"
+static var _status_banner_pct: float = 0.0
 static var _banner_label_ref: Label = null
+static var _banner_progress_ref: ProgressBar = null
+static var _active_download_btn: Button = null
 
 const VERIFIED_MODS: Array[String] = [
 	"thermo_battery",
@@ -22,6 +25,29 @@ const VERIFIED_MODS: Array[String] = [
 	"fps_ping_overlay",
 	"oasis_map"
 ]
+
+static func create_styled_progress_bar() -> ProgressBar:
+	var pb := ProgressBar.new()
+	pb.custom_minimum_size = Vector2(0, 16)
+	pb.show_percentage = true
+	var sb_bg := StyleBoxFlat.new()
+	sb_bg.bg_color = Color(0.08, 0.1, 0.14, 0.95)
+	sb_bg.set_corner_radius_all(3)
+	sb_bg.border_width_left = 1
+	sb_bg.border_width_top = 1
+	sb_bg.border_width_right = 1
+	sb_bg.border_width_bottom = 1
+	sb_bg.border_color = Color(0.22, 0.28, 0.38, 0.8)
+
+	var sb_fill := StyleBoxFlat.new()
+	sb_fill.bg_color = Color(0.2, 0.72, 0.35, 1.0)
+	sb_fill.set_corner_radius_all(3)
+
+	pb.add_theme_stylebox_override("background", sb_bg)
+	pb.add_theme_stylebox_override("fill", sb_fill)
+	pb.add_theme_color_override("font_color", Color(1, 1, 1, 0.95))
+	pb.add_theme_font_size_override("font_size", 9)
+	return pb
 
 static func is_mod_verified(mod_id: String, _data: Dictionary = {}) -> bool:
 	return VERIFIED_MODS.has(mod_id)
@@ -47,9 +73,17 @@ static func is_version_greater(v_new: String, v_cur: String) -> bool:
 			return false
 	return false
 
-static func _update_banner_label() -> void:
+static func _update_banner_progress(pct: float, text: String = "") -> void:
+	_status_banner_pct = pct
+	if text != "":
+		_status_banner_text = text
 	if _banner_label_ref != null and is_instance_valid(_banner_label_ref):
 		_banner_label_ref.text = _status_banner_text
+	if _banner_progress_ref != null and is_instance_valid(_banner_progress_ref):
+		_banner_progress_ref.value = pct
+		_banner_progress_ref.visible = (_status_banner_type == "progress")
+	if _active_download_btn != null and is_instance_valid(_active_download_btn):
+		_active_download_btn.text = "ЗАГРУЗКА %d%%" % int(pct) if pct > 0.0 else "ЗАГРУЗКА..."
 
 static func _ensure_signals(menus: Menus, mm: Node) -> void:
 	_active_menus = menus
@@ -67,23 +101,33 @@ static func _ensure_signals(menus: Menus, mm: Node) -> void:
 		mm.mod_download_started.connect(func(id: String) -> void:
 			_status_banner_text = "Загрузка мода «%s»..." % id
 			_status_banner_type = "progress"
+			_status_banner_pct = 0.0
 			_refresh_ui()
 		)
 	if mm.has_signal("mod_download_progress"):
-		mm.mod_download_progress.connect(func(id: String, _rec: int, _tot: int, pct: float) -> void:
-			_status_banner_text = "Загрузка «%s»: %d%%" % [id, int(pct)]
+		mm.mod_download_progress.connect(func(id: String, rec: int, tot: int, pct: float) -> void:
+			var rec_mb: float = float(rec) / (1024.0 * 1024.0)
+			var tot_mb: float = float(tot) / (1024.0 * 1024.0)
+			var msg: String = ""
+			if tot > 0:
+				msg = "Загрузка «%s»: %d%% (%.1f / %.1f МБ)" % [id, int(pct), rec_mb, tot_mb]
+			else:
+				msg = "Загрузка «%s»: %d%% (%.1f МБ)" % [id, int(pct), rec_mb]
 			_status_banner_type = "progress"
-			_update_banner_label()
+			_update_banner_progress(pct, msg)
 		)
 	mm.mod_download_completed.connect(func(id: String) -> void:
-		_status_banner_text = "Мод «%s» успешно установлен и активирован!" % id
+		_status_banner_pct = 100.0
+		_update_banner_progress(100.0, "Мод «%s» успешно установлен и активирован!" % id)
 		_status_banner_type = "success"
+		_active_download_btn = null
 		_refresh_ui()
 	)
 	mm.mod_download_failed.connect(func(id: String, err: String) -> void:
 		print("[ModsUI] Download failed: ", err)
 		_status_banner_text = "Ошибка загрузки «%s»: %s" % [id, err]
 		_status_banner_type = "error"
+		_active_download_btn = null
 		_refresh_ui()
 	)
 
@@ -114,9 +158,13 @@ static func build(menus: Menus, parent: VBoxContainer) -> void:
 		sb_panel.add_theme_stylebox_override("panel", UiKit.sb("wb_panel_dark", 10, 8))
 		parent.add_child(sb_panel)
 
+		var sb_vbox: VBoxContainer = VBoxContainer.new()
+		sb_vbox.add_theme_constant_override("separation", 6)
+		sb_panel.add_child(sb_vbox)
+
 		var sb_row: HBoxContainer = HBoxContainer.new()
 		sb_row.add_theme_constant_override("separation", 8)
-		sb_panel.add_child(sb_row)
+		sb_vbox.add_child(sb_row)
 
 		var sb_lbl: Label = UiKit.lbl(_status_banner_text, 10, sb_color, 1, 1)
 		sb_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -128,9 +176,17 @@ static func build(menus: Menus, parent: VBoxContainer) -> void:
 		btn_dismiss.custom_minimum_size = Vector2(28, 24)
 		btn_dismiss.pressed.connect(func() -> void:
 			_status_banner_text = ""
+			_status_banner_type = "info"
+			_active_download_btn = null
 			_refresh_ui()
 		)
 		sb_row.add_child(btn_dismiss)
+
+		var pbar: ProgressBar = create_styled_progress_bar()
+		pbar.value = _status_banner_pct
+		pbar.visible = (_status_banner_type == "progress")
+		sb_vbox.add_child(pbar)
+		_banner_progress_ref = pbar
 
 
 	# Верхняя панель: Переключатель вкладок
@@ -467,10 +523,16 @@ static func _build_mod_card(menus: Menus, parent: VBoxContainer, data: Dictionar
 				break
 
 	if update_available:
-		var btn_up: Button = UiKit.big("ОБНОВИТЬ v" + latest_ver, "gold", "", 28.0, 9)
+		var is_this_up: bool = mm._is_downloading and mm._download_mod_id == mod_id
+		var btn_up_text: String = ("ЗАГРУЗКА %d%%" % int(_status_banner_pct)) if is_this_up and _status_banner_pct > 0 else ("ЗАГРУЗКА..." if is_this_up else "ОБНОВИТЬ v" + latest_ver)
+		var btn_up: Button = UiKit.big(btn_up_text, "gold", "", 28.0, 9)
+		if is_this_up:
+			btn_up.disabled = true
+			_active_download_btn = btn_up
 		btn_up.pressed.connect(func() -> void:
 			btn_up.disabled = true
 			btn_up.text = "ЗАГРУЗКА..."
+			_active_download_btn = btn_up
 			if not catalog_entry.is_empty():
 				mm.download_and_install_mod(catalog_entry)
 			else:
@@ -482,10 +544,16 @@ static func _build_mod_card(menus: Menus, parent: VBoxContainer, data: Dictionar
 	if is_installed:
 		# Если мод с ошибкой компиляции/загрузки — даем кнопку быстрой починки/переустановки
 		if load_error != "":
-			var btn_fix: Button = UiKit.big("ПЕРЕУСТАНОВИТЬ", "gold", "", 26.0, 8)
+			var is_this_fix: bool = mm._is_downloading and mm._download_mod_id == this_id
+			var btn_fix_text: String = ("ЗАГРУЗКА %d%%" % int(_status_banner_pct)) if is_this_fix and _status_banner_pct > 0 else ("ЗАГРУЗКА..." if is_this_fix else "ПЕРЕУСТАНОВИТЬ")
+			var btn_fix: Button = UiKit.big(btn_fix_text, "gold", "", 26.0, 8)
+			if is_this_fix:
+				btn_fix.disabled = true
+				_active_download_btn = btn_fix
 			btn_fix.pressed.connect(func() -> void:
 				btn_fix.disabled = true
 				btn_fix.text = "ЗАГРУЗКА..."
+				_active_download_btn = btn_fix
 				var fix_cat: Dictionary = {}
 				for cat in all_cat:
 					if String(cat.get("id", "")) == this_id:
@@ -513,14 +581,17 @@ static func _build_mod_card(menus: Menus, parent: VBoxContainer, data: Dictionar
 		# Кнопка установки (СКАЧАТЬ)
 		var is_this_downloading: bool = mm._is_downloading and mm._download_mod_id == mod_id
 		if is_this_downloading:
-			var btn_down: Button = UiKit.big("ЗАГРУЗКА...", "gold", "", 28.0, 9)
+			var txt: String = ("ЗАГРУЗКА %d%%" % int(_status_banner_pct)) if _status_banner_pct > 0 else "ЗАГРУЗКА..."
+			var btn_down: Button = UiKit.big(txt, "gold", "", 28.0, 9)
 			btn_down.disabled = true
+			_active_download_btn = btn_down
 			act_col.add_child(btn_down)
 		else:
 			var btn_down: Button = UiKit.big("СКАЧАТЬ", "green", "", 28.0, 9)
 			btn_down.pressed.connect(func() -> void:
 				btn_down.disabled = true
 				btn_down.text = "ЗАГРУЗКА..."
+				_active_download_btn = btn_down
 				if mm.has_method("install_catalog_mod"):
 					mm.install_catalog_mod(data)
 				else:
