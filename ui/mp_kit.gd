@@ -681,16 +681,89 @@ static func avatar_framed(frame_code: Variant, px: float = 48.0, avatar_tex: Tex
 	return box
 
 
-static func dev_badge_button() -> TextureButton:
+static var _dev_verified_popup: Control = null
+
+static func show_dev_verified_dialog(dev_name: String = "") -> void:
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return
+	if _dev_verified_popup != null and is_instance_valid(_dev_verified_popup):
+		_dev_verified_popup.queue_free()
+		_dev_verified_popup = null
+
+	var bg: ColorRect = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.02, 0.04, 0.08, 0.8)
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	tree.root.add_child(bg)
+	_dev_verified_popup = bg
+
+	var cc: CenterContainer = CenterContainer.new()
+	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.add_child(cc)
+
+	var panel: PanelContainer = PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", UiKit.sb("wb_window", 16, 14))
+	panel.custom_minimum_size = Vector2(360, 0)
+	cc.add_child(panel)
+
+	var vb: VBoxContainer = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	panel.add_child(vb)
+
+	var head_row: HBoxContainer = HBoxContainer.new()
+	head_row.add_theme_constant_override("separation", 8)
+	head_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_child(head_row)
+
+	var v_icon: TextureRect = TextureRect.new()
+	var vt: Texture2D = UiKit.tex("mod_verified")
+	v_icon.texture = vt if vt != null else UiKit.tex("icon_ok")
+	v_icon.custom_minimum_size = Vector2(24, 24)
+	v_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	v_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	v_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	head_row.add_child(v_icon)
+
+	var title_lbl: Label = UiKit.lbl("РАЗРАБОТЧИК DRONEFLAMES", 12, Color(0.3, 0.7, 1.0), 3, 2)
+	head_row.add_child(title_lbl)
+
+	var div: ColorRect = ColorRect.new()
+	div.color = Color(UiKit.GOLD, 0.4)
+	div.custom_minimum_size = Vector2(0, 2)
+	vb.add_child(div)
+
+	var who: String = ("Пользователь «%s» является " % dev_name) if dev_name != "" else "Это "
+	var desc_text: String = who + "официальным разработчиком порта DroneFlames PC.\n\n"
+	desc_text += "• Подтверждённый участник команды разработки\n"
+	desc_text += "• Доступ к эксклюзивной косметике разработчика\n"
+	desc_text += "• Официальная верификация учетной записи"
+	var text_lbl: Label = UiKit.lbl(desc_text, 10, UiKit.TEXT)
+	text_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vb.add_child(text_lbl)
+
+	var close_btn: Button = UiKit.big("ЗАКРЫТЬ", "green", "", 36.0, 11)
+	close_btn.pressed.connect(func() -> void:
+		UiKit.snd("ui_click")
+		if _dev_verified_popup != null and is_instance_valid(_dev_verified_popup):
+			_dev_verified_popup.queue_free()
+			_dev_verified_popup = null
+	)
+	vb.add_child(close_btn)
+
+
+static func dev_badge_button(dev_name: String = "") -> TextureButton:
 	var tb: = TextureButton.new()
-	tb.texture_normal = UiKit.tex("icon_ok")
+	var v_tex: Texture2D = UiKit.tex("mod_verified")
+	tb.texture_normal = v_tex if v_tex != null else UiKit.tex("icon_ok")
 	tb.custom_minimum_size = Vector2(16, 16)
+	tb.ignore_texture_size = true
+	tb.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 	tb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	tb.modulate = Color("66e6ff")
 	tb.tooltip_text = "Разработчик порта DroneFlames"
 	tb.pressed.connect(func() -> void:
 		UiKit.snd("ui_click")
-		toast("Разработчик порта DroneFlames")
+		show_dev_verified_dialog(dev_name)
 	)
 	return tb
 
@@ -736,12 +809,24 @@ static func banner_bg(parent: Control, banner_code: Variant) -> void :
 	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	r.stretch_mode = TextureRect.STRETCH_SCALE
-	r.size = t.get_size() * 2.0
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	clip.add_child(r)
 	animate(r, UiKit.atlas_cosm_bn_anim, code)
-	clip.resized.connect( func() -> void :
-		r.position = ((clip.size - r.size) * 0.5).round())
+	
+	var update_layout: Callable = func() -> void:
+		if not is_instance_valid(clip) or not is_instance_valid(r):
+			return
+		var ts: Vector2 = t.get_size()
+		if ts.x <= 0 or ts.y <= 0:
+			return
+		var sc_x: float = maxf(2.0, clip.size.x / ts.x)
+		var sc_y: float = maxf(2.0, clip.size.y / ts.y)
+		var sc: float = maxf(sc_x, sc_y)
+		r.size = (ts * sc).round()
+		r.position = ((clip.size - r.size) * 0.5).round()
+	
+	clip.resized.connect(update_layout)
+	update_layout.call()
 
 
 
@@ -834,17 +919,19 @@ static func player_card(parent: Control, uname: String, sub: String, cos: Dictio
 	nh.add_theme_constant_override("separation", 4)
 	nh.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(nh)
-	var n: Label = UiKit.lbl(uname, 16 if h > ROW_H else 13, UiKit.TEXT, 3, 3)
+	var display_name: String = uname if uname != "" else Account.username()
+	if display_name == "":
+		display_name = "Игрок"
+	var is_d: bool = is_dev or Account.is_dev_name(display_name) or (display_name.to_lower() == Account.username().to_lower() and Account.is_dev())
+	var n: Label = UiKit.lbl(display_name, 16 if h > ROW_H else 13, UiKit.GOLD if is_d else UiKit.TEXT, 3, 3)
 	nh.add_child(n)
-	if is_dev or Account.is_dev_name(uname) or (uname.to_lower() == Account.username().to_lower() and Account.is_dev()):
-		nh.add_child(dev_badge_button())
+	if is_d:
+		nh.add_child(dev_badge_button(display_name))
 	var tc: String = Cosmetics.shown("title", cos.get("title"))
 	if tc != "":
 		v.add_child(title_label(tc))
 	if sub != "":
 		var s: Label = UiKit.lbl(sub, 10, UiKit.MUTED, 1, 2)
-		s.clip_text = true
-		s.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		v.add_child(s)
 	if right != null:
 		row.add_child(right)

@@ -3964,6 +3964,7 @@ func show_profile(msg: String = "", sev: String = "info") -> void :
 	if current != "profile":
 		_logout_ok = false
 	var vb: VBoxContainer = _screen("Профиль", 0.45, current != "profile")
+	_panel.custom_minimum_size = Vector2(minf(350.0, root.size.x - 16.0), 0)
 	current = "profile"
 	_top = true
 	_acc_sig = _account_sig()
@@ -5122,6 +5123,7 @@ func show_leaderboard(metric: String = "") -> void:
 	if metric != "":
 		_lead_metric = metric
 	var vb: VBoxContainer = _screen("Таблица лидеров", 0.45, current != "leaderboard")
+	_panel.custom_minimum_size = Vector2(minf(350.0, root.size.x - 16.0), 0)
 	current = "leaderboard"
 	_top = true
 	
@@ -5243,11 +5245,11 @@ func _render_lead_row(parent: Control, rank: int, u: Dictionary) -> Control:
 	var is_dev: bool = bool(u.get("is_dev", false)) or Account.is_dev_name(uname)
 	var registered: bool = bool(u.get("is_registered", u.get("registered", false)))
 	
-	var nl: Label = UiKit.lbl(uname, 13, UiKit.TEXT, 3, 2)
+	var nl: Label = UiKit.lbl(uname, 13, UiKit.GOLD if is_dev else UiKit.TEXT, 3, 2)
 	nh.add_child(nl)
 	
 	if is_dev:
-		nh.add_child(MpKit.dev_badge_button())
+		nh.add_child(MpKit.dev_badge_button(uname))
 	
 	var tag_p: PanelContainer = PanelContainer.new()
 	tag_p.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -5291,6 +5293,7 @@ func _render_lead_row(parent: Control, rank: int, u: Dictionary) -> Control:
 func show_player_profile(u: Dictionary) -> void:
 	var uname: String = String(u.get("username", u.get("name", u.get("nick", "Игрок"))))
 	var vb: VBoxContainer = _screen("Профиль: " + uname, 0.45, true)
+	_panel.custom_minimum_size = Vector2(minf(350.0, root.size.x - 16.0), 0)
 	current = "player_profile"
 	_top = true
 	

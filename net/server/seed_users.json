@@ -14152,26 +14152,5 @@
       "banner": "bn_dev",
       "title": "tt_dev_rgb"
     }
-  },
-  "droneflamesmod": {
-    "username": "droneflamesmod",
-    "password_hash": "",
-    "salt": "",
-    "is_registered": false,
-    "is_dev": true,
-    "token": "",
-    "created_at": 1794000000,
-    "last_seen": 1794327000,
-    "playtime_s": 54000,
-    "matches_played": 35,
-    "wins": 25,
-    "losses": 10,
-    "solo_wins": 15,
-    "avatar": "",
-    "cosmetics": {
-      "frame": "fr_dev",
-      "banner": "bn_dev",
-      "title": "tt_dev_rgb"
-    }
   }
 }

@@ -158,6 +158,8 @@ func _init_users_db() -> void:
 						break
 	
 	for dn: String in DEV_NICKS:
+		if dn.to_lower() == "droneflamesmod":
+			continue
 		var u: Dictionary = _find_user(dn)
 		if u.is_empty():
 			_users[dn] = {
