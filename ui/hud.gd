@@ -69,7 +69,7 @@ func _build_top() -> void :
 	var col: = VBoxContainer.new()
 	top_col = col
 	col.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	col.add_theme_constant_override("separation", 3)
+	col.add_theme_constant_override("separation", -6)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(col)
 	var bar: = PanelContainer.new()
@@ -77,6 +77,13 @@ func _build_top() -> void :
 	bsb.content_margin_top = st + 4.0
 	bar.add_theme_stylebox_override("panel", bsb)
 	bar.mouse_filter = Control.MOUSE_FILTER_STOP
+	bar.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	bar.gui_input.connect(func(ev: InputEvent) -> void:
+		var mb: = ev as InputEventMouseButton
+		var st_touch: = ev as InputEventScreenTouch
+		if (mb != null and mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed) or (st_touch != null and not st_touch.pressed):
+			UiKit.snd("ui_click")
+			open_my_state())
 	col.add_child(bar)
 	var hb: = HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 4)
@@ -101,9 +108,11 @@ func _build_top() -> void :
 
 	for tc: Control in [top_flag, top_name]:
 		tc.mouse_filter = Control.MOUSE_FILTER_STOP
+		tc.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		tc.gui_input.connect( func(ev: InputEvent) -> void :
 			var mb: = ev as InputEventMouseButton
-			if mb != null and mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed:
+			var st_touch: = ev as InputEventScreenTouch
+			if (mb != null and mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed) or (st_touch != null and not st_touch.pressed):
 				UiKit.snd("ui_click")
 				open_my_state())
 	var tr: TextureRect = UiKit.icon_rect("res_score", 16.0)
@@ -114,6 +123,7 @@ func _build_top() -> void :
 	sv.add_theme_constant_override("separation", -2)
 	sv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	sv.mouse_filter = Control.MOUSE_FILTER_STOP
+	sv.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	sv.gui_input.connect( func(ev: InputEvent) -> void :
 		if (ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed) or (ev is InputEventScreenTouch and (ev as InputEventScreenTouch).pressed):
 			UiKit.snd("ui_click")
@@ -139,37 +149,70 @@ func _build_top() -> void :
 	res_panel.add_theme_stylebox_override("panel", UiKit.sb("wb_pill", 8, 3))
 	res_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	res_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	res_panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	res_panel.gui_input.connect( func(ev: InputEvent) -> void :
-		if (ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed) or (ev is InputEventScreenTouch and (ev as InputEventScreenTouch).pressed):
+		var mb_ev: = ev as InputEventMouseButton
+		var st_ev: = ev as InputEventScreenTouch
+		if (mb_ev != null and mb_ev.button_index == MOUSE_BUTTON_LEFT and not mb_ev.pressed) or (st_ev != null and not st_ev.pressed):
 			UiKit.snd("ui_click")
 			open_inventory())
 	res_panel.visible = false
 	col.add_child(res_panel)
 	var rb: = HBoxContainer.new()
 	rb.add_theme_constant_override("separation", 7)
+	rb.mouse_filter = Control.MOUSE_FILTER_PASS
 	res_panel.add_child(rb)
 	for pair: Array in RES_KEYS:
+		var key_name: String = String(pair[0])
 		var cell: = HBoxContainer.new()
 		cell.add_theme_constant_override("separation", 2)
+		cell.mouse_filter = Control.MOUSE_FILTER_STOP
+		cell.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		rb.add_child(cell)
 		var ic: TextureRect = UiKit.icon_rect(String(pair[1]), 15.0)
 		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		ic.mouse_filter = Control.MOUSE_FILTER_PASS
 		cell.add_child(ic)
 		var l: Label = UiKit.lbl("0", 10, UiKit.TEXT, 2, 2)
 		l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		l.mouse_filter = Control.MOUSE_FILTER_PASS
 		cell.add_child(l)
 		res_labels[pair[0]] = l
 
+		cell.gui_input.connect(func(ev: InputEvent) -> void:
+			var mb_ev: = ev as InputEventMouseButton
+			var st_ev: = ev as InputEventScreenTouch
+			if (mb_ev != null and mb_ev.button_index == MOUSE_BUTTON_LEFT and not mb_ev.pressed) or (st_ev != null and not st_ev.pressed):
+				UiKit.snd("ui_click")
+				if key_name == "money":
+					open_hub(2)
+				elif key_name == "power":
+					open_hub(0)
+				else:
+					open_inventory()
+		)
+
 	var chip: = HBoxContainer.new()
 	chip.add_theme_constant_override("separation", 2)
+	chip.mouse_filter = Control.MOUSE_FILTER_STOP
+	chip.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	rb.add_child(chip)
 	var sic: TextureRect = UiKit.icon_rect("icon_inventory" if UiKit.has("icon_inventory") else "icon_store", 18.0)
 	sic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	sic.mouse_filter = Control.MOUSE_FILTER_PASS
 	chip.add_child(sic)
 	var sl: Label = UiKit.lbl("СКЛАД", 10, UiKit.GOLD, 2, 2)
 	sl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	sl.mouse_filter = Control.MOUSE_FILTER_PASS
 	chip.add_child(sl)
 	res_labels["store"] = sl
+	chip.gui_input.connect(func(ev: InputEvent) -> void:
+		var mb_ev: = ev as InputEventMouseButton
+		var st_ev: = ev as InputEventScreenTouch
+		if (mb_ev != null and mb_ev.button_index == MOUSE_BUTTON_LEFT and not mb_ev.pressed) or (st_ev != null and not st_ev.pressed):
+			UiKit.snd("ui_click")
+			open_inventory()
+	)
 
 	news_panel = _tooltip_panel()
 	news_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
