@@ -231,7 +231,7 @@ func _tap(pos: Vector2) -> void :
 				var placing: String = world.mil.place_why(kind, cell, pl, null, false)
 				if placing != "":
 					hud.show_toast(placing)
-				elif _confirming or shift_held or (_sub_confirm.size() == 3 and int(_sub_confirm[0]) == kind and (_sub_confirm[1] as Vector2i).distance_to(cell) < 3.0 and Time.get_ticks_msec() - int(_sub_confirm[2]) < 8000):
+				elif net.in_match or _confirming or shift_held or (_sub_confirm.size() == 3 and int(_sub_confirm[0]) == kind and (_sub_confirm[1] as Vector2i).distance_to(cell) < 3.0 and Time.get_ticks_msec() - int(_sub_confirm[2]) < 8000):
 					_sub_confirm = []
 					_sim("", "cmd_build_sub", [kind, cell, pl], _on_built.bind(kind, shift_held))
 				else:

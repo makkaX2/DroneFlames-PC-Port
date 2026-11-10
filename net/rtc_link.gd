@@ -474,15 +474,21 @@ func _on_msg(d: Dictionary) -> void :
 			epoch = int(d.get("epoch", epoch))
 			my_id = 1
 			match_id = String(d.get("match", match_id))
-			_ice = d.get("ice", _ice)
-			for c7: WebRTCPeerConnection in _conns.values():
-				c7.close()
-			_conns.clear()
-			peer = WebRTCMultiplayerPeer.new()
-			peer.create_server()
+			if tunnel != null:
+				tunnel._id = 1
+				tunnel._server = true
+			if not relay_only():
+				_ice = d.get("ice", _ice)
+				for c7: WebRTCPeerConnection in _conns.values():
+					c7.close()
+				_conns.clear()
+				peer = WebRTCMultiplayerPeer.new()
+				peer.create_server()
 			promoted.emit()
 		"host_changed":
 			epoch = int(d.get("epoch", epoch))
+			if tunnel != null and not bool(d.get("you", false)):
+				tunnel._server = false
 			host_changed.emit(String(d.get("host", "")), bool(d.get("you", false)))
 		"reattached":
 			_ra_try = 0

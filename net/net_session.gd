@@ -73,7 +73,7 @@ const ALLOWED: Dictionary = {
 	"rail.set_rail_ok": -1,  # R332b RAIL332: «ЖД: РАЗРЕШЕНО / ЗАПРЕЩЕНО» (args[0] = the author's Country; the barracks are checked to be his)
 	"rail.build_station": -1, "rail.build_line": -1,  # R335 RAIL335: «ВОКЗАЛ» / «Ж/Д ПУТЬ» by hand (args[0] = the author's Country = _owns; the station / land are checked to be his)
 }
-const DEDUP_MS: int = 400  # the same command twice within this time = one double tap (not sent again)
+const DEDUP_MS: int = 120  # reduced from 400ms to eliminate dropped clicks/building taps
 const TURN_KEEP: int = 900  # turns kept after they ran (90 s): a resynced guest replays from the snapshot
 
 ## The session of this game (the UI24 sheets send their commands through NetSession.sim).
@@ -473,7 +473,7 @@ func drop_saved_match() -> void:
 ## ROTATION (docs/NET_ARCH.md «Ротация хоста»): an online casual match outlives its host. The host who leaves hands
 ## the match over (the server makes the most advanced guest the host at once) — when somebody else is still in it.
 func can_hand_over() -> bool:
-	if RtcLink.relay_only() or not is_host or not in_match or mode != Mode.ONLINE or match_id == "" or not GameConfig.ranked.is_empty() or match_decided:
+	if not is_host or not in_match or mode != Mode.ONLINE or match_id == "" or not GameConfig.ranked.is_empty() or match_decided:
 		return false
 	for i in slots.size():
 		if i != local_slot and _live(i) and multiplayer.get_peers().has(int(slots[i].get("peer", 0))):
@@ -943,7 +943,7 @@ func _reset_lockstep() -> void:
 
 
 func _on_connected() -> void:
-	if RtcLink.relay_only():
+	if mode == Mode.ONLINE and RtcLink.relay_only():
 		_send_relay_hello()
 		return
 	if _p2p_wait >= 0.0:
@@ -1372,7 +1372,10 @@ func _on_promoted() -> void:
 	if not in_match or is_host:
 		return  # (critic) a repeated host_changed{you:true} must not drop the connected guests
 	_swapping = true
-	multiplayer.multiplayer_peer = rtc.peer
+	if RtcLink.relay_only():
+		multiplayer.multiplayer_peer = rtc.tunnel
+	else:
+		multiplayer.multiplayer_peer = rtc.peer
 	is_host = true
 	reconnecting = false
 	rejoining = false
@@ -1386,17 +1389,22 @@ func _on_promoted() -> void:
 			_pending.append({"k": "ai", "c": i + 1, "s": -1, "q": 0, "lost": true})
 			slots[i]["peer"] = -100 - i
 		else:
-			slots[i]["left"] = true  # the guests come back through the server (their new peer ids)
-			slots[i]["rot"] = true  # (critic) not «left» in the report while they are coming back
-			slots[i]["peer"] = -100 - i
+			if not RtcLink.relay_only():
+				slots[i]["left"] = true  # the guests come back through the server (their new peer ids)
+				slots[i]["rot"] = true  # (critic) not «left» in the report while they are coming back
+				slots[i]["peer"] = -100 - i
+			else:
+				# in relay mode, peers are already connected to relay
+				var pid: int = int(slots[i].get("peer", 0))
+				slots[i]["left"] = not (multiplayer.get_peers().has(pid) or pid > 1)
 	_host_turn = maxi(last_turn + 1, exec_turn)  # the first turn this device lacks (exec waits for exec_turn)
 	go = true
 	host_active = true
 	match_id = rtc.match_id
 	_way_back_t = -1.0
-	_status("Вы теперь хост · ждём игроков")
+	_status("Вы теперь хост · матч продолжается")
 	if main != null and main.has_method("net_toast"):
-		main.net_toast("ВЫ ТЕПЕРЬ ХОСТ · НЕ СВОРАЧИВАЙТЕ ИГРУ")
+		main.net_toast("ВЫ ТЕПЕРЬ ХОСТ · МАТЧ ПРОДОЛЖАЕТСЯ")
 	print("[Net] promoted to host at turn %d (epoch %d)" % [exec_turn, rtc.epoch])
 	get_tree().create_timer(30.0).timeout.connect(func() -> void:  # (critic) a guest who never came back: the AI
 		if not in_match or not is_host:
@@ -1950,14 +1958,19 @@ func _resume_back(s: int, from: int) -> void:
 		cfg[n] = (GameConfig as GDScript).get(n)
 	_rejoin_ok.rpc_id(from, s, slots, cfg, host_active, speed, speed_why, speed_who, wants, _late_cap_deadlines)
 	_resume_note()
-	var bytes: PackedByteArray = _resume.get("snap", PackedByteArray())  # NET 35 (critic): the very bytes the host restored (the world stands)
-	if bytes.is_empty() and main != null:
-		bytes = Save.net_snapshot(main)
+	var raw_bytes: PackedByteArray = _resume.get("snap", PackedByteArray())  # NET 35 (critic): the very bytes the host restored (the world stands)
+	if raw_bytes.is_empty() and main != null:
+		raw_bytes = Save.net_snapshot(main)
+	var raw_size: int = raw_bytes.size()
+	var bytes: PackedByteArray = raw_bytes.compress(FileAccess.COMPRESSION_DEFLATE)
+	if bytes.is_empty():
+		bytes = raw_bytes
+		raw_size = 0
 	var ch: int = NetConfig.SNAP_CHUNK
 	var parts: int = ceili(float(bytes.size()) / float(ch))
 	var snap_turn: int = int(_resume.get("turn", _host_turn - 1))
 	_sync_wait[from] = {"turn": snap_turn, "started_ms": Time.get_ticks_msec()}
-	_snap_begin.rpc_id(from, snap_turn, bytes.size(), parts)  # the world stands at the saved turn
+	_snap_begin.rpc_id(from, snap_turn, bytes.size(), parts, raw_size)  # the world stands at the saved turn
 	for i in parts:
 		_snap_part.rpc_id(from, i, bytes.slice(i * ch, mini((i + 1) * ch, bytes.size())))
 	print("[Net] %s is back in the resumed match (slot %d, waiting for snap ack)" % [String(slots[s]["name"]), s])
@@ -3151,23 +3164,28 @@ func _send_snapshot(n: int) -> void:
 	_lag_now.clear()
 	if targets.is_empty():
 		return
-	var bytes: PackedByteArray = Save.net_snapshot(main)
-	if bytes.is_empty():
+	var raw_bytes: PackedByteArray = Save.net_snapshot(main)
+	if raw_bytes.is_empty():
 		return
+	var raw_size: int = raw_bytes.size()
+	var bytes: PackedByteArray = raw_bytes.compress(FileAccess.COMPRESSION_DEFLATE)
+	if bytes.is_empty():
+		bytes = raw_bytes
+		raw_size = 0
 	var ch: int = NetConfig.SNAP_CHUNK
 	var parts: int = ceili(float(bytes.size()) / float(ch))
 	for pid: int in targets:
 		_sync_wait[pid] = {"turn": n, "started_ms": Time.get_ticks_msec()}
-		_snap_begin.rpc_id(pid, n, bytes.size(), parts)
+		_snap_begin.rpc_id(pid, n, bytes.size(), parts, raw_size)
 		for i in parts:
 			_snap_part.rpc_id(pid, i, bytes.slice(i * ch, mini((i + 1) * ch, bytes.size())))
 	resyncs += 1
-	print("[Net] snapshot of turn %d sent to peers %s: %d KiB in %d parts, %.1f ms (pausing turns until ack)" % [n, str(targets), bytes.size() / 1024, parts, (Time.get_ticks_usec() - t0) / 1000.0])
+	print("[Net] snapshot of turn %d sent to peers %s: %d KiB (from %d KiB raw) in %d parts, %.1f ms" % [n, str(targets), bytes.size() / 1024, raw_size / 1024, parts, (Time.get_ticks_usec() - t0) / 1000.0])
 
 
 @rpc("authority", "call_remote", "reliable")
-func _snap_begin(n: int, size: int, parts: int) -> void:
-	_snap = {"turn": n, "size": size, "parts": parts, "got": {}}
+func _snap_begin(n: int, size: int, parts: int, raw_size: int = 0) -> void:
+	_snap = {"turn": n, "size": size, "parts": parts, "raw_size": raw_size, "got": {}}
 	stall_t = 0.0
 	_rj_t = 0.0  # progress (the rejoin watchdog)
 
@@ -3186,10 +3204,17 @@ func _snap_part(i: int, data: PackedByteArray) -> void:
 func _apply_snapshot() -> void:
 	var got: Dictionary = _snap["got"]
 	var n: int = int(_snap["turn"])
+	var raw_size: int = int(_snap.get("raw_size", 0))
 	var buf := PackedByteArray()
 	for i in int(_snap["parts"]):
 		buf.append_array(got[i])
 	_snap = {}
+	if raw_size > 0:
+		var decomp: PackedByteArray = buf.decompress(raw_size, FileAccess.COMPRESSION_DEFLATE)
+		if not decomp.is_empty():
+			buf = decomp
+		else:
+			push_warning("[Net] failed to decompress snapshot of turn %d" % n)
 	if _restoring:
 		_snap_next = [buf, n]  # one restore at a time; the newest snapshot follows it
 		return
