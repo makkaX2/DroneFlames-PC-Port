@@ -197,6 +197,9 @@ jobs:
 
   release:
     name: Publish GitHub Release
+    concurrency:
+      group: droneflames-release-${{ (github.ref == 'refs/heads/test' || endsWith(github.ref, '-test')) && 'test' || 'stable' }}
+      cancel-in-progress: false
     needs: [build-windows, build-macos, build-android]
     runs-on: ubuntu-latest
     if: |
@@ -243,8 +246,45 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Display Release Files
-        run: ls -la dist/
+      - name: Verify release inputs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version_info.outputs.TAG_NAME }}
+          VER: ${{ steps.version_info.outputs.RAW_VER }}
+          IS_TEST: ${{ steps.version_info.outputs.IS_TEST }}
+        run: |
+          set -euo pipefail
+          tag_refs=$(git ls-remote origin "refs/tags/$TAG" "refs/tags/$TAG^{}")
+          existing_commit=$(awk 'END { print $1 }' <<< "$tag_refs")
+          if [[ -n "$existing_commit" && "$existing_commit" != "$GITHUB_SHA" ]]; then
+            echo "::error::Tag $TAG already points to a different commit"
+            exit 1
+          fi
+          if [[ "$IS_TEST" != true ]]; then
+            LATEST=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+            python3 - "$TAG" "$LATEST" <<'PYTHON'
+          import sys
+
+          def version(tag):
+              parts = tuple(map(int, tag.removeprefix("v").split(".")))
+              return parts + (0,) * (4 - len(parts))
+
+          tag, latest = sys.argv[1:]
+          if tag != latest and version(tag) <= version(latest):
+              sys.exit(f"Refusing to replace stable release {latest} with {tag}")
+          PYTHON
+          fi
+          for asset in \
+            "DroneFlames_PC_Setup_v${VER}_good_boy_irl.exe" \
+            "DroneFlames_PC_v${VER}_droneflamesmod.zip" \
+            "DroneFlames_macOS_v${VER}_good_boy_irl.dmg" \
+            "DroneFlames_macOS_v${VER}_good_boy_irl.zip" \
+            "DroneFlames_v${VER}_good_boy_irl.apk"; do
+            if [[ ! -s "dist/$asset" ]]; then
+              echo "::error::Missing release asset $asset"
+              exit 1
+            fi
+          done
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
@@ -263,6 +303,8 @@ jobs:
           body: |
             ## 🎮 DroneFlames — PC Port by @droneflamesmod
             Релиз ПК-порта DroneFlames `${{ steps.version_info.outputs.TAG_NAME }}` (commit `${{ github.sha }}`).
+
+            Если Android отклоняет обновление из-за несовместимой подписи, сохраните нужные партии отдельно перед удалением старой версии и установкой нового APK.
 
             ### 📦 Файлы для загрузки:
             - **Windows Setup Installer:** `DroneFlames_PC_Setup_v${{ steps.version_info.outputs.RAW_VER }}_good_boy_irl.exe`
@@ -313,6 +355,21 @@ jobs:
             - **Анонс возобновлённых партий:** При нажатии «Продолжить партию» локальный сервер автоматически объявляет себя в сети, и друзья видят комнату в списке серверов.
             - **Чистый заголовок окна:** Убрана надоедливая надпись `(DEBUG)` из заголовка окна, теперь там отображается версия: `DroneFlames v${{ steps.version_info.outputs.RAW_VER }} — PC Port by @droneflamesmod`.
             - **Официальная иконка игры:** Заменена стандартная иконка Godot — теперь везде отображается официальная эмблема игры (в таскбаре, окне, Alt-Tab и при полноэкранном режиме).
+
+      - name: Verify stable update endpoint
+        if: steps.version_info.outputs.IS_TEST != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version_info.outputs.TAG_NAME }}
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if [[ "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" == "$TAG" ]]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Legacy update endpoint did not return $TAG"
+          exit 1
 
       - name: Send Notification to Telegram
         if: ${{ !contains(github.event.head_commit.message, '[skip notify]') }}
