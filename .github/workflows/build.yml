@@ -156,6 +156,8 @@ jobs:
       - name: Export and verify signed Android APK
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.DRONEFLAMES_ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_TEST_KEYSTORE_BASE64: ${{ secrets.DRONEFLAMES_ANDROID_TEST_KEYSTORE_BASE64 }}
+          ANDROID_TEST_KEY_PASSWORD: ${{ secrets.DRONEFLAMES_ANDROID_TEST_KEY_PASSWORD }}
           GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.DRONEFLAMES_ANDROID_KEY_ALIAS }}
           GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.DRONEFLAMES_ANDROID_KEY_PASSWORD }}
         run: |
@@ -171,22 +173,19 @@ jobs:
           export/android/android_sdk_path = "/usr/local/lib/android/sdk"
           EOF
           if [[ "$VERSION" == *-test ]]; then
-            export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$RUNNER_TEMP/droneflames-test.keystore"
-            export GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey
-            export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android
-            keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH" -storepass android -dname "CN=DroneFlames Test" -validity 9999
-            "$GODOT" --headless --export-debug Android "$APK"
-          else
-            if [[ -z "$ANDROID_KEYSTORE_BASE64" || -z "$GODOT_ANDROID_KEYSTORE_RELEASE_USER" || -z "$GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD" ]]; then
-              echo "::error::Stable Android releases require a persistent signing key configured in repository secrets."
-              exit 1
-            fi
-            umask 077
-            export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$RUNNER_TEMP/droneflames-release.keystore"
-            trap 'rm -f "$GODOT_ANDROID_KEYSTORE_RELEASE_PATH"' EXIT
-            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$GODOT_ANDROID_KEYSTORE_RELEASE_PATH"
-            "$GODOT" --headless --export-release Android "$APK"
+            ANDROID_KEYSTORE_BASE64="$ANDROID_TEST_KEYSTORE_BASE64"
+            export GODOT_ANDROID_KEYSTORE_RELEASE_USER=droneflames-test
+            export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD="$ANDROID_TEST_KEY_PASSWORD"
           fi
+          if [[ -z "$ANDROID_KEYSTORE_BASE64" || -z "$GODOT_ANDROID_KEYSTORE_RELEASE_USER" || -z "$GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD" ]]; then
+            echo "::error::Android releases require a persistent signing key for their channel."
+            exit 1
+          fi
+          umask 077
+          export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$RUNNER_TEMP/droneflames-release.keystore"
+          trap 'rm -f "$GODOT_ANDROID_KEYSTORE_RELEASE_PATH"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$GODOT_ANDROID_KEYSTORE_RELEASE_PATH"
+          "$GODOT" --headless --export-release Android "$APK"
           apksigner verify "$APK"
 
       - name: Upload Android APK Artifact

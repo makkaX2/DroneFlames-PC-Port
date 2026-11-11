@@ -2039,10 +2039,10 @@ func _resume_restore(d: Dictionary) -> void:
 
 ## Host: a person of slot `s` is back during the wait: his seat, the world as it stands (only to him).
 func _resume_back(s: int, from: int) -> void:
-	var raw_bytes: PackedByteArray = _resume.get("snap", PackedByteArray())  # the exact state restored by the host
-	if raw_bytes.is_empty() and main != null:
-		raw_bytes = Save.net_snapshot(main)
-	if raw_bytes.is_empty():
+	var bytes: PackedByteArray = _resume.get("snap", PackedByteArray())  # the exact state restored by the host
+	if bytes.is_empty() and main != null:
+		bytes = Save.net_snapshot(main)
+	if bytes.is_empty():
 		# Do not mark the returning player ready or send an impossible zero-part snapshot.
 		# The guest remains in the existing reconnect flow and can retry.
 		print("[Net] could not prepare snapshot for returning peer %d" % from)
@@ -2058,18 +2058,13 @@ func _resume_back(s: int, from: int) -> void:
 		cfg[n] = (GameConfig as GDScript).get(n)
 	_rejoin_ok.rpc_id(from, s, slots, cfg, host_active, speed, speed_why, speed_who, wants, _late_cap_deadlines)
 	_resume_note()
-	var raw_size: int = raw_bytes.size()
-	var bytes: PackedByteArray = raw_bytes.compress(FileAccess.COMPRESSION_DEFLATE)
-	if bytes.is_empty():
-		bytes = raw_bytes
-		raw_size = 0
 	var ch: int = NetConfig.SNAP_CHUNK
 	var parts: int = ceili(float(bytes.size()) / float(ch))
 	var snap_turn: int = int(_resume.get("turn", _host_turn - 1))
 	_last_snap[from] = snap_turn
 	_last_snap_ms[from] = Time.get_ticks_msec()
 	_sync_wait[from] = {"turn": snap_turn, "started_ms": Time.get_ticks_msec()}
-	_snap_begin.rpc_id(from, snap_turn, bytes.size(), parts, raw_size)  # the world stands at the saved turn
+	_snap_begin.rpc_id(from, snap_turn, bytes.size(), parts)  # the world stands at the saved turn
 	for i in parts:
 		_snap_part.rpc_id(from, i, bytes.slice(i * ch, mini((i + 1) * ch, bytes.size())))
 	print("[Net] %s is back in the resumed match (slot %d, waiting for snap ack)" % [String(slots[s]["name"]), s])
@@ -3302,18 +3297,13 @@ func _send_snapshot(n: int) -> bool:
 	_resync_q = pending
 	if targets.is_empty():
 		return false
-	var raw_bytes: PackedByteArray = Save.net_snapshot(main)
-	if raw_bytes.is_empty():
+	var bytes: PackedByteArray = Save.net_snapshot(main)  # Save already compresses with Zstandard.
+	if bytes.is_empty():
 		for pid: int in targets:
 			_resync_q.append(pid)
 			_last_snap_ms[pid] = now_ms  # keep the request, but avoid a retry on every turn
 		print("[Net] snapshot is empty; retrying later for peers %s" % str(targets))
 		return false
-	var raw_size: int = raw_bytes.size()
-	var bytes: PackedByteArray = raw_bytes.compress(FileAccess.COMPRESSION_DEFLATE)
-	if bytes.is_empty():
-		bytes = raw_bytes
-		raw_size = 0
 	_lag.clear()  # NET 37: the backlogs of before the snapshot hold nothing now
 	_lag_now.clear()
 	var ch: int = NetConfig.SNAP_CHUNK
@@ -3322,13 +3312,13 @@ func _send_snapshot(n: int) -> bool:
 		_last_snap[pid] = n
 		_last_snap_ms[pid] = now_ms
 		_sync_wait[pid] = {"turn": n, "started_ms": Time.get_ticks_msec()}
-		_snap_begin.rpc_id(pid, n, bytes.size(), parts, raw_size)
+		_snap_begin.rpc_id(pid, n, bytes.size(), parts)
 		for i in parts:
 			_snap_part.rpc_id(pid, i, bytes.slice(i * ch, mini((i + 1) * ch, bytes.size())))
 			if i % 8 == 7:
 				_flush_peer()
 	resyncs += 1
-	print("[Net] snapshot of turn %d sent to peers %s: %d KiB (from %d KiB raw) in %d parts, %.1f ms" % [n, str(targets), bytes.size() / 1024, raw_size / 1024, parts, (Time.get_ticks_usec() - t0) / 1000.0])
+	print("[Net] snapshot of turn %d sent to peers %s: %d KiB in %d parts, %.1f ms" % [n, str(targets), bytes.size() / 1024, parts, (Time.get_ticks_usec() - t0) / 1000.0])
 	return true
 
 
@@ -3457,8 +3447,6 @@ func _kick_desynced_peer(pid: int) -> void:
 	if s >= 0 and s < slots.size():
 		var pname: String = String(slots[s].get("name", "Игрок"))
 		print("[Net] dropping desynced peer %d (%s) -> handing over to AI" % [pid, pname])
-		slots[s]["left"] = true
-		_pending.append({"k": "ai", "c": s + 1, "s": -1, "q": 0, "lost": true})
 		if main != null and main.has_method("net_toast"):
 			main.net_toast("РАССИНХРОН: %s ОТКЛЮЧЁН (ИИ ПРИНЯЛ СТРАНУ)" % pname.to_upper())
 	if multiplayer.get_peers().has(pid):
