@@ -943,7 +943,6 @@ static func load_prefs() -> void :
 	GameConfig.object_lod = clampi(GameConfig.object_lod, 0, 2)
 	GameConfig.strat_lod_z = clampi(GameConfig.strat_lod_z, 0, 3)
 	GameConfig.dynamic_fps_target = clampi(GameConfig.dynamic_fps_target, 0, 3)
-	GameConfig.mods_enabled = true
 	apply_display_resolution()
 	apply_power_save()
 	apply_ui_scale()

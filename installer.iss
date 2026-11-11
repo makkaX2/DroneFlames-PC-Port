@@ -1,17 +1,26 @@
 ; Inno Setup 6 Script
 ; DroneFlames PC Port Installer & Updater by @good_boy_irl
 
-#define MyAppName "DroneFlames"
 #ifndef MyAppVersion
-  #define MyAppVersion "0.33.5.29-test"
+  #define MyAppVersion "0.33.5.30-test"
 #endif
 #define MyAppPublisher "@good_boy_irl"
 #define MyAppURL "https://github.com/makkaX2/DroneFlames-PC-Port"
 #define MyAppExeName "DroneFlames.exe"
-#define MyAppId "{{9F5C24D1-A12E-4D78-831C-6BE3E71AA190}}"
+#ifdef TestBuild
+  #define MyAppName "DroneFlames Test"
+  #define MyAppDir "DroneFlames Test"
+  #define MyAppId "{{0276A420-DFA8-47C3-9FC1-E72F40694858}}"
+  #define MyFileVersion Copy(MyAppVersion, 1, Pos("-test", MyAppVersion) - 1)
+#else
+  #define MyAppName "DroneFlames"
+  #define MyAppDir "DroneFlames"
+  #define MyAppId "{{9F5C24D1-A12E-4D78-831C-6BE3E71AA190}}"
+  #define MyFileVersion MyAppVersion
+#endif
 
 #ifndef SourceDir
-  #define SourceDir "build\DroneFlames_PC_v0.33.5.29-test_droneflamesmod"
+  #define SourceDir "build\DroneFlames_PC_v0.33.5.30-test_droneflamesmod"
 #endif
 
 #ifndef OutDir
@@ -27,7 +36,7 @@ AppPublisher=droneflamesmod
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={autopf}\DroneFlames
+DefaultDirName={autopf}\{#MyAppDir}
 DefaultGroupName={#MyAppName} (PC Port by {#MyAppPublisher})
 AllowNoIcons=yes
 OutputDir={#OutDir}
@@ -60,11 +69,11 @@ UninstallDisplayIcon={app}\app_icon.ico
 UninstallDisplayName={#MyAppName} v{#MyAppVersion} (PC Port by {#MyAppPublisher})
 
 ; File metadata
-VersionInfoVersion={#MyAppVersion}.0
+VersionInfoVersion={#MyFileVersion}
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription=DroneFlames PC Port Installer & Updater by {#MyAppPublisher}
 VersionInfoProductName={#MyAppName} PC Port
-VersionInfoProductVersion={#MyAppVersion}
+VersionInfoProductVersion={#MyFileVersion}
 VersionInfoCopyright=PC Port created by {#MyAppPublisher}
 
 [Languages]

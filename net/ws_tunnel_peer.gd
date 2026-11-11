@@ -103,7 +103,7 @@ func _get_packet_script() -> PackedByteArray:
 
 
 func _get_packet_peer() -> int:
-	return int(_cur[0]) if not _cur.is_empty() else 0
+	return int((_in[0] as Array)[0]) if not _in.is_empty() else 0
 
 
 func _get_packet_channel() -> int:

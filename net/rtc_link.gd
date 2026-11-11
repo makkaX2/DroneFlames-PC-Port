@@ -286,8 +286,22 @@ func _process(delta: float) -> void :
 		var send_rate: float = 600.0 if relay_only() else SEND_PER_S
 		_tokens = minf(send_burst, _tokens + delta * send_rate)
 		while not _out.is_empty() and _tokens >= 1.0:
+			var message: PackedByteArray = JSON.stringify(_out[0]).to_utf8_buffer()
+			if message.size() > _ws.outbound_buffer_size:
+				close_socket()
+				failed.emit("Сетевое сообщение слишком велико для отправки")
+				return
+			if _ws.get_current_outbound_buffered_amount() + message.size() > _ws.outbound_buffer_size:
+				break
+			var send_err: int = _ws.send(message, WebSocketPeer.WRITE_MODE_TEXT)
+			if send_err == ERR_OUT_OF_MEMORY:
+				break  # Buffer full: retry after poll without dropping the message.
+			if send_err != OK:
+				print("[Rtc] send failed: %s" % error_string(send_err))
+				_ws.close(-1)  # Reconnect through the normal closed-socket path.
+				break
+			_out.pop_front()
 			_tokens -= 1.0
-			_ws.send_text(JSON.stringify(_out.pop_front()))
 		if _close_after and _out.is_empty():
 			_close_after = false
 			close_socket()

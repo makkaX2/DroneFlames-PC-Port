@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.29-test (PC Port by @droneflamesmod)"
+const VERSION: String = "v0.33.5.30-test (PC Port by @droneflamesmod)"
 
 const WHATS_NEW: Array = [
+	"СЕТЕВАЯ ИГРА v0.33.5.30-test: исправлена обработка пакетов relay и подтверждений снапшота, повторная синхронизация теперь отслеживается отдельно для каждого игрока, моды временно выключаются при входе в сетевую игру",
 	"ТЕСТ v0.33.5.29-test: исправление бесконечной синхронизации на 10-15 минуте партии (сторожевой таймер 20с для сетевых снапшотов, сглаживание субпиксельных рассинхронов, передача слота ИИ при 3 сбоях вместо зависания хоста); автопроверка модов при входе в лобби с диалогом докачки недостающих модов; починка синтаксиса ядерного мода (nuclear_strike); плавная индикация загрузки и кнопка восстановления модов; автопоиск серверов в локальной сети и Radmin VPN (26.0.0.0/8)",
 	"ИНТЕРФЕЙС & ВИДЕО v0.33.5.2: панель склада поднята вплотную к верхней полосе, разграничены клики по ресурсам (деньги -> доходы, энергия -> цепочки, склад -> склад, зеленая полоса -> страна); адаптивный полноэкранный фон вступительного трейлера без черных полос; пасхалка на сплэш-скрине запуска (@droneflamesmod, @nufxa и уточка)",
 	"ВЕРИФИКАЦИЯ МОДОВ v0.33.5.2: галочка верификации выдана строго на 6 официальных модов (Солнцепёк, Искандер-М, Ядерный арсенал, ВДВ, FPS-мод, Оазис в пустыне), исправлено отображение иконки без пустых отступов у остальных модов",
@@ -2664,6 +2665,7 @@ func show_lobby(msg: String = "") -> void :
 		return
 	var vb: VBoxContainer = _screen("Комната", 0.45, current != "lobby")
 	current = "lobby"
+	_label(vb, "МОДЫ ВРЕМЕННО ОТКЛЮЧЕНЫ В СЕТЕВОЙ ИГРЕ", 10, UiKit.MUTED)
 	var online: bool = net.mode == NetSession.Mode.ONLINE
 	if online:
 		if net.is_host:
@@ -2945,30 +2947,10 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 		changelog = String(up.get("latest_changelog"))
 	if tag == "":
 		tag = GitHubUpdater.get_installed_version() if ResourceLoader.exists("res://net/github_updater.gd") else "0.33.4.9"
-	var is_android: bool = OS.has_feature("mobile") or OS.get_name() == "Android"
-	var is_mac: bool = OS.get_name() == "macOS"
-	var direct_installer_url: String = ""
-	var file_label: String = "(.EXE)"
-	if is_android:
-		direct_installer_url = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_v%s_good_boy_irl.apk" % [tag, tag]
-		file_label = "(.APK)"
-	elif is_mac:
-		direct_installer_url = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_macOS_v%s_good_boy_irl.dmg" % [tag, tag]
-		file_label = "(.DMG)"
-	else:
-		direct_installer_url = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [tag, tag]
-		file_label = "(.EXE)"
-
-	var is_valid_url: bool = false
-	if is_mac:
-		is_valid_url = dl_url.ends_with(".dmg") or dl_url.ends_with(".zip")
-	elif is_android:
-		is_valid_url = dl_url.ends_with(".apk")
-	else:
-		is_valid_url = dl_url.ends_with(".exe") or dl_url.ends_with(".zip")
-
-	if dl_url == "" or dl_url.contains("/releases/tag/") or dl_url.contains("/releases/latest") or not is_valid_url:
-		dl_url = direct_installer_url
+	var file_label: String = "(%s)" % asset_name.get_extension().to_upper() if not asset_name.is_empty() else ""
+	var gh_url: String = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/tag/v" + tag
+	if dl_url.is_empty():
+		dl_url = gh_url
 
 	var bg: = ColorRect.new()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -3108,7 +3090,6 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 	br_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	br_btn.pressed.connect(func() -> void:
 		UiKit.snd("ui_click")
-		var gh_url: String = "https://github.com/makkaX2/DroneFlames-PC-Port/releases/tag/v" + tag
 		OS.shell_open(gh_url)
 	)
 	vb.add_child(br_btn)

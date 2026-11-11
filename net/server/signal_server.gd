@@ -9,6 +9,8 @@ const MAX_ROOMS_PER_IP: int = 3
 const MAX_MSG_PER_S: int = 1500
 const MAX_JOINS_PER_MIN: int = 60
 const MAX_PKT_BYTES: int = 262144
+const MAX_OUT_BYTES: int = 8 * 1024 * 1024
+const MAX_OUT_PACKETS: int = 2048
 const IDLE_NO_ROOM_S: float = 60.0
 const IDLE_IN_ROOM_S: float = 70.0
 const DIAG_INTERVAL_S: float = 30.0
@@ -325,6 +327,12 @@ func _process(delta: float) -> bool:
 		if ws2.get_ready_state() == WebSocketPeer.STATE_CLOSED:
 			_drop(ck, "websocket_closed:%d:%s" % [ws2.get_close_code(), ws2.get_close_reason()])
 			continue
+		if ws2.get_ready_state() != WebSocketPeer.STATE_OPEN:
+			continue
+		if not _flush_outgoing(cl, ws2):
+			ws2.close(-1)
+			_drop(ck, "outbound_queue_failed")
+			continue
 		var now_ms: int = Time.get_ticks_msec()
 		if String(cl["room"]) == "" and now_ms - int(cl["t0"]) > int(IDLE_NO_ROOM_S * 1000.0):
 			ws2.close(1000, "idle")
@@ -458,9 +466,49 @@ func _count_ip(ip: String) -> int:
 	return n
 
 
-func _send(ck: int, d: Dictionary) -> void :
-	if _clients.has(ck):
-		(_clients[ck]["ws"] as WebSocketPeer).send_text(JSON.stringify(d))
+func _send(ck: int, d: Dictionary) -> void:
+	if not _clients.has(ck):
+		return
+	var client: Dictionary = _clients[ck]
+	if bool(client.get("out_failed", false)):
+		return
+	var ws: WebSocketPeer = client["ws"]
+	if ws.get_ready_state() != WebSocketPeer.STATE_OPEN:
+		return
+	var packet: PackedByteArray = JSON.stringify(d).to_utf8_buffer()
+	var queue: Array = client.get("out", [])
+	if queue.is_empty() and ws.get_current_outbound_buffered_amount() + packet.size() <= ws.outbound_buffer_size:
+		var err: Error = ws.send(packet, WebSocketPeer.WRITE_MODE_TEXT)
+		if err == OK:
+			return
+		if err != ERR_OUT_OF_MEMORY:
+			client["out_failed"] = true
+			return
+	var bytes: int = int(client.get("out_bytes", 0)) + packet.size()
+	if bytes > MAX_OUT_BYTES or queue.size() >= MAX_OUT_PACKETS or packet.size() > ws.outbound_buffer_size:
+		client["out_failed"] = true
+		return
+	queue.append(packet)
+	client["out"] = queue
+	client["out_bytes"] = bytes
+
+
+func _flush_outgoing(client: Dictionary, ws: WebSocketPeer) -> bool:
+	if bool(client.get("out_failed", false)):
+		return false
+	var queue: Array = client.get("out", [])
+	for i: int in mini(queue.size(), 120):
+		var packet: PackedByteArray = queue[0]
+		if ws.get_current_outbound_buffered_amount() + packet.size() > ws.outbound_buffer_size:
+			break
+		var err: Error = ws.send(packet, WebSocketPeer.WRITE_MODE_TEXT)
+		if err == ERR_OUT_OF_MEMORY:
+			break
+		if err != OK:
+			return false
+		queue.pop_front()
+		client["out_bytes"] = int(client["out_bytes"]) - packet.size()
+	return true
 
 
 func _check_auth(ck: int, d: Dictionary) -> bool:

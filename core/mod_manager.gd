@@ -52,6 +52,8 @@ var _current_icon_mod_id: String = ""
 var _active_main: Node = null
 var _active_world: Node = null
 var _is_initializing_mod: bool = false
+var multiplayer_suspended: bool = false
+var _multiplayer_map_order: Array = []
 
 func _are_mods_enabled() -> bool:
 	if ResourceLoader.exists("res://game/game_config.gd"):
@@ -64,7 +66,39 @@ func _set_custom_maps_cache(arr: Array) -> void:
 	if ResourceLoader.exists("res://game/game_config.gd"):
 		var cfg = load("res://game/game_config.gd")
 		if cfg != null and "custom_maps_cache" in cfg:
-			cfg.custom_maps_cache = arr
+			cfg.custom_maps_cache = [] if multiplayer_suspended else arr
+
+
+## Temporarily unload mods for multiplayer without changing the saved selections.
+func set_multiplayer_suspended(suspended: bool) -> void:
+	if multiplayer_suspended == suspended:
+		return
+	multiplayer_suspended = suspended
+	if suspended:
+		_multiplayer_map_order = registered_map_types.keys()
+		for mod_id in installed_mods.keys():
+			if is_mod_loaded(String(mod_id)):
+				_unload_mod(String(mod_id))
+		_set_custom_maps_cache([])
+	else:
+		_set_custom_maps_cache(registered_map_types.values())
+		if _are_mods_enabled():
+			for mod_id in installed_mods.keys():
+				if enabled_mod_ids.has(mod_id):
+					_load_mod(String(mod_id))
+		# Re-registering mods must not silently switch a selected custom map.
+		var ordered: Dictionary = {}
+		for key: Variant in _multiplayer_map_order:
+			if registered_map_types.has(key):
+				ordered[key] = registered_map_types[key]
+		for key: Variant in registered_map_types:
+			if not ordered.has(key):
+				ordered[key] = registered_map_types[key]
+		registered_map_types = ordered
+		_multiplayer_map_order.clear()
+		_set_custom_maps_cache(registered_map_types.values())
+	mods_updated.emit()
+	print("[ModManager] Multiplayer suspension: ", suspended)
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -322,7 +356,8 @@ func scan_installed_mods() -> void:
 	_load_config()
 	
 	# 1. Сканируем ТОЛЬКО явно установленные пользователем моды в user://mods/
-	_unpack_pending_dfmods(USER_MODS_DIR)
+	if not multiplayer_suspended:
+		_unpack_pending_dfmods(USER_MODS_DIR)
 	_scan_dir(USER_MODS_DIR, false)
 
 	# 2. Сканируем папку рядом с .exe / .app (портативные моды), если отличается от user:// и res://
@@ -337,7 +372,8 @@ func scan_installed_mods() -> void:
 		var user_mods_global: String = ProjectSettings.globalize_path(USER_MODS_DIR)
 		var builtin_mods_global: String = ProjectSettings.globalize_path(BUILTIN_MODS_DIR)
 		if DirAccess.dir_exists_absolute(exe_mods) and exe_mods != user_mods_global and exe_mods != builtin_mods_global:
-			_unpack_pending_dfmods(exe_mods)
+			if not multiplayer_suspended:
+				_unpack_pending_dfmods(exe_mods)
 			_scan_dir_absolute(exe_mods, false)
 
 	# 3. Активируем ТОЛЬКО те моды, которые пользователь включил! (Если моды разрешены в настройках)
@@ -476,6 +512,8 @@ const CLIENT_ONLY_MODS: Array[String] = [
 
 ## Возвращает список всех включённых модов, влияющих на геймплей/мир для сетевой игры
 func get_required_mp_mods() -> Array:
+	if multiplayer_suspended:
+		return []
 	var result: Array = []
 	for mod_id in installed_mods.keys():
 		if is_mod_enabled(mod_id):
@@ -577,6 +615,8 @@ func enable_mod(mod_id: String, enable: bool = true) -> bool:
 func _load_mod(mod_id: String) -> bool:
 	if not installed_mods.has(mod_id):
 		return false
+	if multiplayer_suspended:
+		return true  # Keep the user's enabled selection; activate after multiplayer.
 	var mod: Dictionary = installed_mods[mod_id]
 	if mod.get("_loaded", false):
 		return true
@@ -672,6 +712,8 @@ func unregister_map_type(id: String) -> void:
 		mods_updated.emit()
 
 func get_custom_map_types() -> Array:
+	if multiplayer_suspended:
+		return []
 	return registered_map_types.values()
 
 ## Регистрация или замена текстуры/спрайта
@@ -878,6 +920,8 @@ func _promote_mod_stage(stage_path: String, mod_id: String) -> Dictionary:
 	return {"ok": true, "backup": global_backup if has_old else ""}
 
 func _stage_mod_archive(zip_path: String, mod_id: String) -> Dictionary:
+	if multiplayer_suspended:
+		return {"ok": false, "error": "Установка модов недоступна во время сетевой игры"}
 	if not _valid_mod_id(mod_id):
 		return {"ok": false, "error": "Некорректный ID мода"}
 	var stage_path: String = USER_MODS_DIR.path_join("downloads").path_join(mod_id + ".installing")
@@ -898,6 +942,8 @@ func _stage_mod_archive(zip_path: String, mod_id: String) -> Dictionary:
 	return result
 
 func _stage_mod_folder(source_path: String, mod_id: String) -> Dictionary:
+	if multiplayer_suspended:
+		return {"ok": false, "error": "Установка модов недоступна во время сетевой игры"}
 	if not _valid_mod_id(mod_id):
 		return {"ok": false, "error": "Некорректный ID мода"}
 	var stage_path: String = USER_MODS_DIR.path_join("downloads").path_join(mod_id + ".installing")
@@ -942,6 +988,9 @@ func install_catalog_mod(cat_mod: Dictionary) -> void:
 	var mod_id: String = String(cat_mod.get("id", "")).strip_edges()
 	if mod_id == "":
 		return
+	if multiplayer_suspended:
+		mod_download_failed.emit(mod_id, "Установка модов недоступна во время сетевой игры")
+		return
 
 	# Если мод доступен локально во встроенных ресурсах (res://mods):
 	var src_folder: String = BUILTIN_MODS_DIR.path_join(mod_id)
@@ -966,6 +1015,9 @@ func install_catalog_mod(cat_mod: Dictionary) -> void:
 	download_and_install_mod(cat_mod)
 
 func install_builtin_mod(mod_id: String) -> bool:
+	if multiplayer_suspended:
+		mod_download_failed.emit(mod_id, "Установка модов недоступна во время сетевой игры")
+		return false
 	if not _valid_mod_id(mod_id):
 		return false
 	var src_folder: String = BUILTIN_MODS_DIR.path_join(mod_id)
@@ -1116,6 +1168,9 @@ func get_mod_icon(mod_id: String, mod_data: Dictionary = {}) -> Texture2D:
 
 func download_and_install_mod(cat_mod: Dictionary) -> void:
 	var mod_id: String = String(cat_mod.get("id", "")).strip_edges()
+	if multiplayer_suspended:
+		mod_download_failed.emit(mod_id, "Установка модов недоступна во время сетевой игры")
+		return
 	var dl_url: String = String(cat_mod.get("url", cat_mod.get("download_url", ""))).strip_edges()
 	if dl_url == "":
 		for c in catalog_mods:
@@ -1167,6 +1222,10 @@ func _on_download_request_completed(result: int, response_code: int, _headers: P
 	_is_downloading = false
 	_download_mod_id = ""
 	_download_temp_path = ""
+	if multiplayer_suspended:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(temp_path))
+		mod_download_failed.emit(mod_id, "Установка остановлена на время сетевой игры; повторите после выхода")
+		return
 
 	if result != HTTPRequest.RESULT_SUCCESS:
 		var failed_temp: String = ProjectSettings.globalize_path(temp_path)

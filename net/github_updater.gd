@@ -13,7 +13,7 @@ signal download_failed(reason: String)
 @export var enabled: bool = true ## Активировать проверку при старте
 @export var repo_owner: String = "makkaX2"
 @export var repo_name: String = "DroneFlames-PC-Port"
-@export var current_version: String = "0.33.5.29-test"
+@export var current_version: String = "0.33.5.30-test"
 
 var latest_tag: String = ""
 var latest_changelog: String = ""
@@ -45,22 +45,22 @@ static func clean_version_string(v: String) -> String:
 	return s.strip_edges()
 
 static func get_installed_version() -> String:
-	if ResourceLoader.exists("res://version_info.json"):
+	if FileAccess.file_exists("res://version_info.json"):
 		var f := FileAccess.open("res://version_info.json", FileAccess.READ)
 		if f != null:
 			var txt := f.get_as_text()
 			var json = JSON.parse_string(txt)
 			if json is Dictionary and json.has("version"):
-				var v: String = clean_version_string(String(json["version"]))
+				var v: String = String(json["version"]).strip_edges()
 				if v != "":
 					return v
 	if ResourceLoader.exists("res://ui/menus.gd"):
 		var m_cls = load("res://ui/menus.gd")
 		if m_cls != null and "VERSION" in m_cls:
-			var v_str: String = clean_version_string(String(m_cls.VERSION))
+			var v_str: String = String(m_cls.VERSION).get_slice(" ", 0).trim_prefix("v")
 			if v_str != "":
 				return v_str
-	return "0.33.5.29-test"
+	return "0.33.5.30-test"
 
 func _ready() -> void:
 	current_version = get_installed_version()
@@ -92,7 +92,8 @@ func check_for_updates() -> void:
 	if _http_check.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
 		_http_check.cancel_request()
 
-	var url: String = "https://api.github.com/repos/%s/%s/releases/latest" % [repo_owner, repo_name]
+	var endpoint: String = "releases?per_page=30" if current_version.ends_with("-test") else "releases/latest"
+	var url: String = "https://api.github.com/repos/%s/%s/%s" % [repo_owner, repo_name, endpoint]
 	print("[Updater] Checking for updates at: ", url, " (current: v", current_version, ")")
 	var headers: PackedStringArray = PackedStringArray([
 		"User-Agent: DroneFlames-PC-Port-good_boy_irl",
@@ -122,81 +123,60 @@ func _on_check_request_completed(result: int, response_code: int, _headers: Pack
 		check_failed.emit("Ошибка парсинга ответа GitHub: %s" % test_json.get_error_message())
 		return
 
-	var data: Dictionary = test_json.data if test_json.data is Dictionary else {}
-	var tag: String = clean_version_string(String(data.get("tag_name", "")))
-	var changelog: String = String(data.get("body", ""))
-	var assets: Array = data.get("assets", [])
-
-	# Если тег "latest", извлекаем версию из имени ассета (например DroneFlames_PC_Setup_v0.33.0_good_boy_irl.exe)
-	if tag == "" or tag.to_lower() == "latest":
-		for asset_dict in assets:
-			if asset_dict is Dictionary:
-				var aname: String = String(asset_dict.get("name", ""))
-				var v_start: int = aname.find("_v")
-				if v_start != -1:
-					var sub: String = aname.substr(v_start + 2)
-					var v_end: int = sub.find("_")
-					if v_end != -1:
-						tag = clean_version_string(sub.substr(0, v_end))
-						break
-
-	if tag == "" or tag.to_lower() == "latest":
-		check_failed.emit("Некорректный релиз на GitHub (отсутствует tag_name)")
+	var release: Dictionary = select_release(test_json.data, current_version)
+	if release.is_empty():
+		no_update_found.emit()
 		return
 
-	current_version = get_installed_version()
-	latest_tag = tag
-	latest_changelog = changelog
+	latest_tag = String(release["tag_name"]).trim_prefix("v")
+	latest_changelog = String(release.get("body", ""))
+	var asset: Dictionary = select_asset(release.get("assets", []), OS.get_name())
+	latest_url = String(asset.get("browser_download_url", ""))
+	latest_asset_name = String(asset.get("name", ""))
+	is_update_ready = true
+	update_available.emit(latest_tag, latest_changelog, latest_url, latest_asset_name)
 
-	if compare_versions(tag, current_version) > 0:
-		# Найдена более свежая версия
-		var target_url: String = ""
-		var target_name: String = ""
 
-		var is_mac: bool = OS.get_name() == "macOS"
-		var is_android: bool = OS.has_feature("mobile") or OS.get_name() == "Android"
-		for asset_dict in assets:
-			if not (asset_dict is Dictionary):
-				continue
-			var aname: String = String(asset_dict.get("name", ""))
-			var adl: String = String(asset_dict.get("browser_download_url", ""))
-			if is_android:
-				if aname.ends_with(".apk"):
-					target_url = adl
-					target_name = aname
-					break
-			elif is_mac:
-				if aname.ends_with(".dmg") or (aname.contains("macOS") and aname.ends_with(".zip")):
-					target_url = adl
-					target_name = aname
-					if aname.ends_with(".dmg"):
-						break # Приоритет DMG установщику на Mac
-			else:
-				if aname.ends_with(".exe"):
-					target_url = adl
-					target_name = aname
-					if aname.to_lower().contains("setup"):
-						break # Нашли именно установщик
+static func select_release(payload: Variant, installed: String) -> Dictionary:
+	var test_channel: bool = installed.ends_with("-test")
+	var releases: Array = payload if payload is Array else [payload]
+	var newest: Dictionary = {}
+	var newest_tag: String = installed
+	var tag_pattern := RegEx.create_from_string("^v?[0-9]+(\\.[0-9]+){2,3}(-test)?$")
+	for release: Variant in releases:
+		if not release is Dictionary or bool(release.get("draft", false)):
+			continue
+		var tag: String = String(release.get("tag_name", ""))
+		if tag_pattern.search(tag) == null or tag.ends_with("-test") != test_channel or bool(release.get("prerelease", false)) != test_channel:
+			continue
+		if compare_versions(tag, newest_tag) > 0:
+			newest = release
+			newest_tag = tag
+	return newest
 
-		if target_url == "":
-			if is_android:
-				target_url = "https://github.com/%s/%s/releases/download/v%s/DroneFlames_v%s_good_boy_irl.apk" % [repo_owner, repo_name, tag, tag]
-				target_name = "DroneFlames_v%s_good_boy_irl.apk" % tag
-			elif is_mac:
-				target_url = "https://github.com/%s/%s/releases/download/v%s/DroneFlames_macOS_v%s_good_boy_irl.dmg" % [repo_owner, repo_name, tag, tag]
-				target_name = "DroneFlames_macOS_v%s_good_boy_irl.dmg" % tag
-			else:
-				target_url = "https://github.com/%s/%s/releases/download/v%s/DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % [repo_owner, repo_name, tag, tag]
-				target_name = "DroneFlames_PC_Setup_v%s_good_boy_irl.exe" % tag
 
-		latest_url = target_url
-		latest_asset_name = target_name
-		is_update_ready = true
+static func select_asset(assets: Array, platform: String) -> Dictionary:
+	var fallback: Dictionary = {}
+	for asset: Variant in assets:
+		if not asset is Dictionary or not String(asset.get("browser_download_url", "")).begins_with("https://"):
+			continue
+		var name: String = String(asset.get("name", "")).to_lower()
+		match platform:
+			"Android":
+				if name.ends_with(".apk"):
+					return asset
+			"macOS":
+				if name.ends_with(".dmg"):
+					return asset
+				if name.contains("macos") and name.ends_with(".zip"):
+					fallback = asset
+			"Windows":
+				if name.contains("setup") and name.ends_with(".exe"):
+					return asset
+				if name.begins_with("droneflames_pc_") and name.ends_with(".zip"):
+					fallback = asset
+	return fallback
 
-		update_available.emit(tag, changelog, target_url, target_name)
-	else:
-		is_update_ready = false
-		no_update_found.emit()
 
 ## Скачать файл обновления в папку пользовательских данных
 func download_update(download_url: String, file_name: String = "") -> void:

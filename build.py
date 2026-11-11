@@ -175,16 +175,17 @@ def main():
                 f"/DMyAppVersion={VERSION}",
                 f"/DSourceDir={STAGE_DIR}",
                 f"/DOutDir={DIST_DIR}",
+                *(["/DTestBuild"] if IS_TEST_BUILD else []),
                 str(iss_path)
             ]
             res = subprocess.run(cmd)
             if res.returncode == 0:
-                setup_exe = DIST_DIR / f"{APP_NAME}_PC_Setup_v{VERSION}_{PUBLISHER}.exe"
+                setup_exe = DIST_DIR / f"{APP_NAME}_PC_Setup_v{VERSION}_good_boy_irl.exe"
                 if setup_exe.exists():
                     setup_size_mb = setup_exe.stat().st_size / (1024 * 1024)
                     print(f"  [OK] Windows Installer created: {setup_exe.name} ({setup_size_mb:.2f} MB)")
             else:
-                print(f"  [Error] Inno Setup compilation failed with code {res.returncode}")
+                raise SystemExit(res.returncode)
         else:
             print("  [Error] installer.iss not found!")
     else:
