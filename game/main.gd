@@ -94,6 +94,14 @@ func _ready() -> void :
 			var ishots: RefCounted = (load("res://dev/impossible_shots.gd") as GDScript).new()
 			set_meta("impossible_shots", ishots)
 			ishots.call("run", self, a)
+		elif a == "--bench":
+			var bench: RefCounted = (load("res://dev/bench_late.gd") as GDScript).new()
+			set_meta("bench_late", bench)
+			bench.call("run", self)
+		elif a == "--bench-acq":
+			var bench_acq: RefCounted = (load("res://dev/bench_acq.gd") as GDScript).new()
+			set_meta("bench_acq", bench_acq)
+			bench_acq.call("run", self)
 		elif a == "--verify":
 			var v: RefCounted = (load("res://dev/verify_game.gd") as GDScript).new()
 			set_meta("verify_game", v)
