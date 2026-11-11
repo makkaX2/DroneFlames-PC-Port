@@ -10,6 +10,10 @@ func run(main: Node) -> void:
 		await tree.create_timer(0.2).timeout
 	await tree.create_timer(1.0).timeout
 	var w: GameWorld = main.world
+	if not w.army.has_method("_acquire_ref"):
+		push_error("[ACQ] Prepare the reference implementation as described in dev/README_BENCH.md")
+		tree.quit(1)
+		return
 	Engine.max_fps = 0
 	w._landmasses()
 	var c: Vector2i = w._find_capital_spot(-1)
@@ -43,7 +47,7 @@ func run(main: Node) -> void:
 	var saved: Array = []
 	for u: Unit in pool:
 		u.target = null
-		army._acquire_ref(u)
+		army.call("_acquire_ref", u)
 		saved.append(u.target)
 		if u.target != null:
 			with_t += 1
@@ -63,7 +67,7 @@ func run(main: Node) -> void:
 	for r in range(reps):
 		for u: Unit in pool:
 			u.target = null
-			army._acquire_ref(u)
+			army.call("_acquire_ref", u)
 	var t_ref: float = float(Time.get_ticks_usec() - ts) / 1000.0 / float(reps)
 	ts = Time.get_ticks_usec()
 	for r in range(reps):
@@ -72,4 +76,4 @@ func run(main: Node) -> void:
 			army._acquire(u)
 	var t_new: float = float(Time.get_ticks_usec() - ts) / 1000.0 / float(reps)
 	print("[ACQ] per full pass: reference=%.2f ms  new=%.2f ms  speedup x%.2f" % [t_ref, t_new, t_ref / maxf(0.001, t_new)])
-	main.get_tree().quit()
+	tree.quit(0 if mism == 0 else 1)

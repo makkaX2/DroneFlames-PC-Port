@@ -9,7 +9,7 @@ tg_token = os.environ.get("TG_BOT_TOKEN")
 chat_id = os.environ.get("TG_CHAT_ID")
 tag = os.environ.get("TAG", "")
 commit_sha = os.environ.get("COMMIT_SHA", "")
-run_id = os.environ.get("RUN_ID", "")
+release_ref = os.environ.get("RELEASE_REF", "")
 is_test = os.environ.get("IS_TEST", "false").lower() == "true" or "test" in tag.lower()
 
 if not tg_token or not chat_id:
@@ -33,9 +33,9 @@ def dl_url(fname):
     return f"{base_url}/releases/download/{tag}/{os.path.basename(fname)}"
 
 apk_files = glob.glob("dist/*.apk")
-win_files = [f for f in glob.glob("dist/*.zip") if "PC" in f or "macOS" not in f]
+win_files = glob.glob("dist/DroneFlames_PC_v*.zip")
 win_setups = glob.glob("dist/*.exe")
-mac_files = glob.glob("dist/*.dmg")
+mac_files = glob.glob("dist/DroneFlames_macOS_v*.dmg") or glob.glob("dist/DroneFlames_macOS_v*.zip")
 
 artifact_lines = []
 dl_buttons = []
@@ -53,7 +53,7 @@ if win_setups:
 if mac_files:
     mname = os.path.basename(mac_files[0])
     artifact_lines.append(f"- macos: {mname}")
-    dl_buttons.append({"text": "[macos dmg]", "url": dl_url(mac_files[0])})
+    dl_buttons.append({"text": f"[macos {os.path.splitext(mname)[1][1:]}]", "url": dl_url(mac_files[0])})
 
 if apk_files:
     aname = os.path.basename(apk_files[0])
@@ -66,7 +66,7 @@ if not artifact_lines:
 artifacts_str = "\n".join(artifact_lines)
 
 header = f"[build:test] {tag}" if is_test else f"[build:release] {tag}"
-branch_name = "test" if is_test else "master"
+branch_name = release_ref or ("test" if is_test else "master")
 
 text = f"""{header}
 branch: {branch_name}
@@ -106,7 +106,7 @@ req = urllib.request.Request(
     headers={"Content-Type": "application/json"}
 )
 try:
-    with urllib.request.urlopen(req) as resp:
+    with urllib.request.urlopen(req, timeout=30) as resp:
         resp_data = json.loads(resp.read().decode("utf-8"))
         print("Telegram notification sent successfully:", resp.status)
         if resp_data.get("ok") and "result" in resp_data and "message_id" in resp_data["result"]:
@@ -122,9 +122,10 @@ try:
                 headers={"Content-Type": "application/json"}
             )
             try:
-                with urllib.request.urlopen(pin_req) as pin_resp:
+                with urllib.request.urlopen(pin_req, timeout=30) as pin_resp:
                     print("Telegram message pinned successfully:", pin_resp.status)
             except Exception as pe:
                 print("Failed to pin Telegram message (bot may need admin rights to pin):", pe)
 except Exception as e:
-    print("Failed to send Telegram notification:", e)
+    print("Failed to send Telegram notification:", type(e).__name__)
+    sys.exit(1)

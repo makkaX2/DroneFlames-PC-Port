@@ -247,7 +247,7 @@ log_ok "Базовые утилиты готовы к работе."
 log_step "3. Подготовка директории файлов DroneFlames..."
 
 REPO_URL="https://github.com/makkaX2/DroneFlames-PC-Port.git"
-BRANCH="test"
+BRANCH="${DF_INSTALL_BRANCH:-master}"
 
 IN_PLACE_INSTALL=false
 CURRENT_DIR="$(pwd)"
@@ -270,9 +270,12 @@ if [ "$IN_PLACE_INSTALL" = false ]; then
     if [ -d "$INSTALL_DIR/.git" ]; then
         log_info "Обновление существующего репозитория в $INSTALL_DIR..."
         cd "$INSTALL_DIR"
-        git fetch origin "$BRANCH" --depth 1 || true
-        git checkout "$BRANCH" || true
-        git reset --hard "origin/$BRANCH" || true
+        if ! git fetch origin "$BRANCH:refs/remotes/origin/$BRANCH" ||
+           ! git checkout "$BRANCH" ||
+           ! git merge --ff-only "origin/$BRANCH"; then
+            log_err "Обновление прервано. Проверьте состояние Git в $INSTALL_DIR."
+            exit 1
+        fi
     else
         log_info "Клонирование репозитория (ветка $BRANCH)..."
         git clone --branch "$BRANCH" --depth 1 "$REPO_URL" "$INSTALL_DIR"
