@@ -178,6 +178,9 @@ var _snap_next: Array = []  # [bytes, turn] that arrived while a restore was run
 var _last_snap: int = -1  # host: turn of the last snapshot; hash reports from before it are stale
 var _last_snap_ms: int = 0  # host: timestamp (msec) when snapshot was last sent (cooldown)
 var _sync_wait: Dictionary = {}  # host: peer_id -> {"turn": int, "started_ms": int} holds turns until acknowledged
+var _peer_resync_fails: Dictionary = {}  # host: pid -> consecutive resync timeout failures
+var _desync_streak: Dictionary = {}  # host: pid -> consecutive turns with hash mismatch
+var _snap_t: float = 0.0  # seconds waiting for next chunk in _snap (guest watchdog)
 var _restoring: bool = false
 var _ready_peers: Dictionary = {}
 var _cap_done: bool = false
@@ -940,6 +943,9 @@ func _reset_lockstep() -> void:
 	_last_snap = -1
 	_last_snap_ms = 0
 	_sync_wait.clear()
+	_peer_resync_fails.clear()
+	_desync_streak.clear()
+	_snap_t = 0.0
 	_restoring = false
 	speed = 1
 	speed_why = "start"
@@ -2314,6 +2320,15 @@ func _process(delta: float) -> void:
 			_rj_save_t = 0.0
 			_rejoin["played"] = snappedf(_played_s, 1.0)  # (critic) the count survives an app restart
 			NetConfig.save_rejoin(_rejoin)  # the place stays offered (app killed late in a long match)
+	if not _snap.is_empty() and not is_host:
+		_snap_t += delta
+		if _snap_t > 20.0:
+			print("[Net] snapshot reception timed out after 20s (got %d of %d parts), aborting" % [(_snap.get("got", {}) as Dictionary).size(), int(_snap.get("parts", 0))])
+			_snap = {}
+			_snap_t = 0.0
+			if main != null and main.get("loading") != null and main.loading.active:
+				main.loading.finish()
+			_start_reconnect()
 	if resume_wait and in_match:
 		if is_host and not _restoring:
 			resume_t += delta
@@ -2405,9 +2420,15 @@ func _host_turns(delta: float) -> void:
 		var live_peers: PackedInt32Array = multiplayer.get_peers()
 		for pid in _sync_wait.keys():
 			var info: Dictionary = _sync_wait[pid]
-			if not live_peers.has(pid) or (now_ms - int(info.get("started_ms", 0)) > 25000):
+			if not live_peers.has(pid) or (now_ms - int(info.get("started_ms", 0)) > 35000):
 				print("[Net] dropping peer %d from _sync_wait (disconnected or timed out)" % pid)
 				_sync_wait.erase(pid)
+				_peer_resync_fails[pid] = int(_peer_resync_fails.get(pid, 0)) + 1
+				if live_peers.has(pid):
+					_snap_abort.rpc_id(pid)
+				if int(_peer_resync_fails.get(pid, 0)) >= 3:
+					print("[Net] peer %d failed 3 consecutive resyncs, kicking to prevent infinite freeze" % pid)
+					_kick_desynced_peer(pid)
 	if not _sync_wait.is_empty():
 		_host_acc = 0.0
 		return
@@ -2960,6 +2981,8 @@ func _hash_rq(n: int, h: String, parts_json: String = "") -> void:
 	if _hashes.has(n):
 		if String(_hashes[n]) != h:
 			_queue_resync(from, n)
+		else:
+			_desync_streak.erase(from)
 		var gpn: Dictionary = _gparts.get(n, {})
 		gpn.erase(from)  # NET 34: compared: drop it (a late report would stay forever)
 		if gpn.is_empty():
@@ -2979,8 +3002,15 @@ func _queue_resync(peer: int, n: int) -> void:
 	if now_ms - _last_snap_ms < 15000:
 		print("[Net] resync cooldown active (%d ms since last snap), skipping turn %d with peer %d" % [now_ms - _last_snap_ms, n, peer])
 		return
-	desyncs += 1
 	var dp: String = _diff_parts(n, peer)
+	var is_minor_float: bool = dp.begins_with("(parts equal")
+	if is_minor_float:
+		_desync_streak[peer] = int(_desync_streak.get(peer, 0)) + 1
+		if _desync_streak[peer] < 3:
+			print("[Net] minor float jitter at turn %d with peer %d (streak %d/3), deferring snapshot" % [n, peer, _desync_streak[peer]])
+			return
+	_desync_streak.erase(peer)
+	desyncs += 1
 	print("[Net] desync at turn %d with peer %d (%d so far): sending a snapshot; differs: %s" % [n, peer, desyncs, dp])
 	if main != null and main.has_method("net_toast"):
 		main.net_toast("РАССИНХРОН #%d · %s" % [desyncs, dp.left(90)])  # NET 34 (ПРЕДВАРИТЕЛЬНО, diagnostics): phones keep no log
@@ -3218,6 +3248,8 @@ func _send_snapshot(n: int) -> void:
 		_snap_begin.rpc_id(pid, n, bytes.size(), parts, raw_size)
 		for i in parts:
 			_snap_part.rpc_id(pid, i, bytes.slice(i * ch, mini((i + 1) * ch, bytes.size())))
+			if i % 8 == 7:
+				_flush_peer()
 	resyncs += 1
 	print("[Net] snapshot of turn %d sent to peers %s: %d KiB (from %d KiB raw) in %d parts, %.1f ms" % [n, str(targets), bytes.size() / 1024, raw_size / 1024, parts, (Time.get_ticks_usec() - t0) / 1000.0])
 
@@ -3225,6 +3257,7 @@ func _send_snapshot(n: int) -> void:
 @rpc("authority", "call_remote", "reliable")
 func _snap_begin(n: int, size: int, parts: int, raw_size: int = 0) -> void:
 	_snap = {"turn": n, "size": size, "parts": parts, "raw_size": raw_size, "got": {}}
+	_snap_t = 0.0
 	stall_t = 0.0
 	_rj_t = 0.0  # progress (the rejoin watchdog)
 
@@ -3234,10 +3267,23 @@ func _snap_part(i: int, data: PackedByteArray) -> void:
 	if _snap.is_empty():
 		return
 	(_snap["got"] as Dictionary)[i] = data
+	_snap_t = 0.0
 	stall_t = 0.0
 	_rj_t = 0.0  # progress (the rejoin watchdog)
 	if (_snap["got"] as Dictionary).size() >= int(_snap["parts"]):
 		_apply_snapshot()
+
+
+@rpc("authority", "call_remote", "reliable")
+func _snap_abort() -> void:
+	print("[Net] host aborted snapshot resync")
+	_snap = {}
+	_snap_t = 0.0
+	_restoring = false
+	if main != null and main.get("loading") != null and main.loading.active:
+		main.loading.finish()
+	if not is_host:
+		_start_reconnect()
 
 
 func _apply_snapshot() -> void:
@@ -3272,6 +3318,14 @@ func _restore_from(buf: PackedByteArray, n: int) -> void:
 		gw.net_driven = false
 		_restoring = false
 		return
+	if not ok:
+		_restoring = false
+		if main != null and main.get("loading") != null and main.loading.active:
+			main.loading.finish()
+		push_error("[Net] Save.net_restore failed for turn %d" % n)
+		if not is_host:
+			_start_reconnect()
+		return
 	gw.net_driven = true
 	gw.player = gw.country_by_id(local_slot + 1)
 	if ok and gw.vision != null:
@@ -3305,6 +3359,7 @@ func _snap_ack(n: int) -> void:
 	if not is_host:
 		return
 	var from: int = multiplayer.get_remote_sender_id()
+	_peer_resync_fails.erase(from)
 	if _sync_wait.has(from):
 		var elapsed: int = Time.get_ticks_msec() - int((_sync_wait[from] as Dictionary).get("started_ms", 0))
 		print("[Net] peer %d acknowledged snapshot of turn %d (%d ms taken)" % [from, n, elapsed])
@@ -3313,6 +3368,21 @@ func _snap_ack(n: int) -> void:
 		if s >= 0:
 			_lag.erase(s)
 			_lag_now.erase(s)
+
+
+func _kick_desynced_peer(pid: int) -> void:
+	var s: int = _slot_of(pid)
+	if s >= 0 and s < slots.size():
+		var pname: String = String(slots[s].get("name", "Игрок"))
+		print("[Net] dropping desynced peer %d (%s) -> handing over to AI" % [pid, pname])
+		slots[s]["left"] = true
+		_pending.append({"k": "ai", "c": s + 1, "s": -1, "q": 0, "lost": true})
+		if main != null and main.has_method("net_toast"):
+			main.net_toast("РАССИНХРОН: %s ОТКЛЮЧЁН (ИИ ПРИНЯЛ СТРАНУ)" % pname.to_upper())
+	if multiplayer.get_peers().has(pid):
+		var p: MultiplayerPeer = multiplayer.multiplayer_peer
+		if p != null:
+			p.disconnect_peer(pid)
 
 
 ## R332 crash fix (TestFlight 0.30.26, ENetConnection::flush on a null host): leave() runs from the

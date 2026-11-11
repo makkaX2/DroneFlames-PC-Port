@@ -26,16 +26,16 @@ static func of(gw: GameWorld) -> String:
 	for f: Facility in gw.mil.facilities:
 		hp = (hp * 31 + int(f.hp * 4.0)) & 2147483647
 	for u: Unit in gw.army.units:
-		sx = (sx * 31 + int(u.pos.x * 8.0)) & 2147483647
-		sy = (sy * 31 + int(u.pos.y * 8.0)) & 2147483647
+		sx = (sx * 31 + roundi(u.pos.x * 2.0)) & 2147483647
+		sy = (sy * 31 + roundi(u.pos.y * 2.0)) & 2147483647
 		hp = (hp * 31 + int(u.hp * 4.0)) & 2147483647
 	for a: Aircraft in gw.mil.air.aircraft:
-		sx = (sx * 31 + int(a.pos.x * 8.0)) & 2147483647
-		sy = (sy * 31 + int(a.pos.y * 8.0)) & 2147483647
+		sx = (sx * 31 + roundi(a.pos.x * 2.0)) & 2147483647
+		sy = (sy * 31 + roundi(a.pos.y * 2.0)) & 2147483647
 	nums.append(float(hp))
 	for dr: Drone in gw.mil.drones:
-		sx = (sx * 31 + int(dr.pos.x * 8.0)) & 2147483647
-		sy = (sy * 31 + int(dr.pos.y * 8.0)) & 2147483647
+		sx = (sx * 31 + roundi(dr.pos.x * 2.0)) & 2147483647
+		sy = (sy * 31 + roundi(dr.pos.y * 2.0)) & 2147483647
 	nums.append(float(sx))
 	nums.append(float(sy))
 	nums.append_array(diplo_nums(gw))
