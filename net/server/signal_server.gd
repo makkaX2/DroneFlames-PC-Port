@@ -1014,8 +1014,7 @@ func _drop(ck: int, reason: String = "disconnected") -> void :
 	var peers: Dictionary = room["peers"]
 	peers.erase(int(cl.get("id", 0)))
 	if int(cl.get("id", 0)) == 1:
-		if bool(room.get("sealed", false)) and not peers.is_empty():
-			# MATCH IN PROGRESS: MIGRATE HOST TO ANOTHER PLAYER!
+		if bool(room.get("sealed", false)) and int(room.get("ended_at", 0)) == 0 and not peers.is_empty():
 			var cand_ids: Array = peers.keys()
 			cand_ids.sort()
 			var new_host_id: int = int(cand_ids[0])
@@ -1032,15 +1031,19 @@ func _drop(ck: int, reason: String = "disconnected") -> void :
 			_event("host_migrated", {"room": code, "match": String(room.get("match", "")), "old_host_slot": 1,
 				"new_host_slot": 1, "new_host_orig_id": new_host_id, "new_host": new_host_name})
 
-			# Promote candidate to host
-			_send(new_host_ck, {"t": "promoted", "epoch": 1, "match": String(room.get("match", ""))})
-
-			# Inform all other peers that host has changed
-			for p_id: Variant in peers.keys():
-				var pid: int = int(p_id)
-				if pid != 1:
-					_send(int(peers[pid]), {"t": "host_changed", "host": new_host_name, "id": 1, "you": false})
-					_send(int(peers[pid]), {"t": "left", "id": new_host_id})
+			var epoch: int = int(room.get("epoch", 0)) + 1
+			room["epoch"] = epoch
+			# The promoted guest previously knew only peer 1. Remove that connection
+			# before reusing its ID and register the surviving guests on the new host.
+			_send(new_host_ck, {"t": "left", "id": 1})
+			_send(new_host_ck, {"t": "promoted", "epoch": epoch, "match": String(room.get("match", ""))})
+			for pid: int in peers:
+				if pid == 1:
+					continue
+				var guest_ck: int = int(peers[pid])
+				var guest: Dictionary = _clients.get(guest_ck, {})
+				_send(new_host_ck, {"t": "peer", "id": pid, "name": String(guest.get("name", ""))})
+				_send(guest_ck, {"t": "host_changed", "host": new_host_name, "id": 1, "you": false, "epoch": epoch})
 			return
 
 		if bool(room.get("sealed", false)) and int(room.get("ended_at", 0)) == 0:
