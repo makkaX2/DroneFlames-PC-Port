@@ -22260,3 +22260,27 @@ msgstr "EN ESPERA DEL HORARIO"
 
 msgid "СЛЕДУЮЩИЙ РЕЙС ЧЕРЕЗ %d С · +%d ЗА ПОСАДКУ"
 msgstr "PRÓXIMO VUELO EN %d S · +%d POR ATERRIZAJE"
+
+msgid "Аэропорт можно построить со второго города"
+msgstr "El aeropuerto requiere al menos dos ciudades"
+
+msgid "Постройте аэропорт ближе к своему городу"
+msgstr "Construye el aeropuerto más cerca de una de tus ciudades"
+
+msgid "У города «%s» уже есть аэропорт"
+msgstr "%s ya tiene un aeropuerto"
+
+msgid "Расстояние между аэропортами должно быть не меньше %d м"
+msgstr "Los aeropuertos deben estar separados por al menos %d m"
+
+msgid "Аэропортов %d/%d. Для следующего нужно городов: %d"
+msgstr "Aeropuertos %d/%d. Ciudades necesarias para el siguiente: %d"
+
+msgid "НЕТ СВЯЗИ С ГОРОДОМ"
+msgstr "SIN CONEXIÓN CON LA CIUDAD"
+
+msgid "Городу рядом с аэропортом нужно электричество"
+msgstr "La ciudad cercana al aeropuerto necesita electricidad"
+
+msgid "ПАССАЖИРЫ %d · ГРУЗЫ %d · ЭКСПОРТ %d"
+msgstr "PASAJEROS %d · CARGA %d · EXPORTACIÓN %d"

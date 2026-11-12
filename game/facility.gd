@@ -35,6 +35,11 @@ var repair_t: float = 0.0
 var runway_free_at: float = 0.0
 var civil_next_arrival: float = -1.0
 var civil_last_arrival: float = -1.0
+var civil_city_id: int = -1
+var civil_flights: int = 0
+var civil_passengers: int = 0
+var civil_cargo: int = 0
+var civil_export: int = 0
 
 
 var missiles: int = 2

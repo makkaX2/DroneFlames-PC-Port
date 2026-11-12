@@ -246,6 +246,9 @@ func show_facility(f: Facility, mil: Military, player: Country) -> void :
 				info = Loc.t("РЕЗЕРВ ДЛЯ: %s") % (Loc.t(Military.title_of(f.parent.kind)).to_upper() if f.parent != null else "-")
 			Facility.Kind.CIV_AIRPORT:
 				info = CivilAirport.status(f, gw.country_by_id(f.country_id), mil, gw.game_time)
+				info += "\n" + Loc.t("ПАССАЖИРЫ %d · ГРУЗЫ %d · ЭКСПОРТ %d") % [
+					f.civil_passengers, f.civil_cargo, f.civil_export
+				]
 			Facility.Kind.AIRFIELD:
 				var based: Array[Aircraft] = mil.air.based_at(f)
 				var nb: int = 0

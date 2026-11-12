@@ -34059,3 +34059,27 @@ msgstr "AWAITING SCHEDULE"
 
 msgid "СЛЕДУЮЩИЙ РЕЙС ЧЕРЕЗ %d С · +%d ЗА ПОСАДКУ"
 msgstr "NEXT FLIGHT IN %d S · +%d PER LANDING"
+
+msgid "Аэропорт можно построить со второго города"
+msgstr "An airport requires at least two cities"
+
+msgid "Постройте аэропорт ближе к своему городу"
+msgstr "Build the airport closer to one of your cities"
+
+msgid "У города «%s» уже есть аэропорт"
+msgstr "%s already has an airport"
+
+msgid "Расстояние между аэропортами должно быть не меньше %d м"
+msgstr "Airports must be at least %d m apart"
+
+msgid "Аэропортов %d/%d. Для следующего нужно городов: %d"
+msgstr "Airports %d/%d. Cities required for the next one: %d"
+
+msgid "НЕТ СВЯЗИ С ГОРОДОМ"
+msgstr "NO CITY CONNECTION"
+
+msgid "Городу рядом с аэропортом нужно электричество"
+msgstr "The city near the airport needs power"
+
+msgid "ПАССАЖИРЫ %d · ГРУЗЫ %d · ЭКСПОРТ %d"
+msgstr "PASSENGERS %d · CARGO %d · EXPORT %d"

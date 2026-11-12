@@ -1,5 +1,7 @@
 extends "res://game/military/mil_base.gd"
 
+const CivilAirport = preload("res://game/civil_airport.gd")
+
 
 static func cost_of(kind: int) -> int:
 	return int(COSTS[kind])
@@ -82,6 +84,10 @@ func check_place(kind: int, nw: Vector2i, country: Country, parent: Facility = n
 			kind = Facility.Kind.URANIUM_MINE
 			sz = size_of(kind)
 	var d: WorldData = gw.data
+	if kind == Facility.Kind.CIV_AIRPORT:
+		var civil_reason: String = CivilAirport.site_reason(gw, country, nw + sz / 2)
+		if not civil_reason.is_empty():
+			return civil_reason
 	if gw.diplo != null and gw.diplo.get("sky") != null:
 		var skw: String = gw.diplo.sky.place_why(kind, nw, sz, country)
 		if skw != "":
@@ -361,6 +367,8 @@ func build(kind: int, center: Vector2i, country: Country, parent: Facility = nul
 		f.main_obj = gw.add_object(String(SPRITES[kind]), nw, okind)
 		f.obj_ids.append(f.main_obj)
 	match kind:
+		Facility.Kind.CIV_AIRPORT:
+			f.civil_city_id = CivilAirport.nearest_city(gw, country, center).id
 		Facility.Kind.DRONE_PORT:
 			for p: Array in _info("dp_base")["spots"]:
 				_add_spot(f, local_px(f.main_obj, p), f)
