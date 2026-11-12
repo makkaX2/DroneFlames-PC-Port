@@ -12,7 +12,7 @@ static func of(gw: GameWorld) -> String:
 	nums.append(float(gw.rng.state))
 	nums.append(float(gw.net_tick))
 	for c: Country in gw.countries:
-		for v: int in [c.id, c.money, c.fuel, c.titanium, c.metal, c.wood, c.oil, c.precious, c.food, c.goods, c.city_ids.size(), 1 if c.eliminated else 0, 1 if c.is_player else 0, c.uranium]:
+		for v: int in [c.id, c.money, c.fuel, c.titanium, c.metal, c.wood, c.oil, c.precious, c.food, c.goods, c.city_ids.size(), c.towns_founded, 1 if c.eliminated else 0, 1 if c.is_player else 0, c.uranium]:
 			nums.append(float(v))
 	nums.append(float(gw.mil.facilities.size()))
 	nums.append(float(gw.mil.drones.size()))
@@ -96,14 +96,14 @@ static func parts(gw: GameWorld) -> Dictionary:
 	out["rng"] = str(gw.rng.state)
 	var cs: PackedFloat64Array = PackedFloat64Array()
 	for c: Country in gw.countries:
-		for v: int in [c.money, c.fuel, c.titanium, c.metal, c.wood, c.oil, c.precious, c.food, c.goods, c.city_ids.size(), c.uranium]:
+		for v: int in [c.money, c.fuel, c.titanium, c.metal, c.wood, c.oil, c.precious, c.food, c.goods, c.city_ids.size(), c.towns_founded, c.uranium]:
 			cs.append(float(v))
 	out["countries"] = _h(cs.to_byte_array())
 	out["diplo"] = _h(diplo_nums(gw).to_byte_array())
 
 	var cl: Array = []
 	for c: Country in gw.countries:
-		cl.append([c.id, c.money, c.fuel, c.titanium, c.metal, c.wood, c.oil, c.precious, c.food, c.goods, c.city_ids.size(), c.uranium])
+		cl.append([c.id, c.money, c.fuel, c.titanium, c.metal, c.wood, c.oil, c.precious, c.food, c.goods, c.city_ids.size(), c.towns_founded, c.uranium])
 	out["clist"] = cl
 	var dd: Dictionary = {}
 	var dp: Diplomacy = gw.diplo

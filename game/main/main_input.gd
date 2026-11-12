@@ -98,7 +98,7 @@ func _tap(pos: Vector2) -> void :
 			var on_town: Callable = func(r: Variant) -> void :
 				var t: City = r as City
 				if t != null:
-					hud.show_toast(Loc.msg(Loc.mk("Основан город %s (-%d)", [Loc.name(t.name), Military.COST_TOWN])))
+					hud.show_toast(Loc.msg(Loc.mk("Основан город %s (-%d)", [Loc.name(t.name), Military.town_cost(world.player.towns_founded - 1)])))
 					var is_shift_town: bool = Input.is_key_pressed(KEY_SHIFT)
 					_set_mode(Mode.TOWN if is_shift_town else Mode.NONE)
 					hud.refresh()

@@ -3280,7 +3280,7 @@ static func _only_in(a: Variant, b: Variant) -> Array:
 func _diff_countries(a: Variant, b: Variant) -> String:
 	if not (a is Array) or not (b is Array) or (a as Array).size() != (b as Array).size():
 		return "countries?"
-	var names: Array = ["id", "money", "fuel", "titanium", "metal", "wood", "oil", "precious", "food", "goods", "cities", "uranium"]
+	var names: Array = ["id", "money", "fuel", "titanium", "metal", "wood", "oil", "precious", "food", "goods", "cities", "towns_founded", "uranium"]
 	var out: PackedStringArray = PackedStringArray()
 	for i in (a as Array).size():
 		var ea: Array = a[i]
