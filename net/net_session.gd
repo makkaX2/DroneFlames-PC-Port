@@ -823,7 +823,7 @@ func room_is_pub() -> bool:
 	return not slots.is_empty() and bool((slots[0] as Dictionary).get("pub", false))
 
 
-func join_online(code: String) -> String:
+func join_online(code: String, allow_late: bool = true) -> String:
 	var entry_error: String = _network_entry_error()
 	if entry_error != "":
 		return entry_error
@@ -837,7 +837,7 @@ func join_online(code: String) -> String:
 	_status("Ищем комнату %s..." % code.to_upper())
 	if not rtc.joined_room.is_connected(_on_rtc_joined):
 		rtc.joined_room.connect(_on_rtc_joined, CONNECT_ONE_SHOT)
-	rtc.join(code)
+	rtc.join(code, "", allow_late)
 	return ""
 
 

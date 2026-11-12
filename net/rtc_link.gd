@@ -97,8 +97,8 @@ func set_pub(pub: bool) -> void :
 	_send({"t": "set_pub", "pub": pub})
 
 
-func join(room: String, tok: String = "") -> void :
-	var msg: Dictionary = {"t": "join", "code": NetConfig.clean_code(room), "v": NetConfig.version(), "late": true,
+func join(room: String, tok: String = "", allow_late: bool = true) -> void :
+	var msg: Dictionary = {"t": "join", "code": NetConfig.clean_code(room), "v": NetConfig.version(), "late": allow_late,
 		"name": Account.username(), "auth_user": Account.username(), "auth_token": Account.token}
 	if tok != "":
 		msg["rejoin"] = true
