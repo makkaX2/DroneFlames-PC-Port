@@ -49,7 +49,7 @@ static func is_module(kind: int) -> bool:
 static func uses_power(kind: int) -> bool:
 	return kind == Facility.Kind.DRONE_FACTORY or kind == Facility.Kind.MISSILE_FACTORY or kind == Facility.Kind.DRONE_PORT or kind == Facility.Kind.REFINERY\
 	or kind == Facility.Kind.CIV_FACTORY or kind == Facility.Kind.MINE or kind == Facility.Kind.AD_RADAR or kind == Facility.Kind.AD_EW\
-	or kind == Facility.Kind.URANIUM_MINE
+	or kind == Facility.Kind.URANIUM_MINE or kind == Facility.Kind.CIV_AIRPORT
 
 
 
@@ -322,7 +322,7 @@ func build(kind: int, center: Vector2i, country: Country, parent: Facility = nul
 				d.set_biome(x, y, Biome.FIELD)
 			elif Defense.is_ad(kind) or kind == Facility.Kind.AD_RADAR or kind == Facility.Kind.AD_EW or is_field_work(kind):
 				pass
-			elif kind == Facility.Kind.AIRFIELD:
+			elif kind == Facility.Kind.AIRFIELD or kind == Facility.Kind.CIV_AIRPORT:
 				var lx: int = x - nw.x
 				d.set_biome(x, y, Biome.ROAD if y - nw.y == 4 and lx >= 2 and lx <= 27 else Biome.PLAZA)
 			elif kind != Facility.Kind.TEL and kind != Facility.Kind.COASTAL_ASM:
@@ -333,8 +333,7 @@ func build(kind: int, center: Vector2i, country: Country, parent: Facility = nul
 			for x in range(nw.x - 1, nw.x + f.size.x + 1):
 				if d.inside(x, y):
 					gw.remove_tree_at(Vector2i(x, y))
-	if kind == Facility.Kind.AIRFIELD:
-
+	if kind == Facility.Kind.AIRFIELD or kind == Facility.Kind.CIV_AIRPORT:
 		f.obj_ids.append(gw.add_object("airfield_runway", nw, GameWorld.KIND_PROP))
 		f.obj_ids.append(gw.add_object("airfield_hangar", nw + Vector2i(1, 7), GameWorld.KIND_BUILDING))
 		f.obj_ids.append(gw.add_object("airfield_hangar", nw + Vector2i(7, 7), GameWorld.KIND_BUILDING))

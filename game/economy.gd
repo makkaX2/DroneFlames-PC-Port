@@ -7,6 +7,7 @@ extends "res://game/economy/eco_trade.gd"
 
 
 const Cad344: = preload("res://game/cad344.gd")
+const Airport = preload("res://game/civil_airport.gd")
 
 
 func _init(world: GameWorld) -> void :
@@ -53,6 +54,9 @@ func _produce() -> void :
 	drop_spent()
 	_relocate_check()
 	for f: Facility in mil.facilities:
+		if f.kind == Facility.Kind.CIV_AIRPORT:
+			Airport.update_service(f, gw.country_by_id(f.country_id), self)
+			continue
 		if not mil.alive(f):
 			continue
 		var c: Country = gw.country_by_id(f.country_id)

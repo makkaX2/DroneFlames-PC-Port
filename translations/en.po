@@ -34035,3 +34035,27 @@ msgstr "AUTUMN"
 
 msgid "ЗИМА"
 msgstr "WINTER"
+
+msgid "АЭРОПОРТ"
+msgstr "AIRPORT"
+
+msgid "Гражданский аэропорт"
+msgstr "Civil airport"
+
+msgid "Гражданская авиация"
+msgstr "Civil aviation"
+
+msgid "ПРИНИМАЕТ ПАССАЖИРСКИЕ РЕЙСЫ И ПРИНОСИТ ДОХОД"
+msgstr "HANDLES PASSENGER FLIGHTS AND EARNS REVENUE"
+
+msgid "НЕБО ЗАКРЫТО НА ВРЕМЯ ВОЙНЫ"
+msgstr "AIRSPACE CLOSED DURING WAR"
+
+msgid "РЕЙСЫ ПРИОСТАНОВЛЕНЫ"
+msgstr "FLIGHTS SUSPENDED"
+
+msgid "ОЖИДАНИЕ РАСПИСАНИЯ"
+msgstr "AWAITING SCHEDULE"
+
+msgid "СЛЕДУЮЩИЙ РЕЙС ЧЕРЕЗ %d С · +%d ЗА ПОСАДКУ"
+msgstr "NEXT FLIGHT IN %d S · +%d PER LANDING"

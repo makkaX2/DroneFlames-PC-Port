@@ -1,5 +1,7 @@
 extends "res://ui/hud/hud_ops.gd"
 
+const CivilAirport = preload("res://game/civil_airport.gd")
+
 
 
 func _card(key: String, icon: String, title: String, sub: String, rows: bool, bars: bool, fac: bool) -> void :
@@ -242,6 +244,8 @@ func show_facility(f: Facility, mil: Military, player: Country) -> void :
 				detail = Loc.t("Сетки и бетон АЭС не защищают: держите рядом ЗРК и ПРО. Корпус выдерживает 2 удара дронов или КР (−25 %% мощности каждый), баллистика рушит его сразу. Без урана (1 на %d с) АЭС стоит. Разрушена — блэкаут, ремонт %d с; ремонт целой АЭС останавливает её на 90 с.") % [int(Nuclear.FUEL_S), int(Military.CRIT_RESTORE[Facility.Kind.NUCLEAR_PLANT])]
 			Facility.Kind.SOLAR:
 				info = Loc.t("РЕЗЕРВ ДЛЯ: %s") % (Loc.t(Military.title_of(f.parent.kind)).to_upper() if f.parent != null else "-")
+			Facility.Kind.CIV_AIRPORT:
+				info = CivilAirport.status(f, gw.country_by_id(f.country_id), mil, gw.game_time)
 			Facility.Kind.AIRFIELD:
 				var based: Array[Aircraft] = mil.air.based_at(f)
 				var nb: int = 0

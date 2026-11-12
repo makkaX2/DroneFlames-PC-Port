@@ -53,7 +53,7 @@ static func category_color(kind: int) -> Color:
 		Facility.Kind.BARRACKS, Facility.Kind.TRENCH_H, Facility.Kind.TRENCH_V, Facility.Kind.TEETH_H, \
 		Facility.Kind.TEETH_V, Facility.Kind.DUGOUT:
 			return CAT_ARMY
-		Facility.Kind.PORT, Facility.Kind.PORT_CRANE, Facility.Kind.RAIL_STATION:
+		Facility.Kind.PORT, Facility.Kind.PORT_CRANE, Facility.Kind.RAIL_STATION, Facility.Kind.CIV_AIRPORT:
 			return CAT_LOGI
 	return CAT_ECO
 

@@ -101,6 +101,7 @@ const AF_TAXI_Y: float = 18.0
 const AF_SPOTS: Array = [Vector2(58, 25), Vector2(72, 25), Vector2(86, 25), Vector2(100, 25), Vector2(58, 38), Vector2(72, 38), Vector2(86, 38), Vector2(100, 38)]
 
 const SIZES: Dictionary = {
+	Facility.Kind.CIV_AIRPORT: Vector2i(30, 14),
 	Facility.Kind.POLICE_STATION: Vector2i(6, 4),
 	Facility.Kind.NUCLEAR_PLANT: Vector2i(18, 11), Facility.Kind.URANIUM_MINE: Vector2i(6, 6), 
 	Facility.Kind.COASTAL_ASM: Vector2i(6, 2), 
@@ -119,6 +120,7 @@ const SIZES: Dictionary = {
 	Facility.Kind.TEETH_H: Vector2i(6, 2), Facility.Kind.TEETH_V: Vector2i(2, 6), Facility.Kind.DUGOUT: Vector2i(4, 3), 
 }
 const COSTS: Dictionary = {
+	Facility.Kind.CIV_AIRPORT: 3000,
 	Facility.Kind.POLICE_STATION: 700,
 	Facility.Kind.NUCLEAR_PLANT: 9000, Facility.Kind.URANIUM_MINE: 3200, 
 	Facility.Kind.NAVAL_BASE: 3000, Facility.Kind.COASTAL_ASM: 2200, 
@@ -132,6 +134,7 @@ const COSTS: Dictionary = {
 	Facility.Kind.TRENCH_H: 5, Facility.Kind.TRENCH_V: 5, Facility.Kind.TEETH_H: 10, Facility.Kind.TEETH_V: 10, Facility.Kind.DUGOUT: 350, 
 }
 const TITLES: Dictionary = {
+	Facility.Kind.CIV_AIRPORT: "Гражданский аэропорт",
 	Facility.Kind.POLICE_STATION: "Полицейский участок",
 	Facility.Kind.NUCLEAR_PLANT: "АЭС", Facility.Kind.URANIUM_MINE: "Урановая шахта", 
 	Facility.Kind.NAVAL_BASE: "Морская база", Facility.Kind.COASTAL_ASM: "Береговой ПКР-комплекс", 
@@ -148,6 +151,7 @@ const TITLES: Dictionary = {
 }
 
 const PURPOSE: Dictionary = {
+	Facility.Kind.CIV_AIRPORT: "ПРИНИМАЕТ ПАССАЖИРСКИЕ РЕЙСЫ И ПРИНОСИТ ДОХОД",
 	Facility.Kind.POLICE_STATION: "ПАТРУЛЬ ДО ЧЕТЫРЁХ МАШИН, ЗАЩИТА ОТ ВРАЖЕСКОЙ АРМИИ",
 	Facility.Kind.NUCLEAR_PLANT: "+40 ЭНЕРГИИ НА УРАНЕ — СЕТКИ И БЕТОН НЕ ЗАЩИЩАЮТ, НУЖНА ПВО", 
 	Facility.Kind.URANIUM_MINE: "ДОБЫВАЕТ УРАН НА РЕДКОЙ ЗАЛЕЖИ: ТОПЛИВО АЭС, ДОРОГО ПРОДАЁТСЯ", 
@@ -173,6 +177,7 @@ const PURPOSE: Dictionary = {
 	Facility.Kind.DUGOUT: "УКРЫТИЕ НА 3 БОЙЦОВ: ЛЕЧИТ, ЗАЩИТА x3", 
 }
 const SPRITES: Dictionary = {
+	Facility.Kind.CIV_AIRPORT: "airfield_runway",
 	Facility.Kind.POLICE_STATION: "barracks",
 	Facility.Kind.NUCLEAR_PLANT: "npp_core", Facility.Kind.URANIUM_MINE: "umine", 
 	Facility.Kind.NAVAL_BASE: "navbase", Facility.Kind.COASTAL_ASM: "coastal_asm", 
@@ -327,6 +332,7 @@ var dig_cells: Dictionary = {}
 
 
 const ICON_OF: Dictionary = {
+	Facility.Kind.CIV_AIRPORT: "icon_airfield_b",
 	Facility.Kind.DRONE_FACTORY: "icon_dronefactory", Facility.Kind.AIRFIELD: "icon_airfield_b", 
 	Facility.Kind.DRONE_PORT: "icon_droneport", Facility.Kind.DP_RAMP: "icon_ramp", Facility.Kind.DP_RUNWAY: "icon_dprunway", 
 	Facility.Kind.DP_STORE: "icon_store", Facility.Kind.TEL: "icon_tel", Facility.Kind.MISSILE_FACTORY: "icon_missile_factory", 

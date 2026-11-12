@@ -140,6 +140,8 @@ func _targets(c: Country, P: Dictionary) -> Array:
 	if gw.game_time > float(Navy.BASE_AT[clampi(diff, 0, 2)]) and gw.get("navy") != null and gw.navy._land_ok(c) and gw.navy.wants_navy(c):
 		t.append([Facility.Kind.NAVAL_BASE, 1, 0.75 + 0.25 * float(diff) + aggr * 0.3 + thr * 0.3 + 0.1 * float(rich)])
 	if gw.game_time > 240.0:
+		if basics and c.at_war.is_empty() and c.power_cap > c.power_use and c.money >= 6000:
+			t.append([Facility.Kind.CIV_AIRPORT, 1, (0.4 + trade * 0.55) * eco])
 		t.append([Facility.Kind.REFINERY, 1, 0.6 * eco])
 		t.append([Facility.Kind.PORT_CRANE, 2 if trade > 0.7 else 1, (0.3 + trade * 0.5) * eco])
 	if _count(c, Facility.Kind.DRONE_PORT) > 0 and gw.mil.stock_count(c.id) >= gw.mil.drone_capacity(c.id) - 1:

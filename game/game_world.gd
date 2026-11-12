@@ -101,6 +101,10 @@ func _ready() -> void :
 	units_air.gw = self
 	units_air.air = true
 	add_child(units_air)
+	var civil_air: Node2D = preload("res://world/civil_air_layer.gd").new()
+	civil_air.name = "CivilAir"
+	civil_air.gw = self
+	add_child(civil_air)
 	add_child(FogLayer.make(self))
 	add_child(OpsLayer.make(self))
 	add_child((load("res://world/sky_cover_layer.gd") as GDScript).call("make", self))

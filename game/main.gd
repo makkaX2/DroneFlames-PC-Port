@@ -756,7 +756,7 @@ func _on_action(nm: String) -> void :
 		"police_patrol":
 			if selected_fac != null and selected_fac.kind == Facility.Kind.POLICE_STATION:
 				_sim("army", "toggle_police_patrol", [selected_fac])
-		"police_station", "factory", "droneport", "tel", "mfactory", "refinery", "power", "airfield", "farm", "civ", "mine", "barracks", "ad_mfg", "ad_spaag", "ad_sam", "ad_patriot", "ad_int", "ad_radar", "ad_ew", "trench", "teeth", "dugout", "sawmill", "oil_rig", "port", "solar_farm", "navbase", "coastal_asm", "npp", "umine":
+		"civil_airport", "police_station", "factory", "droneport", "tel", "mfactory", "refinery", "power", "airfield", "farm", "civ", "mine", "barracks", "ad_mfg", "ad_spaag", "ad_sam", "ad_patriot", "ad_int", "ad_radar", "ad_ew", "trench", "teeth", "dugout", "sawmill", "oil_rig", "port", "solar_farm", "navbase", "coastal_asm", "npp", "umine":
 			var bm: int = BUILD_KEYS[nm]
 			if not _has_capital():
 				_set_mode(mode)

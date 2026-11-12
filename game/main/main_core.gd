@@ -80,7 +80,7 @@ func _set_mode(m: int) -> void :
 			hud.set_hint(Loc.t("ГОРОД %d: СВОБОДНАЯ ЗЕМЛЯ ДО 360 М ОТ СТРАНЫ") % Military.town_cost(world.player.towns_founded if world.player != null else 0))
 		Mode.STRIKE:
 			hud.set_hint("ТЕСТОВЫЙ УДАР: НАЖМИТЕ НА ЦЕЛЬ")
-		Mode.FACTORY, Mode.DRONEPORT, Mode.TEL, Mode.MFACTORY, Mode.REFINERY, Mode.POWER, Mode.AIRFIELD, Mode.SAWMILL, Mode.OIL_RIG, Mode.PORT, Mode.SOLAR_FARM, Mode.NAVBASE, Mode.NPP, Mode.UMINE:
+		Mode.FACTORY, Mode.DRONEPORT, Mode.TEL, Mode.MFACTORY, Mode.REFINERY, Mode.POWER, Mode.AIRFIELD, Mode.CIV_AIRPORT, Mode.SAWMILL, Mode.OIL_RIG, Mode.PORT, Mode.SOLAR_FARM, Mode.NAVBASE, Mode.NPP, Mode.UMINE:
 			var kind: int = BUILD_KIND[m]
 			var bc1: Dictionary = Economy.build_cost(kind)
 			if world.player != null and world.mil.has_method("price_of") and bc1.has("money"):
@@ -1100,7 +1100,8 @@ func _on_built(r: Variant, kind: int, shift_was_pressed: bool = false) -> void :
 	var keep_mode: int = mode if (repeat_building or is_shift) and BUILD_KIND.has(mode) and int(BUILD_KIND[mode]) == kind else Mode.NONE
 	_set_mode(keep_mode)
 	if keep_mode == Mode.NONE:
-		if kind == Facility.Kind.DRONE_PORT or kind == Facility.Kind.MISSILE_FACTORY or kind == Facility.Kind.AIRFIELD or kind == Facility.Kind.BARRACKS or kind == Facility.Kind.PORT or kind == Facility.Kind.DRONE_FACTORY:
+		if kind in [Facility.Kind.DRONE_PORT, Facility.Kind.MISSILE_FACTORY, Facility.Kind.AIRFIELD,
+			Facility.Kind.CIV_AIRPORT, Facility.Kind.BARRACKS, Facility.Kind.PORT, Facility.Kind.DRONE_FACTORY]:
 			selected_fac = f
 			_auto_card = f
 			_auto_card_t = 15.0

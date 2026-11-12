@@ -71,6 +71,7 @@ const RES_COST: Dictionary = {
 	"aircraft_3": {"titanium": 30, "metal": 15, "precious": 1}, 
 }
 const BUILD_COST: Dictionary = {
+	Facility.Kind.CIV_AIRPORT: {"metal": 30, "wood": 20},
 	Facility.Kind.DRONE_FACTORY: {"metal": 15, "wood": 10}, Facility.Kind.AIRFIELD: {"metal": 25, "wood": 20}, 
 	Facility.Kind.DRONE_PORT: {"metal": 6, "wood": 10}, Facility.Kind.DP_RAMP: {"metal": 4}, Facility.Kind.DP_RUNWAY: {"wood": 6}, 
 	Facility.Kind.DP_STORE: {"wood": 8}, Facility.Kind.TEL: {"metal": 15, "titanium": 5}, 
@@ -260,7 +261,7 @@ const SUB_MONEY_K: float = 2.0
 
 
 
-const STAT_NAMES: Dictionary = {"cities": "Города", "farm": "Колхозы", "civ": "Заводы товаров", "mine": "Рудники", 
+const STAT_NAMES: Dictionary = {"civil_aviation": "Гражданская авиация", "cities": "Города", "farm": "Колхозы", "civ": "Заводы товаров", "mine": "Рудники",
 	"oil_rig": "Нефтевышки", "sawmill": "Лесопилки", "refinery": "НПЗ", "fuel_sale": "Продажа топлива", 
 	"trade": "Торговля", "export": "Экспорт (порт)", "import": "Импорт (порт)", "surplus": "Излишки со склада", 
 	"build": "Стройка", "tourism": "Туризм (безвиз)", "tribute": "Уступки по требованиям", "subst": "Замена ресурсов", "aid": "Помощь", "army": "Армия", "drones": "Дроны", "missiles": "Ракеты", "aircraft": "Авиация", "upkeep": "Содержание", "plan": "План развития", "ad_fire": "ПВО: выстрелы"}

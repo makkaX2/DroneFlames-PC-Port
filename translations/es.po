@@ -22236,3 +22236,27 @@ msgstr "OTOÑO"
 
 msgid "ЗИМА"
 msgstr "INVIERNO"
+
+msgid "АЭРОПОРТ"
+msgstr "AEROPUERTO"
+
+msgid "Гражданский аэропорт"
+msgstr "Aeropuerto civil"
+
+msgid "Гражданская авиация"
+msgstr "Aviación civil"
+
+msgid "ПРИНИМАЕТ ПАССАЖИРСКИЕ РЕЙСЫ И ПРИНОСИТ ДОХОД"
+msgstr "RECIBE VUELOS DE PASAJEROS Y GENERA INGRESOS"
+
+msgid "НЕБО ЗАКРЫТО НА ВРЕМЯ ВОЙНЫ"
+msgstr "ESPACIO AÉREO CERRADO DURANTE LA GUERRA"
+
+msgid "РЕЙСЫ ПРИОСТАНОВЛЕНЫ"
+msgstr "VUELOS SUSPENDIDOS"
+
+msgid "ОЖИДАНИЕ РАСПИСАНИЯ"
+msgstr "EN ESPERA DEL HORARIO"
+
+msgid "СЛЕДУЮЩИЙ РЕЙС ЧЕРЕЗ %d С · +%d ЗА ПОСАДКУ"
+msgstr "PRÓXIMO VUELO EN %d S · +%d POR ATERRIZAJE"
