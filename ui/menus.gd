@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.31-test (PC Port by @droneflamesmod)"
+const VERSION: String = "v0.33.5.32-test (PC Port by @droneflamesmod)"
 
 const WHATS_NEW: Array = [
+	"СЕТЕВАЯ ИГРА v0.33.5.32-test: чат до начала матча, исключение игроков хостом",
 	"СЕТЕВАЯ ИГРА v0.33.5.30-test: исправлена обработка пакетов relay и подтверждений снапшота, повторная синхронизация теперь отслеживается отдельно для каждого игрока, моды временно выключаются при входе в сетевую игру",
 	"ТЕСТ v0.33.5.29-test: исправление бесконечной синхронизации на 10-15 минуте партии (сторожевой таймер 20с для сетевых снапшотов, сглаживание субпиксельных рассинхронов, передача слота ИИ при 3 сбоях вместо зависания хоста); автопроверка модов при входе в лобби с диалогом докачки недостающих модов; починка синтаксиса ядерного мода (nuclear_strike); плавная индикация загрузки и кнопка восстановления модов; автопоиск серверов в локальной сети и Radmin VPN (26.0.0.0/8)",
 	"ИНТЕРФЕЙС & ВИДЕО v0.33.5.2: панель склада поднята вплотную к верхней полосе, разграничены клики по ресурсам (деньги -> доходы, энергия -> цепочки, склад -> склад, зеленая полоса -> страна); адаптивный полноэкранный фон вступительного трейлера без черных полос; пасхалка на сплэш-скрине запуска (@droneflamesmod, @nufxa и уточка)",
@@ -2645,6 +2646,7 @@ func _mp_lobby_changed() -> void :
 		return
 	if current == "lobby" or current == "lobby_style":
 		if not net.active():
+			_lobby_chat_draft = ""
 			show_mp.call_deferred(net.status_text)
 		elif current == "lobby":
 			show_lobby.call_deferred()
@@ -2655,6 +2657,55 @@ func _mp_lobby_changed() -> void :
 	elif current == "mp_create" and net.active() and net.room_code != "":
 		show_lobby.call_deferred()
 
+
+
+var _lobby_chat_log: RichTextLabel
+var _lobby_chat_draft: String = ""
+var _lobby_chat_transport: int = 0
+
+
+func _refresh_lobby_chat() -> void:
+	if current != "lobby" or not is_instance_valid(_lobby_chat_log):
+		return
+	_lobby_chat_log.clear()
+	for message: Dictionary in net.lobby_chat:
+		_lobby_chat_log.add_text("%s · %s\n" % [message["name"], message["text"]])
+
+
+func _build_lobby_chat(parent: VBoxContainer) -> void:
+	var transport: int = net.multiplayer.multiplayer_peer.get_instance_id()
+	if _lobby_chat_transport != transport:
+		_lobby_chat_transport = transport
+		_lobby_chat_draft = ""
+	MpKit.section(parent, Loc.t("ЧАТ КОМНАТЫ"))
+	_lobby_chat_log = RichTextLabel.new()
+	_lobby_chat_log.custom_minimum_size.y = 108
+	_lobby_chat_log.scroll_following = true
+	_lobby_chat_log.selection_enabled = true
+	parent.add_child(_lobby_chat_log)
+	_refresh_lobby_chat()
+	if not net.lobby_chat_received.is_connected(_refresh_lobby_chat):
+		net.lobby_chat_received.connect(_refresh_lobby_chat)
+	var row := HBoxContainer.new()
+	parent.add_child(row)
+	var input := LineEdit.new()
+	input.placeholder_text = Loc.t("Сообщение…")
+	input.max_length = NetSession.LOBBY_CHAT_LENGTH
+	input.text = _lobby_chat_draft
+	input.editable = net.local_slot >= 0
+	input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(input)
+	var send := Button.new()
+	send.text = Loc.t("ОТПРАВИТЬ")
+	send.disabled = not input.editable
+	row.add_child(send)
+	input.text_changed.connect(func(value: String) -> void: _lobby_chat_draft = value)
+	var submit: Callable = func() -> void:
+		if net.send_lobby_chat(input.text):
+			input.clear()
+			_lobby_chat_draft = ""
+	input.text_submitted.connect(func(_text: String) -> void: submit.call())
+	send.pressed.connect(submit)
 
 
 func show_lobby(msg: String = "") -> void :
@@ -2711,7 +2762,10 @@ func show_lobby(msg: String = "") -> void :
 	for i in NetConfig.MAX_PLAYERS:
 		if i < net.slots.size():
 			var sl: Dictionary = net.slots[i]
-			var pl_row: PanelContainer = MpKit.slot_row(seats, i, String(sl.get("name", "?")), i == 0, i == net.local_slot, String(ArchStyle.NAMES[net.slot_arch(i)]), false, sl.get("cos", {}) if sl.get("cos") is Dictionary else {}, NetSession.clean_flag(sl.get("flag", "")))
+			var row := HBoxContainer.new()
+			seats.add_child(row)
+			var pl_row: PanelContainer = MpKit.slot_row(row, i, String(sl.get("name", "?")), i == 0, i == net.local_slot, String(ArchStyle.NAMES[net.slot_arch(i)]), false, sl.get("cos", {}) if sl.get("cos") is Dictionary else {}, NetSession.clean_flag(sl.get("flag", "")))
+			pl_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			var pl_name: String = String(sl.get("name", ""))
 			if pl_name != "":
 				pl_row.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -2720,8 +2774,27 @@ func show_lobby(msg: String = "") -> void :
 						UiKit.snd("ui_click")
 						_inspect_player(pl_name, sl.get("cos", {}) if sl.get("cos") is Dictionary else {}, func() -> void: show_lobby())
 				)
+			if net.is_host and i != net.local_slot:
+				var peer_id: int = int(sl["peer"])
+				var remove := Button.new()
+				remove.text = Loc.t("Исключить")
+				remove.tooltip_text = pl_name
+				row.add_child(remove)
+				remove.pressed.connect(func() -> void:
+					var transport: MultiplayerPeer = net.multiplayer.multiplayer_peer
+					var confirm := ConfirmationDialog.new()
+					confirm.dialog_text = Loc.f("Исключить игрока {name} из комнаты?", {"name": pl_name})
+					add_child(confirm)
+					confirm.confirmed.connect(func() -> void:
+						if current == "lobby" and net.multiplayer.multiplayer_peer == transport and net.slots.has(sl):
+							net.kick_lobby_player(peer_id)
+						confirm.queue_free())
+					confirm.canceled.connect(confirm.queue_free)
+					confirm.popup_centered())
+
 		else:
 			MpKit.slot_row(seats, i, "", false, false, "", i == net.slots.size())
+	_build_lobby_chat(vb)
 	if net.local_slot >= 0:
 		MpKit.style_row(vb, net.slot_arch(net.local_slot), func() -> void : show_lobby_style())
 	var st: String = msg
@@ -2754,6 +2827,7 @@ func show_lobby(msg: String = "") -> void :
 					lv.text = "ПОКИНУТЬ"
 					_paint_big(lv, "stone"))
 			return
+		_lobby_chat_draft = ""
 		net.leave()
 		show_mp())
 	if net.is_host:

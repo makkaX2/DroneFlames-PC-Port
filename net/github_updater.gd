@@ -13,7 +13,7 @@ signal download_failed(reason: String)
 @export var enabled: bool = true ## Активировать проверку при старте
 @export var repo_owner: String = "makkaX2"
 @export var repo_name: String = "DroneFlames-PC-Port"
-@export var current_version: String = "0.33.5.31-test"
+@export var current_version: String = "0.33.5.32-test"
 
 var latest_tag: String = ""
 var latest_changelog: String = ""
@@ -60,7 +60,7 @@ static func get_installed_version() -> String:
 			var v_str: String = String(m_cls.VERSION).get_slice(" ", 0).trim_prefix("v")
 			if v_str != "":
 				return v_str
-	return "0.33.5.31-test"
+	return "0.33.5.32-test"
 
 func _ready() -> void:
 	current_version = get_installed_version()

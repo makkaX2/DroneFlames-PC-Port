@@ -16,6 +16,7 @@ extends Node
 ## differs gets the host's snapshot (Save codec) and continues from there ("periodic sync").
 
 signal lobby_changed
+signal lobby_chat_received
 signal mods_required(required_mods: Array)
 signal player_left(nick: String, lost: bool)  # NET 29: a person left a running match (the AI took his country); lost = the link died
 signal status_changed(text: String)
@@ -91,6 +92,15 @@ var gw: GameWorld
 var lan: LanDiscovery
 var rtc: RtcLink
 var chat: DipChat  # CHAT (docs/CHAT.md): the people's diplomatic chat — UI only, never a lockstep command
+const LOBBY_CHAT_LENGTH: int = 240
+const LOBBY_CHAT_HISTORY: int = 40
+const LOBBY_CHAT_INTERVAL_MS: int = 750
+
+var lobby_chat: Array[Dictionary] = []
+var _lobby_chat_sent: Dictionary = {}
+var _lobby_chat_local_ms: int = -LOBBY_CHAT_INTERVAL_MS
+var _lobby_kicking: Dictionary = {}
+
 var mode: int = Mode.OFF
 var is_host: bool = false
 var in_match: bool = false
@@ -940,6 +950,10 @@ func leave(notify: bool = true, keep_status: bool = false, keep_rejoin: bool = f
 	slots = []
 	local_slot = -1
 	room_code = ""
+	lobby_chat.clear()
+	_lobby_chat_sent.clear()
+	_lobby_chat_local_ms = -LOBBY_CHAT_INTERVAL_MS
+	_lobby_kicking.clear()
 	_reset_lockstep()
 	if gw != null:
 		gw.net_driven = false
@@ -1053,6 +1067,8 @@ func _on_peer_connected(id: int) -> void:
 func _on_peer_disconnected(id: int) -> void:
 	if not is_host or _leaving or _swapping:
 		return
+	_lobby_chat_sent.erase(id)
+	_lobby_kicking.erase(id)
 	_last_snap.erase(id)
 	_last_snap_ms.erase(id)
 	_desync_streak.erase(id)
@@ -1075,8 +1091,15 @@ func _on_peer_disconnected(id: int) -> void:
 		if not go:
 			_mark_ready(-1)  # the start must not wait for someone who is gone
 	else:
-		slots.remove_at(s)
-		_roster.rpc(slots)
+		_remove_lobby_slot(s)
+		return
+	lobby_changed.emit()
+	lan.update_info({"n": slots.size()})
+
+
+func _remove_lobby_slot(slot: int) -> void:
+	slots.remove_at(slot)
+	_roster.rpc(slots)
 	lobby_changed.emit()
 	lan.update_info({"n": slots.size()})
 
@@ -1498,6 +1521,78 @@ func _tok_slot(tok: String) -> int:
 	return -1
 
 
+func send_lobby_chat(text: String) -> bool:
+	if not active() or in_match or local_slot < 0:
+		return false
+	text = _clean_lobby_chat(text)
+	var now: int = Time.get_ticks_msec()
+	if text.is_empty() or now - _lobby_chat_local_ms < LOBBY_CHAT_INTERVAL_MS:
+		return false
+	_lobby_chat_local_ms = now
+	if is_host:
+		_accept_lobby_chat(1, text)
+	else:
+		_lobby_chat_request.rpc_id(1, text)
+	return true
+
+
+static func _clean_lobby_chat(text: String) -> String:
+	return text.left(LOBBY_CHAT_LENGTH).replace("\n", " ").replace("\r", " ").replace("\t", " ").strip_edges()
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _lobby_chat_request(text: String) -> void:
+	if is_host and active() and not in_match:
+		_accept_lobby_chat(multiplayer.get_remote_sender_id(), text)
+
+
+func _accept_lobby_chat(peer_id: int, text: String) -> void:
+	var slot: int = _slot_of(peer_id)
+	if slot < 0 or _lobby_kicking.has(peer_id):
+		return
+	text = _clean_lobby_chat(text)
+	var now: int = Time.get_ticks_msec()
+	if text.is_empty() or now - int(_lobby_chat_sent.get(peer_id, -LOBBY_CHAT_INTERVAL_MS)) < LOBBY_CHAT_INTERVAL_MS:
+		return
+	_lobby_chat_sent[peer_id] = now
+	var sender: String = String(slots[slot]["name"])
+	_lobby_chat_add(sender, text)
+	for member: Dictionary in slots:
+		var target: int = int(member["peer"])
+		if target != 1 and multiplayer.get_peers().has(target):
+			_lobby_chat_add.rpc_id(target, sender, text)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _lobby_chat_add(sender: String, text: String) -> void:
+	if not active() or in_match:
+		return
+	lobby_chat.append({"name": sender, "text": text})
+	if lobby_chat.size() > LOBBY_CHAT_HISTORY:
+		lobby_chat.pop_front()
+	lobby_chat_received.emit()
+
+
+func kick_lobby_player(peer_id: int) -> bool:
+	if not active() or not is_host or in_match or not rtc.ranked.is_empty():
+		return false
+	var slot: int = _slot_of(peer_id)
+	var transport: MultiplayerPeer = multiplayer.multiplayer_peer
+	if peer_id <= 1 or slot < 1 or not multiplayer.get_peers().has(peer_id):
+		return false
+	_lobby_kicking[peer_id] = true
+	_kick.rpc_id(peer_id, "lobby_removed")
+	_flush_peer()
+	_remove_lobby_slot(slot)
+	get_tree().create_timer(0.75).timeout.connect(func() -> void:
+		if multiplayer.multiplayer_peer != transport or not _lobby_kicking.has(peer_id):
+			return
+		if multiplayer.get_peers().has(peer_id):
+			transport.disconnect_peer(peer_id)
+		_lobby_kicking.erase(peer_id))
+	return true
+
+
 func _slot_of(peer: int) -> int:
 	for i in slots.size():
 		if int(slots[i]["peer"]) == peer:
@@ -1510,6 +1605,8 @@ func _hello(ver: String, nm: String, arch: int = 0, tok: String = "", cos: Dicti
 	if not is_host:
 		return
 	var from: int = multiplayer.get_remote_sender_id()
+	if _lobby_kicking.has(from) or (not in_match and _slot_of(from) >= 0):
+		return
 	var why: String = ""  # R333 I18N: a code on the wire («full» / «running» / «version:<host>»); the guest words it (_kick_text)
 	if ver != NetConfig.version():
 		why = "version:" + NetConfig.version()
@@ -1619,6 +1716,8 @@ func _hello(ver: String, nm: String, arch: int = 0, tok: String = "", cos: Dicti
 	var clean: String = NetConfig.clean_nick(nm)
 	slots.append({"peer": from, "name": clean if clean != "" else "Player", "ready": true, "left": false, "arch": clampi(arch, 0, 3), "cos": _clean_cos(cos), "flag": clean_flag(flag)})
 	_roster.rpc(slots)
+	for message: Dictionary in lobby_chat:
+		_lobby_chat_add.rpc_id(from, message["name"], message["text"])
 	lan.update_info({"n": slots.size()})
 	_status("Игроков: %d" % slots.size())
 	if not rtc.ranked.is_empty() and slots.size() >= _ranked_size():
@@ -1652,6 +1751,8 @@ static func _kick_text(why: String) -> String:
 			return Loc.t("Партия уже идёт")
 		"full":
 			return Loc.t("Комната заполнена")
+		"lobby_removed":
+			return Loc.t("Хост исключил вас из комнаты")
 	return why
 
 

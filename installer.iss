@@ -2,7 +2,7 @@
 ; DroneFlames PC Port Installer & Updater by @good_boy_irl
 
 #ifndef MyAppVersion
-  #define MyAppVersion "0.33.5.31-test"
+  #define MyAppVersion "0.33.5.32-test"
 #endif
 #define MyAppPublisher "@droneflamesmod"
 #define MyAppURL "https://github.com/makkaX2/DroneFlames-PC-Port"
@@ -20,7 +20,7 @@
 #endif
 
 #ifndef SourceDir
-  #define SourceDir "build\DroneFlames_PC_v0.33.5.31-test_droneflamesmod"
+  #define SourceDir "build\DroneFlames_PC_v0.33.5.32-test_droneflamesmod"
 #endif
 
 #ifndef OutDir
