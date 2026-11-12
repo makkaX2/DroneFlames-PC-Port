@@ -36,7 +36,7 @@ func _get_game_version() -> String:
 			var json = JSON.parse_string(txt)
 			if json is Dictionary and json.has("version"):
 				return "v" + String(json["version"])
-	return "v0.33.5.32-test"
+	return "v0.33.5.33-test"
 
 func _setup_app_icon() -> void:
 	if _is_mobile():

@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.32-test (PC Port by @droneflamesmod)"
+const VERSION: String = "v0.33.5.33-test (PC Port by @droneflamesmod)"
 
 const WHATS_NEW: Array = [
+	"СЕТЕВАЯ ИГРА v0.33.5.33-test: кнопка чата рядом с лобби, отдельное окно и быстрые фразы",
 	"СЕТЕВАЯ ИГРА v0.33.5.32-test: чат до начала матча, исключение игроков хостом",
 	"СЕТЕВАЯ ИГРА v0.33.5.30-test: исправлена обработка пакетов relay и подтверждений снапшота, повторная синхронизация теперь отслеживается отдельно для каждого игрока, моды временно выключаются при входе в сетевую игру",
 	"ТЕСТ v0.33.5.29-test: исправление бесконечной синхронизации на 10-15 минуте партии (сторожевой таймер 20с для сетевых снапшотов, сглаживание субпиксельных рассинхронов, передача слота ИИ при 3 сбоях вместо зависания хоста); автопроверка модов при входе в лобби с диалогом докачки недостающих модов; починка синтаксиса ядерного мода (nuclear_strike); плавная индикация загрузки и кнопка восстановления модов; автопоиск серверов в локальной сети и Radmin VPN (26.0.0.0/8)",
@@ -160,6 +161,8 @@ func is_open() -> bool:
 
 
 func close() -> void :
+	_close_lobby_chat()
+	_lobby_chat_button = null
 	if _wn != null and is_instance_valid(_wn):
 		_wn.queue_free()
 	_wn = null
@@ -182,6 +185,8 @@ func close() -> void :
 
 
 func _process(delta: float) -> void :
+	if current == "lobby":
+		_update_lobby_chat_button()
 	_t += delta
 	if _pv_task >= 0 and WorkerThreadPool.is_task_completed(_pv_task):
 		_pv_done()
@@ -794,6 +799,10 @@ func _nav_row(parent: Control, title: String, hint: String, open: Callable) -> B
 
 
 func _input(event: InputEvent) -> void :
+	if is_instance_valid(_lobby_chat_overlay) and event.is_action_pressed("ui_cancel"):
+		_close_lobby_chat()
+		get_viewport().set_input_as_handled()
+		return
 	if _bind_waiting_action != "":
 		if event is InputEventKey and event.pressed and not event.echo:
 			var ek: InputEventKey = event as InputEventKey
@@ -2659,35 +2668,112 @@ func _mp_lobby_changed() -> void :
 
 
 
+const LOBBY_CHAT_QUICK: Array[String] = [
+	"Сыграем впятером?", "Давайте большую карту", "Готов к старту", "Подождите минуту"
+]
+var _lobby_chat_button: Button
+var _lobby_chat_overlay: Control
 var _lobby_chat_log: RichTextLabel
 var _lobby_chat_draft: String = ""
 var _lobby_chat_transport: int = 0
+var _lobby_chat_unread: int = 0
 
 
-func _refresh_lobby_chat() -> void:
-	if current != "lobby" or not is_instance_valid(_lobby_chat_log):
+func _update_lobby_chat_button() -> void:
+	if not is_instance_valid(_lobby_chat_button) or not is_instance_valid(_panel):
 		return
+	var rect: Rect2 = _panel.get_global_rect()
+	var button_size: Vector2 = _lobby_chat_button.get_combined_minimum_size()
+	var right: float = rect.end.x + 12.0
+	var outside: bool = right + button_size.x <= root.size.x - 8.0
+	var x: float = right if outside else rect.end.x - button_size.x - 10.0
+	_lobby_chat_button.global_position = Vector2(x, maxf(_sm.x + 8.0, rect.position.y + (48.0 if outside else 8.0)))
+
+
+func _update_lobby_chat_label() -> void:
+	if is_instance_valid(_lobby_chat_button):
+		_lobby_chat_button.text = Loc.t("ЧАТ") if _lobby_chat_unread == 0 else "%s · %d" % [Loc.t("ЧАТ"), _lobby_chat_unread]
+
+
+func _fill_lobby_chat() -> void:
 	_lobby_chat_log.clear()
 	for message: Dictionary in net.lobby_chat:
 		_lobby_chat_log.add_text("%s · %s\n" % [message["name"], message["text"]])
 
 
-func _build_lobby_chat(parent: VBoxContainer) -> void:
+func _refresh_lobby_chat() -> void:
+	if is_instance_valid(_lobby_chat_overlay) and is_instance_valid(_lobby_chat_log):
+		_fill_lobby_chat()
+	else:
+		_lobby_chat_unread = mini(NetSession.LOBBY_CHAT_HISTORY, _lobby_chat_unread + 1)
+		_update_lobby_chat_label()
+
+
+func _add_lobby_chat_button() -> void:
 	var transport: int = net.multiplayer.multiplayer_peer.get_instance_id()
 	if _lobby_chat_transport != transport:
 		_lobby_chat_transport = transport
 		_lobby_chat_draft = ""
-	MpKit.section(parent, Loc.t("ЧАТ КОМНАТЫ"))
-	_lobby_chat_log = RichTextLabel.new()
-	_lobby_chat_log.custom_minimum_size.y = 108
-	_lobby_chat_log.scroll_following = true
-	_lobby_chat_log.selection_enabled = true
-	parent.add_child(_lobby_chat_log)
-	_refresh_lobby_chat()
+		_lobby_chat_unread = 0
+	_lobby_chat_button = UiKit.big(Loc.t("ЧАТ"), "blue", "", 38.0, 12)
+	_lobby_chat_button.tooltip_text = Loc.t("Открыть чат комнаты")
+	screen.add_child(_lobby_chat_button)
+	_lobby_chat_button.pressed.connect(_open_lobby_chat)
+	_update_lobby_chat_label()
+	_update_lobby_chat_button()
 	if not net.lobby_chat_received.is_connected(_refresh_lobby_chat):
 		net.lobby_chat_received.connect(_refresh_lobby_chat)
+
+
+func _close_lobby_chat() -> void:
+	if is_instance_valid(_lobby_chat_overlay):
+		_lobby_chat_overlay.queue_free()
+	_lobby_chat_overlay = null
+	_lobby_chat_log = null
+
+
+func _open_lobby_chat(focus_input: bool = true) -> void:
+	if current != "lobby" or is_instance_valid(_lobby_chat_overlay):
+		return
+	_lobby_chat_unread = 0
+	_update_lobby_chat_label()
+	var overlay := ColorRect.new()
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0.02, 0.04, 0.09, 0.78)
+	screen.add_child(overlay)
+	_lobby_chat_overlay = overlay
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size.x = minf(580.0, root.size.x - 20.0)
+	panel.add_theme_stylebox_override("panel", UiKit.sb("wb_window", 16, 14))
+	center.add_child(panel)
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 8)
+	panel.add_child(content)
+	var header := HBoxContainer.new()
+	content.add_child(header)
+	var title: Label = UiKit.title(Loc.t("ЧАТ КОМНАТЫ"), 18)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title)
+	var close_button: Button = UiKit.close_btn(36.0)
+	close_button.tooltip_text = Loc.t("Закрыть чат")
+	header.add_child(close_button)
+	close_button.pressed.connect(_close_lobby_chat)
+
+	_lobby_chat_log = RichTextLabel.new()
+	_lobby_chat_log.custom_minimum_size.y = clampf(root.size.y * 0.40, 85.0, 320.0)
+	_lobby_chat_log.add_theme_stylebox_override("normal", UiKit.sb("wb_panel_dark", 8, 6))
+	_lobby_chat_log.scroll_following = true
+	_lobby_chat_log.selection_enabled = true
+	content.add_child(_lobby_chat_log)
+	_fill_lobby_chat()
+
+	var quick := HFlowContainer.new()
+	content.add_child(quick)
 	var row := HBoxContainer.new()
-	parent.add_child(row)
+	content.add_child(row)
 	var input := LineEdit.new()
 	input.placeholder_text = Loc.t("Сообщение…")
 	input.max_length = NetSession.LOBBY_CHAT_LENGTH
@@ -2695,8 +2781,7 @@ func _build_lobby_chat(parent: VBoxContainer) -> void:
 	input.editable = net.local_slot >= 0
 	input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(input)
-	var send := Button.new()
-	send.text = Loc.t("ОТПРАВИТЬ")
+	var send: Button = UiKit.big(Loc.t("ОТПРАВИТЬ"), "green", "", 40.0, 11)
 	send.disabled = not input.editable
 	row.add_child(send)
 	input.text_changed.connect(func(value: String) -> void: _lobby_chat_draft = value)
@@ -2706,6 +2791,13 @@ func _build_lobby_chat(parent: VBoxContainer) -> void:
 			_lobby_chat_draft = ""
 	input.text_submitted.connect(func(_text: String) -> void: submit.call())
 	send.pressed.connect(submit)
+	for phrase: String in LOBBY_CHAT_QUICK:
+		var quick_button: Button = UiKit.big(Loc.t(phrase), "stone", "", 30.0, 10)
+		quick_button.disabled = not input.editable
+		quick.add_child(quick_button)
+		quick_button.pressed.connect(func() -> void: net.send_lobby_chat(Loc.t(phrase)))
+	if focus_input and input.editable and not OS.has_feature("mobile"):
+		input.grab_focus()
 
 
 func show_lobby(msg: String = "") -> void :
@@ -2714,6 +2806,7 @@ func show_lobby(msg: String = "") -> void :
 	if not net.active():
 		show_mp(msg if msg != "" else net.status_text)
 		return
+	var reopen_chat: bool = current == "lobby" and is_instance_valid(_lobby_chat_overlay)
 	var vb: VBoxContainer = _screen("Комната", 0.45, current != "lobby")
 	current = "lobby"
 	_label(vb, "МОДЫ ВРЕМЕННО ОТКЛЮЧЕНЫ В СЕТЕВОЙ ИГРЕ", 10, UiKit.MUTED)
@@ -2794,7 +2887,6 @@ func show_lobby(msg: String = "") -> void :
 
 		else:
 			MpKit.slot_row(seats, i, "", false, false, "", i == net.slots.size())
-	_build_lobby_chat(vb)
 	if net.local_slot >= 0:
 		MpKit.style_row(vb, net.slot_arch(net.local_slot), func() -> void : show_lobby_style())
 	var st: String = msg
@@ -2846,6 +2938,10 @@ func show_lobby(msg: String = "") -> void :
 			request.emit("setup"))
 	else:
 		lv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	_add_lobby_chat_button()
+	if reopen_chat:
+		_open_lobby_chat(false)
 
 
 
