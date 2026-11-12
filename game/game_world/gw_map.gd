@@ -96,6 +96,10 @@ func draw_object(ci: CanvasItem, id: int, phase: int) -> void :
 		s = ds
 	elif st == 1 and spr_ruin[s] >= 0:
 		s = spr_ruin[s]
+	if knd == KIND_TREE and st == 0 and objects.autumn_level > 0 and objects.autumn_sprites.has(s):
+		var roll: int = Hash32.h2(obj_x[id], obj_y[id], data.world_seed) & 7
+		if roll < objects.autumn_level:
+			s = objects.autumn_sprites[s]
 	var r: Rect2 = spr_rect[s]
 	var fr: int = 0
 	var nf: int = spr_frames[s]

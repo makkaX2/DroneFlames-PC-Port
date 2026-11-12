@@ -8,6 +8,8 @@ var cw: int = 0
 var ch: int = 0
 var chunks: Array[ObjChunk] = []
 var sway_enabled: bool = true
+var autumn_sprites: Dictionary[int, int] = {}
+var autumn_level: int = 0
 var _sway_t: float = 0.0
 var _cursor: int = 0
 var cover_ver: int = 0
@@ -43,6 +45,16 @@ func setup(game_world: GameWorld) -> void :
 			c.left = chunks[j * cw + i - 1] if i > 0 else null
 			c.right = chunks[j * cw + i + 1] if i + 1 < cw else null
 	_tops.clear()
+	autumn_level = 0
+	autumn_sprites.clear()
+	for tree: String in Flora.DECID:
+		var gold: int = int(gw.spr_index.get(tree + "_gold", -1))
+		if gold < 0:
+			continue
+		for suffix: String in ["_green", "_lime"]:
+			var green: int = int(gw.spr_index.get(tree + suffix, -1))
+			if green >= 0:
+				autumn_sprites[green] = gold
 
 
 func chunk_at_cell(x: int, y: int) -> ObjChunk:
@@ -100,6 +112,16 @@ func _process(delta: float) -> void :
 		for c: ObjChunk in chunks:
 			if not c.visible:
 				c.visible = true
+
+	var leaves: int = 0
+	if gw.settings.seasons_enabled():
+		var turn: float = cos((gw.weather.phase - 2.35) * PI * 0.5)
+		leaves = roundi(smoothstep(0.25, 1.0, turn) * 8.0)
+	if leaves != autumn_level:
+		autumn_level = leaves
+		for chunk: ObjChunk in chunks:
+			if chunk.visible:
+				chunk.queue_redraw()
 
 	var budget: int = GUEST_BUDGET
 	for c: ObjChunk in chunks_in_rect(Rect2i(Vector2i(tl) - Vector2i(chunk_cells, chunk_cells), Vector2i(br - tl) + Vector2i(chunk_cells, chunk_cells) * 2)):

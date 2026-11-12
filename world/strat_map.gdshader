@@ -75,8 +75,12 @@ void fragment() {
 		int idx = clamp(int(texelFetch(terrain_idx, tc, li).r * 255.0 + 0.5), 0, 63);
 		vec3 base = pal[idx].rgb;
 		bool water = idx < 20;  // classes 0..4: deep, sea, shallow, lake, river
-		if (seasons_enabled && !water) {
-			base = seasonal_land(base, cf / world_size, 0.82);
+		if (seasons_enabled) {
+			if (idx >= 12 && idx < 20) { // classes 3 and 4: lake and river
+				base = seasonal_ice(base, cf / world_size, floor(cf));
+			} else if (!water) {
+				base = seasonal_land(base, cf / world_size, 0.82);
+			}
 		}
 		vec3 grey = vec3(dot(base, vec3(0.299, 0.587, 0.114)));
 		int o = owner_at(cf);

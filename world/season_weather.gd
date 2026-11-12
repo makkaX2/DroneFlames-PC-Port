@@ -86,9 +86,26 @@ func _on_cells_changed(_cells: Array) -> void:
 	_mask_dirty = _terrain_material != null
 
 
+static func surface_mask(data: WorldData) -> PackedByteArray:
+	if data.lakes.is_empty():
+		return data.biome
+	var cells: PackedByteArray = data.biome.duplicate()
+	for lake: Array in data.lakes:
+		var bounds: Rect2i = lake[0]
+		var mask: PackedByteArray = lake[1]
+		for y: int in bounds.size.y:
+			var map_row: int = (bounds.position.y + y) * data.w + bounds.position.x
+			var lake_row: int = y * bounds.size.x
+			for x: int in bounds.size.x:
+				var index: int = map_row + x
+				if mask[lake_row + x] != 0 and (cells[index] == Biome.SHALLOW or cells[index] == Biome.COAST):
+					cells[index] = Biome.RIVER
+	return cells
+
+
 func _refresh_mask() -> void:
 	var data: WorldData = gw.data
-	var image: Image = Image.create_from_data(data.w, data.h, false, Image.FORMAT_L8, data.biome)
+	var image: Image = Image.create_from_data(data.w, data.h, false, Image.FORMAT_L8, surface_mask(data))
 	if _biome_texture == null:
 		_biome_texture = ImageTexture.create_from_image(image)
 		_terrain_material.set_shader_parameter("biome_map", _biome_texture)

@@ -14,6 +14,14 @@ float climate_snow(vec2 uv) {
 	return smoothstep(0.50, 1.22, winter * 0.86 + climate_cold(uv));
 }
 
+vec3 seasonal_ice(vec3 base, vec2 uv, vec2 cell) {
+	float ice = smoothstep(0.30, 0.76, climate_snow(uv));
+	float texture_tone = sin((cell.x + cell.y * 0.46) * 0.37) * 0.018;
+	float shade = dot(base, vec3(0.299, 0.587, 0.114)) * 0.12;
+	vec3 frozen = vec3(0.53, 0.72, 0.82) + shade + texture_tone;
+	return mix(base, frozen, ice * 0.92);
+}
+
 vec3 seasonal_land(vec3 base, vec2 uv, float coverage) {
 	float autumn = smoothstep(0.25, 1.0, cos((season_phase - 2.35) * PI * 0.5));
 	float shade = dot(base, vec3(0.299, 0.587, 0.114));

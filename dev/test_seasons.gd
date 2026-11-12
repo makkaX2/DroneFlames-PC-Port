@@ -26,6 +26,15 @@ func _run() -> void:
 	Save.fill(restored, Save.dump(map))
 	assert(restored.season_start == 3 and restored.season_minutes == 2)
 
+	var sample := WorldData.new(4, 4, 42)
+	sample.biome.fill(Biome.SHALLOW)
+	sample.set_biome(1, 2, Biome.ROAD)
+	sample.lakes.append([Rect2i(1, 1, 2, 2), PackedByteArray([1, 0, 1, 2])])
+	var surface: PackedByteArray = preload("res://world/season_weather.gd").surface_mask(sample)
+	assert(surface[5] == Biome.RIVER and surface[10] == Biome.RIVER)
+	assert(surface[6] == Biome.SHALLOW and surface[9] == Biome.ROAD)
+	assert(sample.get_biome(1, 1) == Biome.SHALLOW, "Ice rendering must preserve the simulation biome")
+
 	var world := GameWorld.new()
 	root.add_child(world)
 	world.set_process(false)
@@ -47,6 +56,22 @@ func _run() -> void:
 	await process_frame
 	assert(not world.weather.visible)
 	assert(world.terrain.material is ShaderMaterial)
+
+	var camera := MapCamera.new()
+	world.camera = camera
+	world.add_child(camera)
+	camera.world_px = Vector2(256, 256) * GameWorld.CELL
+	camera.position = camera.world_px * 0.5
+	world.game_time = 402.0
+	await process_frame
+	await process_frame
+	world.objects._process(0.2)
+	assert(world.objects.autumn_level == 8 and not world.objects.autumn_sprites.is_empty())
+	world.game_time = 240.0
+	await process_frame
+	await process_frame
+	world.objects._process(0.2)
+	assert(world.objects.autumn_level == 0)
 
 	legacy.size = 256
 	world.new_world(legacy)
