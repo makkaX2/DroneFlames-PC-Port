@@ -743,6 +743,20 @@ func _stack_lights(f: Facility) -> PackedVector2Array:
 	return out
 
 
+func draw_strategic_glow(layer: CanvasItem, amount: float) -> void:
+	var view: Rect2 = _view()
+	var min_radius: float = 3.0 / gw.camera.zoom.x
+	for city: City in gw.cities:
+		if not city.powered:
+			continue
+		var center: Vector2 = Vector2(city.center * GameWorld.CELL)
+		var radius: float = maxf(min_radius, float(city.radius + 4) * GameWorld.CELL)
+		if view.grow(radius).has_point(center):
+			var size: Vector2 = Vector2.ONE * radius
+			var glow: Color = Color(0.97, 0.76, 0.42, amount * (0.46 if city.kind == City.Kind.CAPITAL else 0.29))
+			layer.draw_texture_rect(_glow, Rect2(center - size, size * 2.0), false, glow)
+
+
 func _draw_lights() -> void :
 	if factor <= 0.01 or gw.camera == null:
 		return

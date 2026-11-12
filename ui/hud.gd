@@ -571,6 +571,9 @@ func _process(delta: float) -> void :
 			race_lbl.add_theme_color_override("font_color", UiKit.GREEN if bool(ri.get("leader_is_player", false)) else (UiKit.RED if pct >= 0.8 else (UiKit.GOLD if pct >= 0.6 else UiKit.MUTED)))
 	if gw != null and gw.night != null:
 		clock_lbl.text = gw.night.clock_text()
+		if gw.settings != null and gw.settings.seasons_enabled():
+			var season_name: String = WorldSettings.SEASON_NAMES[floori(gw.weather.phase)]
+			clock_lbl.text += "\n" + Loc.t(season_name)
 	_news_tick()
 	if war_banner.visible and now > war_until:
 		var tw: Tween = war_banner.create_tween()

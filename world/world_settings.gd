@@ -24,4 +24,20 @@ const SIZE_PRESETS: Array = [[512, "МАЛЫЙ"], [1024, "СРЕДНИЙ"], [204
 @export var lakes: int = -1
 
 
+const SEASON_NAMES: Array[String] = ["ВЕСНА", "ЛЕТО", "ОСЕНЬ", "ЗИМА"]
+const SEASON_LENGTHS: Array[int] = [2, 4, 8]
+
+# Older saves lack this field and retain their original appearance.
+@export var season_start: int = -1
+@export var season_minutes: int = 4
+
 var layout_size: int = 0
+
+
+func seasons_enabled() -> bool:
+	return season_start >= 0 and season_start < SEASON_NAMES.size()
+
+
+func season_phase(game_time: float) -> float:
+	var seconds: float = float(clampi(season_minutes, 2, 8)) * 60.0
+	return fposmod(float(season_start) + maxf(game_time, 0.0) / seconds, 4.0)

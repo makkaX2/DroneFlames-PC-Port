@@ -104,6 +104,9 @@ static var econ_fx: bool = true
 static var day_grade: bool = true
 static var ground_detail: bool = true
 static var clouds: bool = true
+static var precipitation: bool = true
+static var season_start: int = 1
+static var season_length_i: int = 1
 static var fx_level: int = 1
 static var performance_mode: int = 1
 static var graphics_chosen: bool = false
@@ -271,6 +274,9 @@ static func apply_map(s: WorldSettings, consume: bool = false) -> void :
 			s.land_percent = int(custom_maps[custom_idx].get("land_percent", 50))
 	s.rivers = int(RIVERS[clampi(rivers_i, 0, 3)])
 	s.lakes = lakes_for(s.size)
+	if consume:
+		s.season_start = clampi(season_start, -1, WorldSettings.SEASON_NAMES.size() - 1)
+		s.season_minutes = WorldSettings.SEASON_LENGTHS[clampi(season_length_i, 0, WorldSettings.SEASON_LENGTHS.size() - 1)]
 
 
 static func score_target() -> int:

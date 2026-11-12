@@ -23,6 +23,8 @@ const HINT_S: float = 1.6
 var gw: GameWorld
 var mat: ShaderMaterial
 var marks: Node2D
+var city_glow: Node2D
+var _night_amount: float = -1.0
 var lo_tex: ImageTexture = null
 var _lo_dirty: bool = true
 var _lo_t: float = 99.0
@@ -65,6 +67,13 @@ func _ready() -> void :
 	material = mat
 	z_index = Z_MAP
 	visible = false
+	city_glow = Node2D.new()
+	city_glow.name = "CityGlow"
+	var glow_material := CanvasItemMaterial.new()
+	glow_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	city_glow.material = glow_material
+	city_glow.draw.connect(_draw_city_glow)
+	add_child(city_glow)
 	marks = Node2D.new()
 	marks.name = "StratHint"
 	marks.z_index = Z_LABELS + 1
@@ -120,10 +129,24 @@ func _process(delta: float) -> void :
 	if not is_equal_approx(px, _px):
 		_px = px
 		mat.set_shader_parameter("px_world", px)
+	var night_amount: float = gw.night.night_factor()
+	if mm != GameWorld.MapMode.NORMAL:
+		night_amount *= NightLayer.MODE_NIGHT_K
+	if not is_equal_approx(night_amount, _night_amount):
+		_night_amount = night_amount
+		mat.set_shader_parameter("night_amount", night_amount)
+	city_glow.visible = night_amount > 0.01
+	if city_glow.visible:
+		city_glow.queue_redraw()
 	_sync_t += delta
 	if _sync_t >= SYNC_DT:
 		_sync_t = 0.0
 		_sync()
+		var seasonal: bool = gw.settings.seasons_enabled()
+		mat.set_shader_parameter("seasons_enabled", seasonal)
+		if seasonal:
+			mat.set_shader_parameter("season_phase", gw.weather.phase)
+			mat.set_shader_parameter("climate_seed", gw.weather.climate_seed)
 	var full: bool = k >= 0.999
 	if full and not _full:
 		_hide_world()
@@ -147,6 +170,10 @@ func _process(delta: float) -> void :
 	if r != _rect:
 		_rect = r
 		queue_redraw()
+
+
+func _draw_city_glow() -> void:
+	gw.night.draw_strategic_glow(city_glow, _night_amount * _k)
 
 
 func _draw() -> void :

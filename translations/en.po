@@ -34014,3 +34014,24 @@ msgstr "Android: online multiplayer is open (open beta)"
 #: ui/menus.gd:12
 msgid "Оптимизация: карта рисуется быстрее — выше FPS и меньше нагрев на iPhone и Android, картинка та же"
 msgstr "Optimization: the map renders faster — higher FPS and less heat on iPhone and Android, same visuals"
+
+msgid "СЕЗОНЫ"
+msgstr "SEASONS"
+
+msgid "ДЛИТЕЛЬНОСТЬ СЕЗОНА"
+msgstr "SEASON LENGTH"
+
+msgid "ОСАДКИ"
+msgstr "PRECIPITATION"
+
+msgid "ВЕСНА"
+msgstr "SPRING"
+
+msgid "ЛЕТО"
+msgstr "SUMMER"
+
+msgid "ОСЕНЬ"
+msgstr "AUTUMN"
+
+msgid "ЗИМА"
+msgstr "WINTER"

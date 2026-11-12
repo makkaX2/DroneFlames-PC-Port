@@ -66,7 +66,10 @@ const TREE_NAMES: Dictionary = {
 	10: ["tree_pine_a", "bush_a", "tree_pine_b"], 
 }
 
+const SeasonWeather = preload("res://world/season_weather.gd")
+
 var settings: WorldSettings
+var weather: SeasonWeather
 var data: WorldData
 var atlas: SpriteAtlas
 var fx_atlas: SpriteAtlas

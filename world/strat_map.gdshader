@@ -1,5 +1,7 @@
 shader_type canvas_item;
 render_mode unshaded;
+
+#include "res://world/season_climate.gdshaderinc"
 // R332 ZOOM332 strategic map: the whole world as one quad (world/strat_layer.gd). Colour map (terrain box-filtered
 // to ~512 texels, strat_layer) + country tint + borders measured in SCREEN px on the owners texture (L8, 1 texel per
 // cell): dark outline | country colour band | light inner line; war borders as a pulsing red / ink hazard band;
@@ -24,6 +26,7 @@ uniform int map_mode = 0;
 uniform int player_id = 0;
 uniform float px_world = 8.0;  // world px per screen px
 uniform float fade = 1.0;
+uniform float night_amount = 0.0;
 uniform vec4 outline_col : source_color = vec4(0.043, 0.078, 0.188, 1.0);
 uniform vec4 war_col : source_color = vec4(0.91, 0.25, 0.165, 1.0);
 uniform vec4 sea_out : source_color = vec4(0.055, 0.094, 0.188, 1.0);
@@ -72,6 +75,9 @@ void fragment() {
 		int idx = clamp(int(texelFetch(terrain_idx, tc, li).r * 255.0 + 0.5), 0, 63);
 		vec3 base = pal[idx].rgb;
 		bool water = idx < 20;  // classes 0..4: deep, sea, shallow, lake, river
+		if (seasons_enabled && !water) {
+			base = seasonal_land(base, cf / world_size, 0.82);
+		}
 		vec3 grey = vec3(dot(base, vec3(0.299, 0.587, 0.114)));
 		int o = owner_at(cf);
 		bool mine = o > 0 && o == player_id;
@@ -161,6 +167,7 @@ void fragment() {
 		} else if (dmin < 1.5) {
 			col = mix(base, outline_col.rgb, 0.85);  // outer outline on unowned land / sea
 		}
-		COLOR = vec4(col, fade);
+		vec3 night_tint = mix(vec3(1.0), vec3(0.52, 0.60, 0.78), night_amount);
+		COLOR = vec4(col * night_tint, fade);
 	}
 }

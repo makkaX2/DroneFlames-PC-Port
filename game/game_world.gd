@@ -114,6 +114,10 @@ func _ready() -> void :
 	night.name = "Night"
 	night.gw = self
 	add_child(night)
+	weather = SeasonWeather.new()
+	weather.name = "Weather"
+	weather.gw = self
+	add_child(weather)
 	map_layer = MapModeLayer.make(self)
 	add_child(map_layer)
 	add_child(EconFxLayer.make(self))
@@ -233,6 +237,7 @@ func new_world(s: WorldSettings) -> void :
 	nature = preload("res://game/nature.gd").new(self)
 	border_noise = WorldGen._noise_layer(data.w, data.h, maxi(4, data.w / 40), s.world_seed + 4040)
 	terrain.build(data)
+	weather.reset()
 	territory_img = Image.create_from_data(data.w, data.h, false, Image.FORMAT_L8, data.owners)
 	territory_tex = ImageTexture.create_from_image(territory_img)
 	territory.texture = territory_tex

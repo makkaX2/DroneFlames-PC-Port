@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.37-test (PC Port by @droneflamesmod)"
+const VERSION: String = "v0.33.5.39-test (PC Port by @droneflamesmod)"
 
 const WHATS_NEW: Array = [
+	"МИР v0.33.5.39-test: смена сезонов, региональные дождь и снег, настройка сезона старта и длительности, ночные огни городов на стратегической карте. Первый этап переноса Android 0.40.5.",
 	"ОНЛАЙН v0.33.5.37-test: навигация при тайм-ауте, действия в профиле и настройки личных сообщений",
 	"ОНЛАЙН v0.33.5.36-test: вход, друзья, личные сообщения и приглашения в лобби",
 	"ПЛАТФОРМЫ v0.33.5.35-test: сборка Linux x86_64, установка из релиза и обновление из меню игры",
@@ -1513,6 +1514,18 @@ func show_setup() -> void :
 		_style_picker(vb)
 	_sep(vb, 4)
 	_section(vb, "ПРАВИЛА")
+	var seasons: Array = [Loc.t("ВЫКЛ")]
+	for season_name: String in WorldSettings.SEASON_NAMES:
+		seasons.append(Loc.t(season_name))
+	_selector(vb, "СЕЗОНЫ", seasons, func() -> int: return GameConfig.season_start + 1, func(i: int) -> void:
+		var was_enabled: bool = GameConfig.season_start >= 0
+		GameConfig.season_start = i - 1
+		if was_enabled != (i > 0):
+			show_setup.call_deferred())
+	if GameConfig.season_start >= 0:
+		var lengths: Array = WorldSettings.SEASON_LENGTHS.map(func(minutes: int) -> String: return Loc.t("%d МИН") % minutes)
+		_selector(vb, "ДЛИТЕЛЬНОСТЬ СЕЗОНА", lengths, func() -> int: return GameConfig.season_length_i, func(i: int) -> void:
+			GameConfig.season_length_i = i)
 	if mp_host:
 		var mp_bot_room: int = maxi(0, 8 - net.slots.size())
 		_selector(vb, "КАСТОМНЫЕ БОТЫ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.cb_on else 1, func(i: int) -> void :
@@ -3748,6 +3761,8 @@ func show_settings_sub(kind: String) -> void :
 		_selector(vb, "ДЕНЬ/НОЧЬ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.night else 1, func(i: int) -> void : GameConfig.night = i == 0, VW_SHORT)
 		_selector(vb, "ЦВЕТ СУТОК", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.day_grade else 1, func(i: int) -> void : GameConfig.day_grade = i == 0, VW_SHORT)
 		_selector(vb, "ОБЛАКА", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.clouds else 1, func(i: int) -> void : GameConfig.clouds = i == 0, VW_SHORT)
+		_selector(vb, "ОСАДКИ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.precipitation else 1, func(i: int) -> void:
+			GameConfig.precipitation = i == 0, VW_SHORT)
 		_selector(vb, "ЭФФЕКТЫ", ["НИЗКО", "НОРМА", "ВЫСОКО"], func() -> int: return GameConfig.fx_level, func(i: int) -> void : GameConfig.fx_level = i, VW_SHORT)
 		_selector(vb, "ДЕТАЛИ ЗЕМЛИ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.ground_detail else 1, func(i: int) -> void : GameConfig.ground_detail = i == 0, VW_SHORT)
 		_selector(vb, "ЦИФРЫ ДОХОДА", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.econ_fx else 1, func(i: int) -> void : GameConfig.econ_fx = i == 0, VW_SHORT)

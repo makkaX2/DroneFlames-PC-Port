@@ -22215,3 +22215,24 @@ msgstr ""
 #: ui/menus.gd
 msgid "ЭНЕРГОСБЕРЕЖЕНИЕ · 30 FPS"
 msgstr ""
+
+msgid "СЕЗОНЫ"
+msgstr "ESTACIONES"
+
+msgid "ДЛИТЕЛЬНОСТЬ СЕЗОНА"
+msgstr "DURACIÓN DE LA ESTACIÓN"
+
+msgid "ОСАДКИ"
+msgstr "PRECIPITACIÓN"
+
+msgid "ВЕСНА"
+msgstr "PRIMAVERA"
+
+msgid "ЛЕТО"
+msgstr "VERANO"
+
+msgid "ОСЕНЬ"
+msgstr "OTOÑO"
+
+msgid "ЗИМА"
+msgstr "INVIERNO"
