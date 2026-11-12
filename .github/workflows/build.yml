@@ -267,6 +267,7 @@ jobs:
           merge-multiple: true
 
       - name: Verify release inputs
+        id: release_inputs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.version_info.outputs.TAG_NAME }}
@@ -282,6 +283,9 @@ jobs:
           fi
           if [[ "$IS_TEST" != true ]]; then
             LATEST=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+            if [[ "$TAG" == "$LATEST" ]]; then
+              echo "stable_already_public=true" >> "$GITHUB_OUTPUT"
+            fi
             python3 - "$TAG" "$LATEST" <<'PYTHON'
           import sys
 
@@ -306,14 +310,16 @@ jobs:
             fi
           done
 
-      - name: Create or Update GitHub Release
+      - name: Upload Release Assets
+        if: steps.release_inputs.outputs.stable_already_public != 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version_info.outputs.TAG_NAME }}
           target_commitish: ${{ github.sha }}
           fail_on_unmatched_files: true
           name: ${{ steps.version_info.outputs.RELEASE_TITLE }}
-          make_latest: ${{ steps.version_info.outputs.IS_TEST != 'true' }}
+          draft: ${{ steps.version_info.outputs.IS_TEST != 'true' }}
+          make_latest: false
           prerelease: ${{ steps.version_info.outputs.IS_TEST == 'true' }}
           files: |
             dist/*.exe
@@ -325,6 +331,13 @@ jobs:
             Сборка DroneFlames ${{ steps.version_info.outputs.TAG_NAME }} из коммита ${{ github.sha }}.
             Установщики и архивы для каждой платформы перечислены в Assets.
             Если Android отклоняет обновление из-за несовместимой подписи, экспортируйте сохранения перед переустановкой.
+
+      - name: Publish stable draft after uploads
+        if: steps.version_info.outputs.IS_TEST != 'true' && steps.release_inputs.outputs.stable_already_public != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version_info.outputs.TAG_NAME }}
+        run: gh release edit "$TAG" --draft=false --latest
 
       - name: Verify stable update endpoint
         if: steps.version_info.outputs.IS_TEST != 'true'
