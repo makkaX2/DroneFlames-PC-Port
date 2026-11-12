@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.37-test (PC Port by @droneflamesmod)"
+const VERSION: String = "v0.33.5.38 (PC Port by @droneflamesmod)"
 
 const WHATS_NEW: Array = [
+	"ОНЛАЙН v0.33.5.38: друзья, личные сообщения, приглашения, синхронизация профиля и исправления подключения",
 	"ОНЛАЙН v0.33.5.37-test: навигация при тайм-ауте, действия в профиле и настройки личных сообщений",
 	"ОНЛАЙН v0.33.5.36-test: вход, друзья, личные сообщения и приглашения в лобби",
 	"ПЛАТФОРМЫ v0.33.5.35-test: сборка Linux x86_64, установка из релиза и обновление из меню игры",
