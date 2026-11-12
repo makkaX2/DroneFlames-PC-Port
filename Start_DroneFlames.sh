@@ -7,7 +7,7 @@ if [[ -n "${DRONEFLAMES_DRIVER:-}" ]]; then
 fi
 if [[ -f "$dir/DroneFlames.pck" ]]; then
     export DF_LINUX_INSTALLER="$dir/install.sh"
-    exec "$dir/DroneFlames.x86_64" --main-pack "$dir/DroneFlames.pck" "${args[@]}" "$@"
+    exec "$dir/DroneFlames.x86_64" "${args[@]}" "$@"
 fi
 if [[ -x "$dir/DroneFlames.x86_64" && -f "$dir/project.godot" ]]; then
     exec "$dir/DroneFlames.x86_64" --path "$dir" "${args[@]}" "$@"
