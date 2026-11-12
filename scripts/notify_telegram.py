@@ -80,6 +80,12 @@ if apk_files:
     artifact_lines.append(f"- android: {aname}")
     dl_buttons.append({"text": "[android apk]", "url": dl_url(apk_files[0])})
 
+linux_files = files("DroneFlames_Linux_x86_64_*.tar.gz")
+if linux_files:
+    name = os.path.basename(linux_files[0])
+    artifact_lines.append(f"- linux: {name}")
+    dl_buttons.append({"text": "[linux x86_64]", "url": dl_url(linux_files[0])})
+
 if not artifact_lines:
     artifact_lines.append("- (no files)")
 

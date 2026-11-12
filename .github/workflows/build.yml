@@ -215,18 +215,49 @@ jobs:
           path: dist/*.apk
           if-no-files-found: error
 
+  build-linux:
+    if: inputs.notify_tag == ''
+    name: Build Linux x86_64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Godot and Linux export template
+        run: |
+          mkdir -p godot_bin ~/.local/share/godot/export_templates/4.7.2.stable
+          base=https://github.com/godotengine/godot/releases/download/4.7.2-stable
+          curl -fL --retry 5 --retry-all-errors "$base/Godot_v4.7.2-stable_linux.x86_64.zip" -o godot_bin/godot.zip
+          curl -fL --retry 5 --retry-all-errors "$base/Godot_v4.7.2-stable_export_templates.tpz" -o godot_bin/templates.tpz
+          unzip -q godot_bin/godot.zip -d godot_bin
+          unzip -j -q godot_bin/templates.tpz templates/linux_release.x86_64 -d ~/.local/share/godot/export_templates/4.7.2.stable
+      - name: Export Linux package
+        run: |
+          mkdir -p dist build/linux
+          VERSION=$(python3 -c "import build; print(build.VERSION)")
+          ./godot_bin/Godot_v4.7.2-stable_linux.x86_64 --headless --export-release Linux build/linux/DroneFlames.x86_64
+          cp install.sh Start_DroneFlames.sh icon.png version_info.json build/linux/
+          tar -C build/linux -czf "dist/DroneFlames_Linux_x86_64_v${VERSION}_droneflamesmod.tar.gz" \
+            DroneFlames.x86_64 DroneFlames.pck Start_DroneFlames.sh install.sh icon.png version_info.json
+      - name: Test Linux installation and startup
+        run: python3 dev/test_linux_install.py dist/DroneFlames_Linux_x86_64_*.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
   release:
     name: Publish GitHub Release
     concurrency:
       group: droneflames-release-${{ (github.ref == 'refs/heads/test' || endsWith(github.ref, '-test')) && 'test' || 'stable' }}
       cancel-in-progress: false
-    needs: [build-windows, build-macos, build-android]
+    needs: [build-windows, build-macos, build-android, build-linux]
     runs-on: ubuntu-latest
     if: |
       always() &&
       needs.build-windows.result == 'success' &&
       needs.build-macos.result == 'success' &&
       needs.build-android.result == 'success' &&
+      needs.build-linux.result == 'success' &&
       (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/test' || startsWith(github.ref, 'refs/tags/'))
 
     steps:
@@ -303,7 +334,8 @@ jobs:
             "DroneFlames_PC_v${VER}_droneflamesmod.zip" \
             "DroneFlames_macOS_v${VER}_droneflamesmod.dmg" \
             "DroneFlames_macOS_v${VER}_droneflamesmod.zip" \
-            "DroneFlames_v${VER}_droneflamesmod.apk"; do
+            "DroneFlames_v${VER}_droneflamesmod.apk" \
+            "DroneFlames_Linux_x86_64_v${VER}_droneflamesmod.tar.gz"; do
             if [[ ! -s "dist/$asset" ]]; then
               echo "::error::Missing release asset $asset"
               exit 1
@@ -326,10 +358,12 @@ jobs:
             dist/*.zip
             dist/*.dmg
             dist/*.apk
+            dist/*.tar.gz
           generate_release_notes: true
           body: |
             Сборка DroneFlames ${{ steps.version_info.outputs.TAG_NAME }} из коммита ${{ github.sha }}.
             Установщики и архивы для каждой платформы перечислены в Assets.
+            [Установка и обновление на Linux](https://github.com/makkaX2/DroneFlames-PC-Port/blob/${{ github.sha }}/README.md#запуск)
             Если Android отклоняет обновление из-за несовместимой подписи, экспортируйте сохранения перед переустановкой.
 
       - name: Publish stable draft after uploads

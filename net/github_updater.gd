@@ -13,7 +13,7 @@ signal download_failed(reason: String)
 @export var enabled: bool = true ## Активировать проверку при старте
 @export var repo_owner: String = "makkaX2"
 @export var repo_name: String = "DroneFlames-PC-Port"
-@export var current_version: String = "0.33.5.34-test"
+@export var current_version: String = "0.33.5.35-test"
 
 var latest_tag: String = ""
 var latest_changelog: String = ""
@@ -60,7 +60,7 @@ static func get_installed_version() -> String:
 			var v_str: String = String(m_cls.VERSION).get_slice(" ", 0).trim_prefix("v")
 			if v_str != "":
 				return v_str
-	return "0.33.5.34-test"
+	return "0.33.5.35-test"
 
 func _ready() -> void:
 	current_version = get_installed_version()
@@ -131,6 +131,9 @@ func _on_check_request_completed(result: int, response_code: int, _headers: Pack
 	latest_tag = String(release["tag_name"]).trim_prefix("v")
 	latest_changelog = String(release.get("body", ""))
 	var asset: Dictionary = select_asset(release.get("assets", []), OS.get_name())
+	if OS.get_name() == "Linux" and asset.is_empty():
+		no_update_found.emit()
+		return
 	latest_url = String(asset.get("browser_download_url", ""))
 	latest_asset_name = String(asset.get("name", ""))
 	is_update_ready = true
@@ -162,6 +165,9 @@ static func select_asset(assets: Array, platform: String) -> Dictionary:
 			continue
 		var name: String = String(asset.get("name", "")).to_lower()
 		match platform:
+			"Linux":
+				if name.begins_with("droneflames_linux_x86_64_v") and name.ends_with("_droneflamesmod.tar.gz"):
+					return asset
 			"Android":
 				if name.ends_with(".apk"):
 					return asset
@@ -176,6 +182,28 @@ static func select_asset(assets: Array, platform: String) -> Dictionary:
 				if name.begins_with("droneflames_pc_") and name.ends_with(".zip"):
 					fallback = asset
 	return fallback
+
+
+func start_linux_update() -> bool:
+	var installer: String = OS.get_environment("DF_LINUX_INSTALLER")
+	if OS.get_name() != "Linux" or not installer.is_absolute_path() or not FileAccess.file_exists(installer):
+		return false
+	var channel: String = "test" if current_version.ends_with("-test") else "stable"
+	var terminals: Dictionary = {
+		"xdg-terminal-exec": ["--"], "gnome-terminal": ["--"], "konsole": ["-e"],
+		"xfce4-terminal": ["-x"], "kitty": [], "alacritty": ["-e"], "foot": [], "xterm": ["-e"],
+	}
+	for terminal: String in terminals:
+		for directory: String in OS.get_environment("PATH").split(":", false):
+			var executable: String = directory.path_join(terminal)
+			if not executable.is_absolute_path() or not FileAccess.file_exists(executable):
+				continue
+			var args := PackedStringArray(terminals[terminal])
+			args.append_array(["bash", installer, "--channel", channel, "--terminal"])
+			if OS.create_process(executable, args) > 0:
+				get_tree().quit()
+				return true
+	return false
 
 
 ## Скачать файл обновления в папку пользовательских данных

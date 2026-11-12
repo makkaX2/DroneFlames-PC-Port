@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.34-test (PC Port by @droneflamesmod)"
+const VERSION: String = "v0.33.5.35-test (PC Port by @droneflamesmod)"
 
 const WHATS_NEW: Array = [
+	"ПЛАТФОРМЫ v0.33.5.35-test: сборка Linux x86_64, установка из релиза и обновление из меню игры",
 	"БАЛАНС v0.33.5.34-test: каждый основанный город повышает цену следующего на 250 до максимума в 2000",
 	"СЕТЕВАЯ ИГРА v0.33.5.33-test: кнопка чата рядом с лобби, отдельное окно и быстрые фразы",
 	"СЕТЕВАЯ ИГРА v0.33.5.32-test: чат до начала матча, исключение игроков хостом",
@@ -3247,10 +3248,18 @@ func show_update_dialog(tag: String = "", changelog: String = "", dl_url: String
 		nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cl_vb.add_child(nl)
 
-	var dl_btn: Button = UiKit.big("СКАЧАТЬ ОБНОВЛЕНИЕ " + file_label, "green", "", 44.0, 13)
+	var linux: bool = OS.get_name() == "Linux"
+	var download_title: String = "ОБНОВИТЬ В ТЕРМИНАЛЕ" if linux else "СКАЧАТЬ ОБНОВЛЕНИЕ " + file_label
+	var dl_btn: Button = UiKit.big(download_title, "green", "", 44.0, 13)
 	dl_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dl_btn.pressed.connect(func() -> void:
 		UiKit.snd("ui_click")
+		if linux:
+			if up is GitHubUpdater and up.start_linux_update():
+				return
+			OS.shell_open(gh_url)
+			dl_btn.text = "ОТКРЫТА СТРАНИЦА УСТАНОВКИ"
+			return
 		OS.shell_open(dl_url)
 		dl_btn.text = "✓ СКАЧИВАНИЕ ФАЙЛА НАЧАТО В БРАУЗЕРЕ"
 		dl_btn.disabled = true
