@@ -60,8 +60,6 @@ FOLDERS = [
 ROOT_FILES = [
     "app_icon.ico",
     "assets.sparsepck",
-    "DroneFlames.exe",
-    "DroneFlames_Debug.exe",
     "icon.png",
     "icon.svg",
     "icon_ios.png",
@@ -69,6 +67,7 @@ ROOT_FILES = [
     "splash.png",
     "watermark.gd",
     "Start_DroneFlames.bat",
+    "Play_DroneFlames_Debug.bat",
     "PORT_CREDITS_good_boy_irl.txt",
     "PORT_BY_GOOD_BOY_IRL.txt",
     "version_info.json",
@@ -97,6 +96,18 @@ def find_iscc() -> str | None:
 def main():
     print(f"=== Building {APP_NAME} PC Port v{VERSION} by @{PUBLISHER} ===")
     
+    if sys.platform == "win32":
+        godot_path = os.environ.get("DF_GODOT_WINDOWS") or shutil.which("godot")
+        if not godot_path:
+            raise SystemExit("Install Godot 4.7.2 or set DF_GODOT_WINDOWS to its Windows executable.")
+        engine = Path(godot_path).resolve(strict=True)
+        console = engine.with_name(engine.stem + "_console.exe")
+        if not console.is_file():
+            raise SystemExit(f"Godot console launcher missing: {console}")
+        engine_version = subprocess.check_output([str(console), "--version"], text=True).strip()
+        if not engine_version.startswith("4.7.2.stable."):
+            raise SystemExit(f"Expected Godot 4.7.2 stable, found {engine_version}")
+
     # 1. Clean and prepare directories
     if STAGE_DIR.exists():
         print(f"Cleaning existing stage dir: {STAGE_DIR}")
@@ -143,6 +154,10 @@ def main():
         else:
             print(f"  [Warning] Missing file: {f}")
 
+    if sys.platform == "win32":
+        shutil.copy2(engine, STAGE_DIR / "DroneFlames.exe")
+        shutil.copy2(console, STAGE_DIR / "DroneFlames_console.exe")
+
     # Ensure Start_DroneFlames.bat is in stage
     stage_launcher = STAGE_DIR / "Start_DroneFlames.bat"
     if not stage_launcher.exists():
@@ -180,7 +195,7 @@ def main():
             ]
             res = subprocess.run(cmd)
             if res.returncode == 0:
-                setup_exe = DIST_DIR / f"{APP_NAME}_PC_Setup_v{VERSION}_good_boy_irl.exe"
+                setup_exe = DIST_DIR / f"{APP_NAME}_PC_Setup_v{VERSION}_droneflamesmod.exe"
                 if setup_exe.exists():
                     setup_size_mb = setup_exe.stat().st_size / (1024 * 1024)
                     print(f"  [OK] Windows Installer created: {setup_exe.name} ({setup_size_mb:.2f} MB)")

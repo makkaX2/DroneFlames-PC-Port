@@ -2,9 +2,9 @@
 ; DroneFlames PC Port Installer & Updater by @good_boy_irl
 
 #ifndef MyAppVersion
-  #define MyAppVersion "0.33.5.30-test"
+  #define MyAppVersion "0.33.5.31-test"
 #endif
-#define MyAppPublisher "@good_boy_irl"
+#define MyAppPublisher "@droneflamesmod"
 #define MyAppURL "https://github.com/makkaX2/DroneFlames-PC-Port"
 #define MyAppExeName "DroneFlames.exe"
 #ifdef TestBuild
@@ -20,7 +20,7 @@
 #endif
 
 #ifndef SourceDir
-  #define SourceDir "build\DroneFlames_PC_v0.33.5.30-test_droneflamesmod"
+  #define SourceDir "build\DroneFlames_PC_v0.33.5.31-test_droneflamesmod"
 #endif
 
 #ifndef OutDir
@@ -40,7 +40,7 @@ DefaultDirName={autopf}\{#MyAppDir}
 DefaultGroupName={#MyAppName} (PC Port by {#MyAppPublisher})
 AllowNoIcons=yes
 OutputDir={#OutDir}
-OutputBaseFilename=DroneFlames_PC_Setup_v{#MyAppVersion}_good_boy_irl
+OutputBaseFilename=DroneFlames_PC_Setup_v{#MyAppVersion}_droneflamesmod
 SetupIconFile=app_icon.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -55,7 +55,7 @@ UsePreviousGroup=yes
 UsePreviousTasks=yes
 DisableDirPage=auto
 CloseApplications=yes
-CloseApplicationsFilter=DroneFlames.exe,DroneFlames_Debug.exe
+CloseApplicationsFilter=DroneFlames.exe,DroneFlames_console.exe
 RestartApplications=no
 AppMutex=DroneFlames_PC_Port_good_boy_irl
 
@@ -116,7 +116,7 @@ Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--path ""{app}"""; WorkingDir: "{app}"; IconFilename: "{app}\app_icon.ico"; Tasks: desktopicon
 
 ; Debug Console Launcher
-Name: "{group}\{cm:DebugModeTitle}"; Filename: "{app}\DroneFlames_Debug.exe"; Parameters: "--path ""{app}"""; WorkingDir: "{app}"; IconFilename: "{app}\app_icon.ico"
+Name: "{group}\{cm:DebugModeTitle}"; Filename: "{app}\DroneFlames_console.exe"; Parameters: "--path ""{app}"""; WorkingDir: "{app}"; IconFilename: "{app}\app_icon.ico"
 
 ; Credits & Release info
 Name: "{group}\{cm:CreditsTitle}"; Filename: "{app}\PORT_CREDITS_good_boy_irl.txt"

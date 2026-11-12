@@ -6,7 +6,7 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.30-test (PC Port by @droneflamesmod)"
+const VERSION: String = "v0.33.5.31-test (PC Port by @droneflamesmod)"
 
 const WHATS_NEW: Array = [
 	"СЕТЕВАЯ ИГРА v0.33.5.30-test: исправлена обработка пакетов relay и подтверждений снапшота, повторная синхронизация теперь отслеживается отдельно для каждого игрока, моды временно выключаются при входе в сетевую игру",

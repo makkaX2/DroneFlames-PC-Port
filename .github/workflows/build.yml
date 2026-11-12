@@ -2,15 +2,20 @@ name: Automated Build & Release
 
 on:
   push:
-    branches: [ "master", "main", "test" ]
-    tags: [ "v*" ]
+    branches: [ "master", "test" ]
   workflow_dispatch:
+    inputs:
+      notify_tag:
+        description: 'Announce an already published test release'
+        required: false
+        type: string
 
 permissions:
   contents: write
 
 jobs:
   build-windows:
+    if: inputs.notify_tag == ''
     name: Build Windows PC Port
     runs-on: windows-latest
 
@@ -24,6 +29,19 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Install pinned Godot for Windows packaging
+        shell: pwsh
+        run: |
+          $dfGodotVersion = '4.7.2'
+          $dfArchive = Join-Path $env:RUNNER_TEMP 'droneflames-godot-windows.zip'
+          $dfEngine = Join-Path $env:RUNNER_TEMP 'droneflames-godot-windows'
+          curl.exe --fail --location --retry 5 --output $dfArchive "https://github.com/godotengine/godot/releases/download/$dfGodotVersion-stable/Godot_v$dfGodotVersion-stable_win64.exe.zip"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Expand-Archive -LiteralPath $dfArchive -DestinationPath $dfEngine
+          $dfExe = Get-ChildItem -Path $dfEngine -Recurse -Filter "*_win64.exe" | Select-Object -First 1
+          if (-not $dfExe) { throw 'Godot executable missing from archive' }
+          "DF_GODOT_WINDOWS=$($dfExe.FullName)" >> $env:GITHUB_ENV
 
       - name: Install Inno Setup
         run: |
@@ -46,6 +64,7 @@ jobs:
           if-no-files-found: error
 
   build-macos:
+    if: inputs.notify_tag == ''
     name: Build macOS Universal Port
     runs-on: macos-latest
 
@@ -97,12 +116,12 @@ jobs:
           python3 -m pip install dmgbuild
 
           # Create Styled DMG with standard drag-to-Applications installer
-          DMG_NAME="DroneFlames_macOS_v${VERSION}_good_boy_irl.dmg"
+          DMG_NAME="DroneFlames_macOS_v${VERSION}_droneflamesmod.dmg"
           DMG_PATH="dist/${DMG_NAME}"
           python3 scripts/build_dmg.py --app dist/DroneFlames.app --output "$DMG_PATH"
 
           # Create Portable ZIP
-          (cd dist && zip -r -q "DroneFlames_macOS_v${VERSION}_good_boy_irl.zip" "DroneFlames.app" && rm -rf "DroneFlames.app")
+          (cd dist && zip -r -q "DroneFlames_macOS_v${VERSION}_droneflamesmod.zip" "DroneFlames.app" && rm -rf "DroneFlames.app")
 
       - name: Upload macOS Build Artifacts
         uses: actions/upload-artifact@v4
@@ -114,6 +133,7 @@ jobs:
           if-no-files-found: error
 
   build-android:
+    if: inputs.notify_tag == ''
     name: Build Android APK
     runs-on: ubuntu-latest
 
@@ -165,7 +185,7 @@ jobs:
           mkdir -p dist ~/.config/godot
           VERSION=$(python3 -c "import build; print(build.VERSION)")
           GODOT=./godot_bin/Godot_v4.7.2-stable_linux.x86_64
-          APK="dist/DroneFlames_v${VERSION}_good_boy_irl.apk"
+          APK="dist/DroneFlames_v${VERSION}_droneflamesmod.apk"
           cat > ~/.config/godot/editor_settings-4.tres << 'EOF'
           [gd_resource type="EditorSettings" format=3]
 
@@ -197,6 +217,9 @@ jobs:
 
   release:
     name: Publish GitHub Release
+    concurrency:
+      group: droneflames-release-${{ (github.ref == 'refs/heads/test' || endsWith(github.ref, '-test')) && 'test' || 'stable' }}
+      cancel-in-progress: false
     needs: [build-windows, build-macos, build-android]
     runs-on: ubuntu-latest
     if: |
@@ -204,7 +227,7 @@ jobs:
       needs.build-windows.result == 'success' &&
       needs.build-macos.result == 'success' &&
       needs.build-android.result == 'success' &&
-      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test' || startsWith(github.ref, 'refs/tags/'))
+      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/test' || startsWith(github.ref, 'refs/tags/'))
 
     steps:
       - name: Checkout Repository
@@ -224,7 +247,7 @@ jobs:
             IS_TEST=true
           fi
           if [[ "$GITHUB_REF" == refs/heads/test && "$IS_TEST" != true ]] ||
-             [[ "$GITHUB_REF" =~ ^refs/heads/(main|master)$ && "$IS_TEST" == true ]] ||
+             [[ "$GITHUB_REF" =~ ^refs/heads/master$ && "$IS_TEST" == true ]] ||
              [[ "$GITHUB_REF" == refs/tags/* && "$GITHUB_REF_NAME" != "v$RAW_VER" ]]; then
             echo "::error::Git ref $GITHUB_REF does not match manifest version $RAW_VER"
             exit 1
@@ -243,8 +266,45 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Display Release Files
-        run: ls -la dist/
+      - name: Verify release inputs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version_info.outputs.TAG_NAME }}
+          VER: ${{ steps.version_info.outputs.RAW_VER }}
+          IS_TEST: ${{ steps.version_info.outputs.IS_TEST }}
+        run: |
+          set -euo pipefail
+          tag_refs=$(git ls-remote origin "refs/tags/$TAG" "refs/tags/$TAG^{}")
+          existing_commit=$(awk 'END { print $1 }' <<< "$tag_refs")
+          if [[ -n "$existing_commit" && "$existing_commit" != "$GITHUB_SHA" ]]; then
+            echo "::error::Tag $TAG already points to a different commit"
+            exit 1
+          fi
+          if [[ "$IS_TEST" != true ]]; then
+            LATEST=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+            python3 - "$TAG" "$LATEST" <<'PYTHON'
+          import sys
+
+          def version(tag):
+              parts = tuple(map(int, tag.removeprefix("v").split(".")))
+              return parts + (0,) * (4 - len(parts))
+
+          tag, latest = sys.argv[1:]
+          if tag != latest and version(tag) <= version(latest):
+              sys.exit(f"Refusing to replace stable release {latest} with {tag}")
+          PYTHON
+          fi
+          for asset in \
+            "DroneFlames_PC_Setup_v${VER}_droneflamesmod.exe" \
+            "DroneFlames_PC_v${VER}_droneflamesmod.zip" \
+            "DroneFlames_macOS_v${VER}_droneflamesmod.dmg" \
+            "DroneFlames_macOS_v${VER}_droneflamesmod.zip" \
+            "DroneFlames_v${VER}_droneflamesmod.apk"; do
+            if [[ ! -s "dist/$asset" ]]; then
+              echo "::error::Missing release asset $asset"
+              exit 1
+            fi
+          done
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
@@ -264,14 +324,49 @@ jobs:
           body: |
             Сборка DroneFlames ${{ steps.version_info.outputs.TAG_NAME }} из коммита ${{ github.sha }}.
             Установщики и архивы для каждой платформы перечислены в Assets.
+            Если Android отклоняет обновление из-за несовместимой подписи, экспортируйте сохранения перед переустановкой.
 
-      - name: Send Notification to Telegram
-        if: ${{ !contains(github.event.head_commit.message, '[skip notify]') }}
+      - name: Verify stable update endpoint
+        if: steps.version_info.outputs.IS_TEST != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version_info.outputs.TAG_NAME }}
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if [[ "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" == "$TAG" ]]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Legacy update endpoint did not return $TAG"
+          exit 1
+
+      - name: Send Test Notification to Telegram
+        if: steps.version_info.outputs.IS_TEST == 'true'
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           TAG: "${{ steps.version_info.outputs.TAG_NAME }}"
+          REQUIRE_TELEGRAM: "true"
           COMMIT_SHA: "${{ github.sha }}"
           RELEASE_REF: "${{ github.ref_name }}"
           IS_TEST: "${{ steps.version_info.outputs.IS_TEST }}"
+        run: python3 scripts/notify_telegram.py
+
+
+  notify-existing-test:
+    if: inputs.notify_tag != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send Test Notification to Telegram
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          TAG: ${{ inputs.notify_tag }}
+          REQUIRE_TELEGRAM: "true"
+          NOTIFY_FROM_RELEASE: "true"
+          RELEASE_REF: test
+          IS_TEST: "true"
         run: python3 scripts/notify_telegram.py

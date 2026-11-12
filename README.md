@@ -17,15 +17,15 @@
 
 ## Сборка и файлы релиза
 
-`version_info.json` содержит версию пакета. На Windows `python build.py` создаёт Portable ZIP в `dist/` и запускает Inno Setup, если он установлен. Экспорты Android и macOS настраиваются в `export_presets.cfg`.
+`version_info.json` содержит версию пакета. На Windows установите Godot 4.7.2 или укажите путь к его исполняемому файлу в `DF_GODOT_WINDOWS`. Команда `python build.py` создаёт Portable ZIP в `dist/` и запускает Inno Setup, если он установлен. Экспорты Android и macOS настраиваются в `export_presets.cfg`.
 
 | Платформа | Файлы |
 | --- | --- |
-| Windows | `DroneFlames_PC_Setup_v<версия>_good_boy_irl.exe`, `DroneFlames_PC_v<версия>_droneflamesmod.zip` |
-| macOS | `DroneFlames_macOS_v<версия>_good_boy_irl.dmg`, `DroneFlames_macOS_v<версия>_good_boy_irl.zip` |
-| Android | `DroneFlames_v<версия>_good_boy_irl.apk` |
+| Windows | `DroneFlames_PC_Setup_v<версия>_droneflamesmod.exe`, `DroneFlames_PC_v<версия>_droneflamesmod.zip` |
+| macOS | `DroneFlames_macOS_v<версия>_droneflamesmod.dmg`, `DroneFlames_macOS_v<версия>_droneflamesmod.zip` |
+| Android | `DroneFlames_v<версия>_droneflamesmod.apk` |
 
-Старые суффиксы в именах файлов сохранены для совместимости. Используйте список файлов конкретного релиза, поскольку комплект тестовых сборок может отличаться.
+Ранее опубликованные релизы сохраняют прежние имена файлов. Используйте список файлов конкретного релиза, поскольку комплект тестовых сборок может отличаться.
 
 GitHub Actions собирает Windows, macOS и Android. `test` публикует пререлизы, а стабильный апдейтер читает GitHub `releases/latest`. Уведомление Telegram выполняется после публикации в CI.
 

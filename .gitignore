@@ -33,3 +33,8 @@ tools/reconstruct_godot.py
 wdadwaddwadwdaabot/node_modules/
 wdadwaddwadwdaabot/.tgcloud/
 
+
+# Windows engine binaries are staged by build.py
+/DroneFlames.exe
+/DroneFlames_Debug.exe
+/DroneFlames_console.exe

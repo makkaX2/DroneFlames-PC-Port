@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import glob
+from fnmatch import filter as match_files
 import subprocess
 import urllib.request
 
@@ -14,7 +15,7 @@ is_test = os.environ.get("IS_TEST", "false").lower() == "true" or "test" in tag.
 
 if not tg_token or not chat_id:
     print("TG_BOT_TOKEN or TG_CHAT_ID not set, skipping Telegram notification.")
-    sys.exit(0)
+    sys.exit(1 if os.environ.get("REQUIRE_TELEGRAM") == "true" else 0)
 
 try:
     commit_desc = subprocess.check_output(["git", "log", "-1", "--pretty=format:%B"]).decode("utf-8").strip()
@@ -22,6 +23,19 @@ try:
 except Exception:
     commit_desc = "release build"
     commit_author = "unknown"
+
+published_assets = None
+if os.environ.get("NOTIFY_FROM_RELEASE") == "true":
+    release = json.loads(subprocess.check_output(
+        ["gh", "release", "view", tag, "--json", "isPrerelease,isDraft,assets,targetCommitish,body"],
+        text=True, encoding="utf-8",
+    ))
+    if not tag.endswith("-test") or not release["isPrerelease"] or release["isDraft"]:
+        sys.exit("Expected a published test release.")
+    published_assets = [asset["name"] for asset in release["assets"]]
+    commit_sha = release["targetCommitish"]
+    commit_desc = release["body"][:1800]
+    commit_author = "@droneflamesmod"
 
 short_sha = commit_sha[:7] if commit_sha else "unknown"
 repo = "makkaX2/DroneFlames-PC-Port"
@@ -32,10 +46,16 @@ com_url = f"{base_url}/commit/{commit_sha}"
 def dl_url(fname):
     return f"{base_url}/releases/download/{tag}/{os.path.basename(fname)}"
 
-apk_files = glob.glob("dist/*.apk")
-win_files = glob.glob("dist/DroneFlames_PC_v*.zip")
-win_setups = glob.glob("dist/*.exe")
-mac_files = glob.glob("dist/DroneFlames_macOS_v*.dmg") or glob.glob("dist/DroneFlames_macOS_v*.zip")
+def files(pattern):
+    if published_assets is not None:
+        return match_files(published_assets, pattern)
+    return glob.glob("dist/" + pattern)
+
+
+apk_files = files("*.apk")
+win_files = files("DroneFlames_PC_v*.zip")
+win_setups = files("*.exe")
+mac_files = files("DroneFlames_macOS_v*.dmg") or files("DroneFlames_macOS_v*.zip")
 
 artifact_lines = []
 dl_buttons = []
