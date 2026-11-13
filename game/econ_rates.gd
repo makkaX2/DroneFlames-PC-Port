@@ -149,9 +149,7 @@ static func site(gw: GameWorld, f: Facility, c: Country = null) -> Dictionary:
 		out["money"] = float(out["money"]) * 0.5
 		out["why"] = Loc.t("объезд: −50 %")
 	match f.kind:
-		Facility.Kind.FARM:
-			out["n"] = float(out["full"]) * k
-		Facility.Kind.CIV_FACTORY:
+		Facility.Kind.FARM, Facility.Kind.CIV_FACTORY:
 			if not mil.has_power(f):
 				out["why"] = Loc.t("нет питания")
 				out["money"] = 0.0

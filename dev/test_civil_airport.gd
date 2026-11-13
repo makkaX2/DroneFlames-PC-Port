@@ -89,6 +89,57 @@ func _run() -> void:
 	assert(airport.civil_cargo > 0 and airport.civil_export > 0)
 	assert(player.precious == stock - airport.civil_cargo)
 	assert(player.money == cash + Airport.LANDING_FEE + airport.civil_export)
+
+	var transit := Country.new()
+	transit.id = 2
+	world.countries.append(transit)
+	var adversary := Country.new()
+	adversary.id = 3
+	world.countries.append(adversary)
+	transit.at_war[adversary.id] = true
+	for y: int in range(64, 160):
+		for x: int in range(62, 107):
+			world.data.set_owner_id(x, y, transit.id)
+	world.game_time = 130.0
+	world.econ._produce()
+	var blocked: PackedByteArray = Airport._airspace(world, player)
+	assert(Airport._route_open(world.data, blocked, airport.civil_inbound))
+	assert(Airport._route_open(world.data, blocked, airport.civil_outbound))
+	assert(airport.civil_inbound[-1].y != Airport.runway_point(airport).y)
+	assert(airport.civil_next_arrival == 150.0)
+
+	world.data.owners.fill(transit.id)
+	for y: int in range(114, 145):
+		for x: int in range(111, 145):
+			world.data.set_owner_id(x, y, player.id)
+	cash = player.money
+	world.game_time = 150.0
+	world.econ._produce()
+	assert(airport.civil_route_blocked and airport.civil_next_arrival < 0.0 and player.money == cash)
+	world.data.owners.fill(player.id)
+	transit.at_war.clear()
+	world.game_time = 160.0
+	world.econ._produce()
+	assert(not airport.civil_route_blocked and airport.civil_next_arrival == 180.0)
+	var rw: Vector2i = Vector2i(Airport.runway_point(airport) / GameWorld.CELL)
+	world.mil.on_strike(rw, 4.0)
+	assert(not airport.runway_ok() and airport.repair_t == 60.0)
+	world.econ._produce()
+	assert(airport.civil_next_arrival < 0.0)
+	world.mil._repair(60.0)
+	assert(airport.runway_ok())
+	world.econ._produce()
+	assert(airport.civil_next_arrival == 180.0)
+	var farm: Facility = world.mil.build(Facility.Kind.FARM, Vector2i(175, 155), player)
+	assert(farm != null and Military.uses_power(farm.kind))
+	farm.powered = false
+	var food: int = player.food
+	cash = player.money
+	world.econ._produce()
+	assert(player.food == food and player.money == cash)
+	farm.powered = true
+	world.econ._produce()
+	assert(player.food == food + Economy.FARM_FOOD and player.money == cash + Economy.FARM_MONEY)
 	if DisplayServer.get_name() != "headless":
 		var camera := MapCamera.new()
 		world.camera = camera
@@ -96,9 +147,9 @@ func _run() -> void:
 		camera.world_px = Vector2(world.data.w, world.data.h) * GameWorld.CELL
 		camera.position = airport.center_px()
 		camera.make_current()
-		world.game_time = 159.0
+		world.game_time = 169.0
 		await RenderingServer.frame_post_draw
 		await RenderingServer.frame_post_draw
 	world.free()
-	print("[AIRPORT-TEST] PASS: placement, passenger income, cargo export, save, war and power")
+	print("[AIRPORT-TEST] PASS: placement, passenger income, cargo export, save, war, power, detour, runway closure and farm power")
 	quit()

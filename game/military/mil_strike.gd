@@ -1133,7 +1133,7 @@ func on_strike(cell: Vector2i, r_px: float = 14.0) -> void :
 		gw.diplo.sky.trip.on_strike(p, r_px)
 	for f: Facility in facilities:
 		var rw: = Rect2()
-		if f.kind in [Facility.Kind.AIRFIELD, Facility.Kind.AIRBASE]:
+		if f.kind in [Facility.Kind.AIRFIELD, Facility.Kind.AIRBASE, Facility.Kind.CIV_AIRPORT]:
 			rw = Rect2(f.origin_px() + AF_RUNWAY.position, AF_RUNWAY.size)
 		elif f.kind == Facility.Kind.DP_RUNWAY:
 			rw = Rect2(gw.obj_origin(f.main_obj), Vector2(64, 12))
@@ -1143,6 +1143,6 @@ func on_strike(cell: Vector2i, r_px: float = 14.0) -> void :
 			continue
 		var c: = Vector2(clampf(p.x, rw.position.x + 6.0, rw.end.x - 6.0), clampf(p.y, rw.position.y + 5.0, rw.end.y - 5.0))
 		f.craters.append(c.round())
-		f.repair_t = RUNWAY_REPAIR
+		f.repair_t = 60.0 if f.kind == Facility.Kind.CIV_AIRPORT else RUNWAY_REPAIR
 		if gw.country_by_id(f.country_id).is_player:
-			gw.say(gw.country_by_id(f.country_id), Loc.mk("ВПП повреждена — ремонт %d с", [int(RUNWAY_REPAIR)]))
+			gw.say(gw.country_by_id(f.country_id), Loc.mk("ВПП повреждена — ремонт %d с", [int(f.repair_t)]))

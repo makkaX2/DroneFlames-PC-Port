@@ -281,7 +281,7 @@ func _goals(p: Country) -> Array:
 	var farm_ok: bool = false
 	for f: Facility in _own(p, Facility.Kind.FARM):
 		farm_ok = farm_ok or _works(f)
-	_goal(out, p, "farm", Loc.t("Колхоз: еда"), Loc.t("Самый дешёвый доход: +%d еды и +%d денег в минуту. Еда кормит армию, излишки продаются.") % [Economy.FARM_FOOD * 6, Economy.FARM_MONEY * 6], 
+	_goal(out, p, "farm", Loc.t("Колхоз: еда"), Loc.t("При наличии энергии колхоз даёт +%d еды и +%d денег в минуту. Еда кормит армию, излишки продаются.") % [Economy.FARM_FOOD * 6, Economy.FARM_MONEY * 6],
 		"icon_farm", "farm", farm_ok, Loc.t("Колхоз построен"), not _own(p, Facility.Kind.FARM).is_empty())
 	var civ_ok: bool = false
 	for f2: Facility in _own(p, Facility.Kind.CIV_FACTORY):

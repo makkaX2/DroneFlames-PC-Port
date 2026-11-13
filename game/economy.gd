@@ -77,9 +77,15 @@ func _produce() -> void :
 		var mul: float = 1.0 if c.is_player else GameConfig.ai_income_mul(c)
 		match f.kind:
 			Facility.Kind.FARM:
+				if not mil.has_power(f):
+					_site_of(f)["status"] = "no_power"
+					_site_of(f)["rate"] = 0
+					continue
+				_site_of(f)["status"] = ""
 				var ff: int = ceili(FARM_FOOD * level_mul(f))
 				c.food += ff
 				stat_res(c, "food", "farm", ff)
+				_site_of(f)["rate"] = ff
 				c.add_money(int(FARM_MONEY * mul * level_mul(f)))
 				stat_add(c, "income", "farm", int(FARM_MONEY * mul * level_mul(f)))
 				_puff(f)

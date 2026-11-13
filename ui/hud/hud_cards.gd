@@ -307,6 +307,8 @@ func show_facility(f: Facility, mil: Military, player: Country) -> void :
 				info = Loc.t("+4 МЕСТА ДЛЯ ДРОНОВ")
 			Facility.Kind.FARM:
 				info = _rate_line(f, player)
+				if not mil.has_power(f):
+					info = Loc.t("НЕТ ПИТАНИЯ — ПРОИЗВОДСТВО СТОИТ")
 				if gw.econ.has_method("can_upgrade") and gw.econ.can_upgrade(f):
 					detail = _upgrade_act(f, player, acts)
 			Facility.Kind.CIV_FACTORY:

@@ -22377,3 +22377,6 @@ msgstr "El avión ya está asignado a este portaaviones"
 
 msgid "Этот борт не подходит для палубы"
 msgstr "Esta aeronave no puede usar la cubierta"
+
+msgid "НЕТ ОТКРЫТОГО МАРШРУТА"
+msgstr "SIN RUTA AÉREA ABIERTA"

@@ -51,7 +51,7 @@ static func is_module(kind: int) -> bool:
 static func uses_power(kind: int) -> bool:
 	return kind == Facility.Kind.DRONE_FACTORY or kind == Facility.Kind.MISSILE_FACTORY or kind == Facility.Kind.DRONE_PORT or kind == Facility.Kind.REFINERY\
 	or kind == Facility.Kind.CIV_FACTORY or kind == Facility.Kind.MINE or kind == Facility.Kind.AD_RADAR or kind == Facility.Kind.AD_EW\
-	or kind == Facility.Kind.URANIUM_MINE or kind == Facility.Kind.CIV_AIRPORT
+	or kind == Facility.Kind.URANIUM_MINE or kind == Facility.Kind.CIV_AIRPORT or kind == Facility.Kind.FARM
 
 
 

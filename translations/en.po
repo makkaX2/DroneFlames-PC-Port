@@ -34176,3 +34176,6 @@ msgstr "This aircraft is already based on that carrier"
 
 msgid "Этот борт не подходит для палубы"
 msgstr "This aircraft cannot use the flight deck"
+
+msgid "НЕТ ОТКРЫТОГО МАРШРУТА"
+msgstr "NO OPEN FLIGHT ROUTE"

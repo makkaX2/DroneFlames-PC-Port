@@ -36,8 +36,9 @@ func _draw() -> void:
 		return
 	var half: Vector2 = gw.camera.view_size() * 0.5 / gw.camera.zoom.x
 	var view := Rect2(gw.camera.position - half, half * 2.0)
+	var nearby: Rect2 = view.grow(Airport.VISIBLE_ROUTE + 50.0)
 	for airport: Facility in _airports:
-		if not gw.mil.alive(airport) or not view.grow(700.0).has_point(airport.center_px()):
+		if not gw.mil.alive(airport) or not nearby.has_point(airport.center_px()):
 			continue
 		if gw.vision != null and not gw.vision.fac_shown(airport):
 			continue
@@ -59,7 +60,7 @@ func _draw_gate(gate: Vector2, active: bool) -> void:
 
 func _draw_flight(airport: Facility, view: Rect2, gate: Vector2) -> void:
 	var now: float = gw.game_time
-	var runway: Vector2 = airport.origin_px() + Vector2(54.0, 8.0)
+	var runway: Vector2 = Airport.runway_point(airport)
 	var landed: float = now - airport.civil_last_arrival
 	var incoming: float = airport.civil_next_arrival - now
 	var position_px: Vector2
@@ -78,15 +79,17 @@ func _draw_flight(airport: Facility, view: Rect2, gate: Vector2) -> void:
 			angle = (runway - gate).angle()
 		else:
 			height = (landed - taxi_end) / Airport.DEPARTURE
-			position_px = runway + Vector2(610.0 * height, -100.0 * height * height)
-			angle = -0.15 * height
+			var sample: Vector3 = _sample_route(airport.civil_outbound, height, false)
+			position_px = Vector2(sample.x, sample.y)
+			angle = sample.z
 	elif airport.civil_next_arrival >= 0.0 and incoming >= -0.1 and incoming <= Airport.APPROACH:
 		height = clampf(incoming / Airport.APPROACH, 0.0, 1.0)
-		position_px = runway - Vector2(610.0 * height, 100.0 * height * height)
-		angle = 0.15 * height
+		var sample: Vector3 = _sample_route(airport.civil_inbound, height, true)
+		position_px = Vector2(sample.x, sample.y)
+		angle = sample.z
 	else:
 		return
-	if not view.grow(34.0).has_point(position_px):
+	if not position_px.is_finite() or not view.grow(34.0).has_point(position_px):
 		return
 	var body: Vector2 = Vector2.ONE * lerpf(0.72, 1.18, height)
 	draw_set_transform(position_px + Vector2(4.0, 5.0) * height, angle, body)
@@ -95,6 +98,23 @@ func _draw_flight(airport: Facility, view: Rect2, gate: Vector2) -> void:
 	draw_colored_polygon(AIRLINER, Color("#e3e9ef"))
 	draw_colored_polygon(STRIPE, Color("#4c82a2"))
 	draw_set_transform(Vector2.ZERO)
+
+
+static func _sample_route(path: PackedVector2Array, fraction: float, inbound: bool) -> Vector3:
+	if path.size() < 2:
+		return Vector3.INF
+	var total: float = 0.0
+	for i: int in range(1, path.size()):
+		total += path[i - 1].distance_to(path[i])
+	var left: float = minf(total, Airport.VISIBLE_ROUTE) * fraction
+	for i: int in range(1, path.size()):
+		var segment: Vector2 = path[i] - path[i - 1]
+		var length: float = segment.length()
+		if left <= length or i == path.size() - 1:
+			var point: Vector2 = path[i - 1] + segment.normalized() * minf(left, length)
+			return Vector3(point.x, point.y, (-segment if inbound else segment).angle())
+		left -= length
+	return Vector3.INF
 
 
 const TAXI_END: float = Airport.TAXI * 2.0 + Airport.AT_GATE + Airport.DEPARTURE
