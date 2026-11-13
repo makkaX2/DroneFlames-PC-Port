@@ -1015,12 +1015,12 @@ static func apply_display_resolution() -> void:
 static func apply_orientation() -> void:
 	if OS.get_name() != "Android" or not DisplayServer.has_feature(DisplayServer.FEATURE_ORIENTATION):
 		return
-	var target: int = DisplayServer.SCREEN_ORIENTATION_SENSOR
+	var target: int = DisplayServer.SCREEN_SENSOR
 	match clampi(GameConfig.orientation_i, 0, 2):
 		1:
-			target = DisplayServer.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+			target = DisplayServer.SCREEN_SENSOR_LANDSCAPE
 		2:
-			target = DisplayServer.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+			target = DisplayServer.SCREEN_SENSOR_PORTRAIT
 	DisplayServer.screen_set_orientation(target)
 
 
