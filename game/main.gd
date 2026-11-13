@@ -756,7 +756,7 @@ func _on_action(nm: String) -> void :
 		"police_patrol":
 			if selected_fac != null and selected_fac.kind == Facility.Kind.POLICE_STATION:
 				_sim("army", "toggle_police_patrol", [selected_fac])
-		"civil_airport", "police_station", "factory", "droneport", "tel", "mfactory", "refinery", "power", "airfield", "farm", "civ", "mine", "barracks", "ad_mfg", "ad_spaag", "ad_sam", "ad_patriot", "ad_int", "ad_radar", "ad_ew", "trench", "teeth", "dugout", "sawmill", "oil_rig", "port", "solar_farm", "navbase", "coastal_asm", "npp", "umine":
+		"airbase", "civil_airport", "police_station", "factory", "droneport", "tel", "mfactory", "refinery", "power", "airfield", "farm", "civ", "mine", "barracks", "ad_mfg", "ad_spaag", "ad_sam", "ad_patriot", "ad_int", "ad_radar", "ad_ew", "trench", "teeth", "dugout", "sawmill", "oil_rig", "port", "solar_farm", "navbase", "coastal_asm", "npp", "umine":
 			var bm: int = BUILD_KEYS[nm]
 			if not _has_capital():
 				_set_mode(mode)
@@ -1112,11 +1112,18 @@ func _on_action(nm: String) -> void :
 			_deselect()
 			_clear_plan()
 			hud.hide_ops()
-		"buy_bomber", "buy_fighter", "buy_heli", "buy_attack":
+		"buy_bomber", "buy_fighter", "buy_heli", "buy_attack", "buy_transport", "buy_transport_heli":
 			if selected_fac != null:
-				var t: int = {"buy_bomber": Aircraft.Type.BOMBER, "buy_fighter": Aircraft.Type.FIGHTER, "buy_heli": Aircraft.Type.HELI, "buy_attack": Aircraft.Type.ATTACK}[nm]
+				var t: int = {"buy_bomber": Aircraft.Type.BOMBER, "buy_fighter": Aircraft.Type.FIGHTER, "buy_heli": Aircraft.Type.HELI, "buy_attack": Aircraft.Type.ATTACK,
+					"buy_transport": Aircraft.Type.TRANSPORT, "buy_transport_heli": Aircraft.Type.TRANSPORT_HELI}[nm]
 				_sim("mil.air", "buy", [selected_fac, t, world.player], func(r: Variant) -> void :
 					hud.show_toast(_why(r) if _why(r) != "" else Loc.msg(Loc.mk("Куплен: %s", [Loc.t(String(Air.SPEC[t]["name"]))]))))
+		"airlift":
+			if selected_fac != null:
+				begin_airlift(selected_fac)
+		"airlift_cancel":
+			if selected_fac != null:
+				_sim("mil.air", "cancel_airlift", [selected_fac])
 		"air_land":
 			if follow is Aircraft:
 				_sim("mil.air", "order_land", [follow])

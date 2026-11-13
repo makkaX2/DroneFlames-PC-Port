@@ -318,6 +318,8 @@ func plan(f: Facility, cen: Vector2, target: Vector2, kind: int, spd: float, mar
 
 
 func start(f: Facility, mem: Array[Unit], city: City, goal: Vector2, kind: int, pl: Dictionary) -> bool:
+	if gw.mil.air.airlift_busy(f):
+		return false
 	if f == null or mem.is_empty() or not bool(pl.get("ok", false)):
 		return false
 	var s1: int = int(pl["s1"])

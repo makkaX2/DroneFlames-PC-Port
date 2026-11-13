@@ -64,6 +64,8 @@ func _set_mode(m: int) -> void :
 		world.ops.preview_order = {}
 	if m != Mode.ATTACK:
 		attack_from = null
+	if m != Mode.AIRLIFT:
+		airlift_from = null
 	if m != Mode.TARGET and m != Mode.MISSILE and m != Mode.CR_TARGET:
 		_clear_plan()
 	if m != Mode.JET_KAB and m != Mode.JET_CAS:
@@ -80,7 +82,7 @@ func _set_mode(m: int) -> void :
 			hud.set_hint(Loc.t("ГОРОД %d: СВОБОДНАЯ ЗЕМЛЯ ДО 360 М ОТ СТРАНЫ") % Military.town_cost(world.player.towns_founded if world.player != null else 0))
 		Mode.STRIKE:
 			hud.set_hint("ТЕСТОВЫЙ УДАР: НАЖМИТЕ НА ЦЕЛЬ")
-		Mode.FACTORY, Mode.DRONEPORT, Mode.TEL, Mode.MFACTORY, Mode.REFINERY, Mode.POWER, Mode.AIRFIELD, Mode.CIV_AIRPORT, Mode.SAWMILL, Mode.OIL_RIG, Mode.PORT, Mode.SOLAR_FARM, Mode.NAVBASE, Mode.NPP, Mode.UMINE:
+		Mode.FACTORY, Mode.DRONEPORT, Mode.TEL, Mode.MFACTORY, Mode.REFINERY, Mode.POWER, Mode.AIRFIELD, Mode.AIRBASE, Mode.CIV_AIRPORT, Mode.SAWMILL, Mode.OIL_RIG, Mode.PORT, Mode.SOLAR_FARM, Mode.NAVBASE, Mode.NPP, Mode.UMINE:
 			var kind: int = BUILD_KIND[m]
 			var bc1: Dictionary = Economy.build_cost(kind)
 			if world.player != null and world.mil.has_method("price_of") and bc1.has("money"):
@@ -104,6 +106,8 @@ func _set_mode(m: int) -> void :
 			hud.set_hint(Loc.t("%s (%s): ТАП ПО МЕСТУ") % [Loc.t(String(oi.get("name", ""))).to_upper(), Loc.t(String(oi.get("cost_text", ""))).to_upper()])
 		Mode.RECON:
 			hud.set_hint("РАЗВЕДДРОН: ТАП ПО ТОЧКЕ ДО 4.5 КМ ОТ ДРОНОПОРТА")
+		Mode.AIRLIFT:
+			hud.set_hint(Loc.t("ВОЗДУШНЫЙ ДЕСАНТ: ВЫБЕРИТЕ ТОЧКУ ВЫСАДКИ"))
 		Mode.EXPEDITION:
 			hud.set_hint("КОЛОНИЯ: ТАП ПО СВОБОДНОМУ БЕРЕГУ")
 		Mode.SATELLITE:
@@ -192,6 +196,17 @@ func _has_capital() -> bool:
 		hud.show_toast("Сначала основайте столицу")
 		return false
 	return true
+
+
+func begin_airlift(home: Facility) -> void:
+	if world.player == null or home.country_id != world.player.id:
+		return
+	if hud.army_ux != null:
+		hud.army_ux.close_view()
+	_deselect()
+	hud.hide_ops()
+	airlift_from = home
+	_set_mode(Mode.AIRLIFT)
 
 
 func _deselect() -> void :
@@ -597,7 +612,7 @@ func _confirm_mode(m: int) -> bool:
 		return false
 	if m == Mode.RAIL_ST:
 		return true
-	return BUILD_KIND.has(m) or m in [Mode.CAPITAL, Mode.TOWN, Mode.SATELLITE, Mode.OPERATION, Mode.ORDER, Mode.RECON, Mode.ATTACK, Mode.MODULE, Mode.MOVE_ALL, Mode.EXPEDITION]
+	return BUILD_KIND.has(m) or m in [Mode.CAPITAL, Mode.TOWN, Mode.SATELLITE, Mode.OPERATION, Mode.ORDER, Mode.RECON, Mode.ATTACK, Mode.MODULE, Mode.MOVE_ALL, Mode.EXPEDITION, Mode.AIRLIFT]
 
 
 func _build_line_now(kind: int, cells: Array[Vector2i]) -> void :
@@ -659,6 +674,8 @@ func _pend_text() -> String:
 			return Loc.t("Спутниковый снимок · %d") % int(world.vision.satellite_cost())
 		Mode.RECON:
 			return Loc.t("Разведдрон сюда")
+		Mode.AIRLIFT:
+			return Loc.t("Высадить воздушный десант здесь")
 		Mode.EXPEDITION:
 			var wpe: Vector2 = _pend["wp"]
 			var pv3: Dictionary = world.naval.expedition_preview(exp_port, Vector2i(floori(wpe.x / GameWorld.CELL), floori(wpe.y / GameWorld.CELL))) if exp_port != null else {}
@@ -714,6 +731,8 @@ func _pend_why() -> String:
 		return ""
 	if m == Mode.RAIL_ST:
 		return RB.station_why(self, _pend["wp"])
+	if m == Mode.AIRLIFT:
+		return String(world.mil.air.airlift_plan(airlift_from, _pend["wp"]).get("why", ""))
 	if m == Mode.EXPEDITION and exp_port != null:
 		var wpx: Vector2 = _pend["wp"]
 		return String(world.naval.can_expedition(exp_port, Vector2i(floori(wpx.x / GameWorld.CELL), floori(wpx.y / GameWorld.CELL))))
@@ -1101,7 +1120,7 @@ func _on_built(r: Variant, kind: int, shift_was_pressed: bool = false) -> void :
 	_set_mode(keep_mode)
 	if keep_mode == Mode.NONE:
 		if kind in [Facility.Kind.DRONE_PORT, Facility.Kind.MISSILE_FACTORY, Facility.Kind.AIRFIELD,
-			Facility.Kind.CIV_AIRPORT, Facility.Kind.BARRACKS, Facility.Kind.PORT, Facility.Kind.DRONE_FACTORY]:
+			Facility.Kind.CIV_AIRPORT, Facility.Kind.AIRBASE, Facility.Kind.BARRACKS, Facility.Kind.PORT, Facility.Kind.DRONE_FACTORY]:
 			selected_fac = f
 			_auto_card = f
 			_auto_card_t = 15.0

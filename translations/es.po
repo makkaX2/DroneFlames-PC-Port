@@ -22284,3 +22284,60 @@ msgstr "La ciudad cercana al aeropuerto necesita electricidad"
 
 msgid "ПАССАЖИРЫ %d · ГРУЗЫ %d · ЭКСПОРТ %d"
 msgstr "PASAJEROS %d · CARGA %d · EXPORTACIÓN %d"
+
+msgid "Авиабаза"
+msgstr "Base aérea"
+
+msgid "АВИАБАЗА"
+msgstr "BASE AÉREA"
+
+msgid "13 МЕСТ, ТРАНСПОРТНИКИ, ВОЗДУШНЫЙ ДЕСАНТ"
+msgstr "13 PLAZAS, TRANSPORTES Y DESEMBARCO AÉREO"
+
+msgid "Пеликан"
+msgstr "Pelícano"
+
+msgid "Двурог"
+msgstr "Bicorne"
+
+msgid "ТРАНСПОРТ %d/%d"
+msgstr "TRANSPORTES %d/%d"
+
+msgid "ВОЗДУШНЫЙ\nДЕСАНТ"
+msgstr "DESEMBARCO\nAÉREO"
+
+msgid "ПРЕРВАТЬ\nДЕСАНТ"
+msgstr "CANCELAR\nDESEMBARCO"
+
+msgid "ВОЗДУШНЫЙ ДЕСАНТ: ВЫБЕРИТЕ ТОЧКУ ВЫСАДКИ"
+msgstr "DESEMBARCO AÉREO: ELIGE UNA ZONA"
+
+msgid "Высадить воздушный десант здесь"
+msgstr "Desembarcar aquí"
+
+msgid "Постройте авиабазу и купите транспорт"
+msgstr "Construye una base aérea y compra un transporte"
+
+msgid "Нет готовых транспортников с достаточной дальностью"
+msgstr "No hay transportes disponibles con alcance suficiente"
+
+msgid "Следующий воздушный десант через %d с"
+msgstr "Próximo desembarco aéreo en %d s"
+
+msgid "Войска идут к авиабазе"
+msgstr "Las tropas van a la base aérea"
+
+msgid "Десант в воздухе"
+msgstr "Tropas en vuelo"
+
+msgid "Высадка десанта"
+msgstr "Desembarco en curso"
+
+msgid "Десант возвращается"
+msgstr "Las tropas regresan"
+
+msgid "Выберите сухую площадку для высадки"
+msgstr "Elige una zona de desembarco en tierra"
+
+msgid "Высадка здесь закрыта"
+msgstr "No se permite desembarcar aquí"

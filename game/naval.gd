@@ -472,7 +472,7 @@ func add_counts(counts: Dictionary) -> void :
 
 
 func divert(home: Facility, members: Array[Unit], city: City, goal: Vector2, mode: int, sea: bool = false) -> int:
-	if _resuming or home == null or members.is_empty():
+	if _resuming or home == null or members.is_empty() or gw.mil.air.airlift_busy(home):
 		return 0
 	var cur: Dictionary = of(home)
 	if not cur.is_empty() and int(cur["stage"]) != Stage.MARCH:

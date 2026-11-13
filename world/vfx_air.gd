@@ -574,7 +574,7 @@ func _contrails(real_dt: float, dt: float) -> void :
 			_trail_pt("a%d" % int(a["id"]), a["pos"], 3, int(a.get("c", -1)))
 
 		for ac: Aircraft in mil.air.aircraft:
-			if ac.type == Aircraft.Type.HELI or ac.state == Aircraft.State.DEAD or not ac.airborne():
+			if ac.helicopter() or ac.state == Aircraft.State.DEAD or not ac.airborne():
 				continue
 			var fw: Vector2 = Vector2.from_angle(ac.heading)
 			for sd: float in ([3.0, -3.0] if ac.type == Aircraft.Type.BOMBER else [0.0]):

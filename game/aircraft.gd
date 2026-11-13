@@ -3,7 +3,7 @@ extends RefCounted
 
 
 
-enum Type{BOMBER, FIGHTER, HELI, ATTACK}
+enum Type{BOMBER, FIGHTER, HELI, ATTACK, TRANSPORT, TRANSPORT_HELI}
 enum State{PARKED, TAXI, ROLL, LIFT, FLY, ORBIT, HOVER, PATROL, RTB, LAND, DEAD}
 
 var id: int = 0
@@ -68,6 +68,14 @@ var cr_aim: Vector2 = Vector2.ZERO
 
 
 var cr_q_job: bool = false
+
+
+func transport() -> bool:
+	return type == Type.TRANSPORT or type == Type.TRANSPORT_HELI
+
+
+func helicopter() -> bool:
+	return type == Type.HELI or type == Type.TRANSPORT_HELI
 
 
 func airborne() -> bool:

@@ -182,7 +182,7 @@ const PAGE_DEFS: Array = [
 
 	["tabi_world", [["zoom_out", "icon_minus", false], ["zoom_in", "icon_plus", false], ["center", "icon_center", false], ["borders", "icon_border", true], ["map_modes", "icon_map_political", false], ["own_icons", "icon_map_mine", true], ["ores", "icon_map_ores", false]]], 
 	["tabi_city", [["capital", "icon_capital", true], ["town", "icon_city", true], ["farm", "icon_farm", true], ["civ", "icon_civ_factory", true], ["civil_airport", "icon_airfield_b", true], ["power", "icon_power", true], ["solar_farm", "icon_solar", true], ["npp", "icon_npp", true], ["mine", "icon_mine", true], ["sawmill", "icon_sawmill", true], ["oil_rig", "icon_oil_rig", true], ["refinery", "icon_refinery", true], ["rail_st", "icon_rail_station", true], ["rail_line", "u335_rail_line", true]]],
-	["tabi_military", [["launch", "icon_launch", true], ["route", "icon_route", true], ["recon", "icon_recon_drone", true], ["factory", "icon_dronefactory", true], ["droneport", "icon_droneport", true], ["missile", "icon_target", true], ["tel", "icon_tel", true], ["mfactory", "icon_missile_factory", true], ["airfield", "icon_airfield_b", true]]], 
+	["tabi_military", [["launch", "icon_launch", true], ["route", "icon_route", true], ["recon", "icon_recon_drone", true], ["factory", "icon_dronefactory", true], ["droneport", "icon_droneport", true], ["missile", "icon_target", true], ["tel", "icon_tel", true], ["mfactory", "icon_missile_factory", true], ["airfield", "icon_airfield_b", true], ["airbase", "icon_airfield_b", true]]],
 	["icon_ad_sam", [["ad_mfg", "icon_ad_mfg", true], ["ad_spaag", "icon_ad_spaag", true], ["ad_sam", "icon_ad_sam", true], ["ad_patriot", "icon_ad_patriot", true], ["ad_int", "icon_int_drone", true], ["ad_radar", "icon_ad_radar", true], ["ad_ew", "icon_ad_ew", true], ["ad_rules", "u335_ad_rules", false]]], 
 	["icon_tank", [["barracks", "icon_barracks", true], ["armies", "icon_armies", true], ["command", "icon_op_operation", false], ["doctrine", "icon_doctrine", false], ["hold", "icon_infantry", false], ["defend", "icon_defend", true], ["trench", "icon_trench", true], ["teeth", "icon_teeth", true], ["dugout", "icon_dugout", true], ["battle_cam", "icon_battle_cam", false]]], 
 	["icon_relations", [["diplomacy", "icon_relations", false], ["trade", "icon_trade", false], ["economy", "icon_stats", false], ["ultimatum", "icon_ultimatum", false], ["scores", "icon_trophy", false]]], 
@@ -195,7 +195,7 @@ const TAB_SHORT: Array = ["КАРТА", "ГОРОДА", "УДАР", "ПВО", "�
 
 
 const BUILD_KIND_OF: Dictionary = {
-	"civil_airport": Facility.Kind.CIV_AIRPORT,
+	"civil_airport": Facility.Kind.CIV_AIRPORT, "airbase": Facility.Kind.AIRBASE,
 	"factory": Facility.Kind.DRONE_FACTORY, "droneport": Facility.Kind.DRONE_PORT, "tel": Facility.Kind.TEL, 
 	"mfactory": Facility.Kind.MISSILE_FACTORY, "refinery": Facility.Kind.REFINERY, "power": Facility.Kind.POWER_PLANT, 
 	"airfield": Facility.Kind.AIRFIELD, "farm": Facility.Kind.FARM, "civ": Facility.Kind.CIV_FACTORY, "mine": Facility.Kind.MINE, 
@@ -253,7 +253,7 @@ const KEY_INFO: Dictionary = {
 	"ultimatum": ["УЛЬТИМАТ.", "Ультиматум", "Потребовать деньги, ресурс или землю — иначе война или эмбарго"], 
 	"factory": ["БПЛА-ЗАВ.", "", ""], "droneport": ["ДРОНОПОРТ", "", ""], "tel": ["ОТРК", "", ""], 
 	"mfactory": ["РАК.ЗАВОД", "", ""], "refinery": ["НПЗ", "", ""], "power": ["ТЭЦ", "", ""], 
-	"civil_airport": ["АЭРОПОРТ", "", ""], "airfield": ["АЭРОДРОМ", "", ""], "farm": ["КОЛХОЗ", "", ""], "civ": ["ЗАВОД", "", ""], "mine": ["РУДНИК", "", ""],
+	"civil_airport": ["АЭРОПОРТ", "", ""], "airbase": ["АВИАБАЗА", "", ""], "airfield": ["АЭРОДРОМ", "", ""], "farm": ["КОЛХОЗ", "", ""], "civ": ["ЗАВОД", "", ""], "mine": ["РУДНИК", "", ""],
 	"barracks": ["КАЗАРМЫ", "", ""], "ad_mfg": ["ОГН.ГРУП.", "", ""], "ad_spaag": ["ЗСУ", "", ""], 
 	"ad_sam": ["ЗРК", "", ""], "ad_patriot": ["ПРО", "", ""], "ad_int": ["ПЕРЕХВАТ", "", ""], 
 	"ad_radar": ["РЛС", "", ""], "ad_ew": ["РЭБ", "", ""], "trench": ["ОКОП", "", ""], "teeth": ["ЗУБЫ", "", ""], 

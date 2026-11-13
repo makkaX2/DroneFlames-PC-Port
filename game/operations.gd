@@ -259,6 +259,7 @@ func front_tap(cid: int, gid: int, p: Vector2) -> String:
 
 
 func cancel(f: Facility) -> void :
+	gw.mil.air.cancel_airlift(f)
 	if gw.naval != null:
 		gw.naval.on_cancel(f)
 	var pc: Country = gw.country_by_id(f.country_id)
@@ -2772,6 +2773,9 @@ func _check(f: Facility, kind: int, target: Vector2, wp: Vector2) -> Dictionary:
 	if kind < 0:
 		kind = suggest_kind(f, target)
 		out["kind"] = kind
+	if gw.mil.air.airlift_busy(f):
+		out["why"] = Loc.t("Идёт воздушный десант")
+		return out
 	if gw.rail != null and gw.rail.troops != null and gw.rail.troops.riding(f):
 		out["why"] = Loc.t("Армия в поезде: ждите прибытия")
 		return out

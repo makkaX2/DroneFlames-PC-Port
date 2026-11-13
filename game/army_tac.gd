@@ -154,7 +154,7 @@ func _plan(path: PackedVector2Array, goal: Vector2, stop_d: float) -> Array:
 
 
 func start(home: Facility, members: Array[Unit], city: City, via: Vector2 = Vector2.INF) -> bool:
-	if members.is_empty():
+	if members.is_empty() or gw.mil.air.airlift_busy(home):
 		return false
 	var cen: Vector2 = _cen(members)
 	var goal: = Vector2(city.center * GameWorld.CELL)
@@ -843,7 +843,7 @@ func _cen(members: Array[Unit]) -> Vector2:
 
 
 func start_area(home: Facility, members: Array[Unit], goal: Vector2, via: Vector2 = Vector2.INF, defend: bool = false) -> bool:
-	if members.is_empty():
+	if members.is_empty() or gw.mil.air.airlift_busy(home):
 		return false
 	var cen: Vector2 = _cen(members)
 	var forced: bool = sea_pref and gw.ops != null and gw.ops.sea_force

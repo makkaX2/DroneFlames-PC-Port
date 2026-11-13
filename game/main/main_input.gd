@@ -166,6 +166,14 @@ func _tap(pos: Vector2) -> void :
 					hud.show_toast(Loc.msg(Loc.mk("Приказ: %s", [Loc.t(String(world.ops.order_info(ok_k).get("name", "")))])))
 					overlay.ripple(wp, "alert_red")
 					_set_mode(Mode.NONE))
+		Mode.AIRLIFT:
+			var home: Facility = airlift_from
+			_sim("mil.air", "start_airlift", [home, wp], func(r: Variant) -> void :
+				if _why(r) != "":
+					hud.show_toast(_why(r))
+				elif mode == Mode.AIRLIFT and airlift_from == home:
+					overlay.ripple(wp, "intercept_cyan")
+					_set_mode(Mode.NONE))
 		Mode.EXPEDITION:
 			if exp_port == null:
 				hud.show_toast("Нет порта")
@@ -217,7 +225,7 @@ func _tap(pos: Vector2) -> void :
 					_set_mode(Mode.NONE))
 		Mode.HYP_TARGET:
 			_missile_tap(pos, wp)
-		Mode.FACTORY, Mode.DRONEPORT, Mode.TEL, Mode.MFACTORY, Mode.REFINERY, Mode.POWER, Mode.AIRFIELD, Mode.CIV_AIRPORT, Mode.FARM, Mode.CIV, Mode.MINE, Mode.BARRACKS, Mode.AD_MFG, Mode.AD_SPAAG, Mode.AD_SAM, Mode.AD_PATRIOT, Mode.AD_INT, Mode.AD_RADAR, Mode.AD_EW, Mode.DUGOUT, Mode.SAWMILL, Mode.OIL_RIG, Mode.PORT, Mode.SOLAR_FARM, Mode.NAVBASE, Mode.COASTAL_ASM, Mode.NPP, Mode.UMINE:
+		Mode.FACTORY, Mode.DRONEPORT, Mode.TEL, Mode.MFACTORY, Mode.REFINERY, Mode.POWER, Mode.AIRFIELD, Mode.AIRBASE, Mode.CIV_AIRPORT, Mode.FARM, Mode.CIV, Mode.MINE, Mode.BARRACKS, Mode.AD_MFG, Mode.AD_SPAAG, Mode.AD_SAM, Mode.AD_PATRIOT, Mode.AD_INT, Mode.AD_RADAR, Mode.AD_EW, Mode.DUGOUT, Mode.SAWMILL, Mode.OIL_RIG, Mode.PORT, Mode.SOLAR_FARM, Mode.NAVBASE, Mode.COASTAL_ASM, Mode.NPP, Mode.UMINE:
 			var kind: int = BUILD_KIND[mode]
 			if kind == Facility.Kind.MINE and not world.econ.deposit_near(cell, 3, ["uranium"]).is_empty():
 				kind = Facility.Kind.URANIUM_MINE

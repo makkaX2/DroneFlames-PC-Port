@@ -730,6 +730,9 @@ func capture_city(city: City, new_id: int) -> void :
 	for a: Aircraft in mil.air.aircraft:
 		if a.base == null or a.base.country_id != new_id or a.country_id != old_id or a.state == Aircraft.State.DEAD:
 			continue
+		if a.base.kind == Facility.Kind.AIRBASE and a.state != Aircraft.State.PARKED:
+			mil.air._on_airbase_lost(a)
+			continue
 		if not a.airborne():
 			a.country_id = new_id
 			continue

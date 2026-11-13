@@ -48,7 +48,7 @@ static func draw(ci: CanvasItem, gw: GameWorld, see: Callable) -> void :
 	var air: Air = gw.mil.air
 	for a: Aircraft in air.aircraft:
 
-		if a.type != Aircraft.Type.HELI and a.state != Aircraft.State.DEAD and a.airborne():
+		if not a.helicopter() and a.state != Aircraft.State.DEAD and a.airborne():
 			var lh: Array = _hd.get(a.id, [a.heading, now])
 			var dtv: float = now - float(lh[1])
 			if dtv >= 0.1:

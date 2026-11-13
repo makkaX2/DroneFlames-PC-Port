@@ -16,7 +16,7 @@ var _src: Dictionary = {}
 const ICON: Dictionary = {
 	Facility.Kind.DRONE_FACTORY: "icon_dronefactory", Facility.Kind.DRONE_PORT: "icon_droneport", Facility.Kind.TEL: "icon_tel", 
 	Facility.Kind.MISSILE_FACTORY: "icon_missile_factory", Facility.Kind.REFINERY: "icon_refinery", Facility.Kind.POWER_PLANT: "icon_power", 
-	Facility.Kind.AIRFIELD: "icon_airfield_b", Facility.Kind.FARM: "icon_farm", Facility.Kind.CIV_FACTORY: "icon_civ_factory", 
+	Facility.Kind.AIRFIELD: "icon_airfield_b", Facility.Kind.AIRBASE: "icon_airfield_b", Facility.Kind.FARM: "icon_farm", Facility.Kind.CIV_FACTORY: "icon_civ_factory",
 	Facility.Kind.MINE: "icon_mine", Facility.Kind.BARRACKS: "icon_barracks", Facility.Kind.AD_MFG: "icon_ad_mfg", 
 	Facility.Kind.AD_SPAAG: "icon_ad_spaag", Facility.Kind.AD_SAM: "icon_ad_sam", Facility.Kind.AD_PATRIOT: "icon_ad_patriot", 
 	Facility.Kind.AD_INT: "icon_int_drone", Facility.Kind.AD_RADAR: "icon_ad_radar", Facility.Kind.AD_EW: "icon_ad_ew", 

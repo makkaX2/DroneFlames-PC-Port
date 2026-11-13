@@ -66,9 +66,9 @@ func tick(dt: float) -> void :
 		_source("uav" if d.kind == 2 else "cm", "d%d" % d.id, d.pos, best, far, seen)
 	if mil.air != null:
 		for a: Aircraft in mil.air.aircraft:
-			if a.type == Aircraft.Type.HELI or a.state == Aircraft.State.DEAD or not a.airborne():
+			if a.helicopter() or a.state == Aircraft.State.DEAD or not a.airborne():
 				continue
-			_source("bomber" if a.type == Aircraft.Type.BOMBER else "jet", "a%d" % a.id, a.pos, best, far, seen)
+			_source("bomber" if a.type in [Aircraft.Type.BOMBER, Aircraft.Type.TRANSPORT] else "jet", "a%d" % a.id, a.pos, best, far, seen)
 		_kabs(mil.air)
 	for f: String in FAM:
 		_duck[f] = maxf(0.0, float(_duck.get(f, 0.0)) - dt)

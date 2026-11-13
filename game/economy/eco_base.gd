@@ -68,9 +68,12 @@ const RES_COST: Dictionary = {
 	"aircraft_0": {"titanium": 60, "metal": 25, "precious": 3}, 
 	"aircraft_1": {"titanium": 20, "metal": 10, "precious": 1}, 
 	"aircraft_2": {"titanium": 10, "metal": 8}, 
-	"aircraft_3": {"titanium": 30, "metal": 15, "precious": 1}, 
+	"aircraft_3": {"titanium": 30, "metal": 15, "precious": 1},
+	"aircraft_4": {"titanium": 18, "metal": 24},
+	"aircraft_5": {"titanium": 10, "metal": 14},
 }
 const BUILD_COST: Dictionary = {
+	Facility.Kind.AIRBASE: {"metal": 45, "wood": 30},
 	Facility.Kind.CIV_AIRPORT: {"metal": 30, "wood": 20},
 	Facility.Kind.DRONE_FACTORY: {"metal": 15, "wood": 10}, Facility.Kind.AIRFIELD: {"metal": 25, "wood": 20}, 
 	Facility.Kind.DRONE_PORT: {"metal": 6, "wood": 10}, Facility.Kind.DP_RAMP: {"metal": 4}, Facility.Kind.DP_RUNWAY: {"wood": 6}, 

@@ -249,18 +249,35 @@ func show_facility(f: Facility, mil: Military, player: Country) -> void :
 				info += "\n" + Loc.t("ПАССАЖИРЫ %d · ГРУЗЫ %d · ЭКСПОРТ %d") % [
 					f.civil_passengers, f.civil_cargo, f.civil_export
 				]
-			Facility.Kind.AIRFIELD:
+			Facility.Kind.AIRFIELD, Facility.Kind.AIRBASE:
 				var based: Array[Aircraft] = mil.air.based_at(f)
 				var nb: int = 0
+				var nt: int = 0
+				var is_base: bool = f.kind == Facility.Kind.AIRBASE
 				for ac: Aircraft in based:
 					if ac.type == Aircraft.Type.BOMBER:
 						nb += 1
-				info = Loc.t("САМОЛЁТОВ %d/%d · БОМБАРДИРОВЩИК %d/1 · ТИТАН %d") % [based.size() - nb, Air.AIR_CAP, nb, player.titanium]
+					elif ac.transport():
+						nt += 1
+				info = Loc.t("САМОЛЁТОВ %d/%d · БОМБАРДИРОВЩИК %d/1 · ТИТАН %d") % [based.size() - nb - nt, Air.AIRBASE_COMBAT.size() if is_base else Air.AIR_CAP, nb, player.titanium]
 				var anames: Array = ["БОМБАРД.", "ИСТРЕБ.", "ВЕРТОЛЁТ", "ШТУРМОВИК"]
 				for t2: int in [Aircraft.Type.BOMBER, Aircraft.Type.FIGHTER, Aircraft.Type.HELI, Aircraft.Type.ATTACK]:
 					var cost: int = int(Air.SPEC[t2]["cost"])
 					acts.append(_act("%s\n%d" % [anames[t2], cost], ["icon_bomber", "icon_fighter", "icon_heli", "icon_attack_jet"][t2], ["buy_bomber", "buy_fighter", "buy_heli", "buy_attack"][t2], player.money >= cost and player.titanium >= int(Air.TITANIUM.get(t2, 0))))
+				if is_base:
+					info += Loc.t("\nТРАНСПОРТ %d/%d") % [nt, Air.AIRBASE_TRANSPORT.size()]
+					if not f.runway_ok():
+						info += Loc.t(" · РЕМОНТ ВПП %s") % _mmss(f.repair_t)
+					for t3: int in [Aircraft.Type.TRANSPORT, Aircraft.Type.TRANSPORT_HELI]:
+						var spec: Dictionary = Air.spec(t3)
+						var rc: Dictionary = Economy.res_cost("aircraft_%d" % t3)
+						var key: String = "buy_transport" if t3 == Aircraft.Type.TRANSPORT else "buy_transport_heli"
+						var icon: String = "icon_bomber" if t3 == Aircraft.Type.TRANSPORT else "icon_heli"
+						var can_buy: bool = nt < Air.AIRBASE_TRANSPORT.size() and player.money >= int(spec["cost"]) and player.has_res(rc)
+						acts.append(_act("%s\n%d" % [Loc.t(spec["name"]).to_upper(), spec["cost"]], icon, key, can_buy))
 				detail = Loc.t("Бомбардировщик несёт крылатые ракеты, истребитель — ракеты «воздух-воздух» и подвес, вертолёт патрулирует. Штурмовик: 4 КАБ (делает ракетный завод), НАРы, пушка, 2 ракеты «воздух-воздух». Нужен титан.")
+				if is_base:
+					detail = Loc.t("Пеликан: 8 мест, БМП занимает 3. Двурог: 3 места для пехоты. Выберите воздушный десант в карточке армии.")
 			Facility.Kind.DRONE_FACTORY:
 				var jt: bool = f.prod_type == 1
 				var cost_d: Dictionary = mil.drone_cost(false)
@@ -539,6 +556,9 @@ func show_army(f: Facility, mil: Military, player: Country) -> void :
 	var land: Dictionary = ab.get("landing", {})
 	if String(land.get("line", "")) != "":
 		info += Loc.t("\nДЕСАНТ: ") + String(land["line"])
+	var airborne: String = mil.air.airlift_status(f)
+	if not airborne.is_empty():
+		info += "\n" + airborne
 	var sup335: String = ArmyBudget.army_line(gw, f)
 	if sup335 != "":
 		info += "\n" + sup335
@@ -546,7 +566,11 @@ func show_army(f: Facility, mil: Military, player: Country) -> void :
 	ops_detail.visible = false
 	var stn: int = gw.ops.stance_of(f) if gw.ops.has_method("stance_of") else 0
 	var acts: Array = []
-	acts.append(_act("ДВИЖЕНИЕ", "icon_op_operation", "operation", n > 0))
+	acts.append(_act("ДВИЖЕНИЕ", "icon_op_operation", "operation", n > 0 and not mil.air.airlift_busy(f)))
+	if mil.air.airlift_busy(f):
+		acts.append(_act("ПРЕРВАТЬ\nДЕСАНТ", "icon_close", "airlift_cancel", true))
+	elif mil.has_kind(f.country_id, Facility.Kind.AIRBASE):
+		acts.append(_act("ВОЗДУШНЫЙ\nДЕСАНТ", "icon_airfield_b", "airlift", n > 0 and f.airlift_ready_at <= gw.game_time))
 	if land.get("pos") is Vector2:
 		acts.append(_act("К ЛОДКАМ", "icon_ship" if UiKit.has("icon_ship") else "icon_port", "to_boats", true))
 	elif posts > 0 and posts * 2 >= foot:
@@ -656,7 +680,7 @@ func _solar_act(f: Facility, mil: Military, player: Country, acts: Array) -> voi
 func show_aircraft(a: Aircraft, air: Air, player: Country) -> void :
 	var names: Dictionary = {Aircraft.State.PARKED: "НА СТОЯНКЕ", Aircraft.State.TAXI: "РУЛЁЖКА", Aircraft.State.ROLL: "ВЗЛЁТ", Aircraft.State.LIFT: "ВЗЛЁТ", Aircraft.State.FLY: "ПОЛЁТ", Aircraft.State.ORBIT: "БАРРАЖИРУЕТ", Aircraft.State.HOVER: "ВИСИТ", Aircraft.State.PATROL: "ПАТРУЛЬ", Aircraft.State.RTB: "НА БАЗУ", Aircraft.State.LAND: "ПОСАДКА", Aircraft.State.DEAD: "ПОТЕРЯН"}
 	var lvl: String = Loc.t(" · УР %d") % a.level if a.type == Aircraft.Type.FIGHTER else ""
-	var icon: String = ["icon_bomber", "icon_fighter", "icon_heli", "icon_attack_jet"][clampi(a.type, 0, 3)]
+	var icon: String = ["icon_bomber", "icon_fighter", "icon_heli", "icon_attack_jet", "icon_bomber", "icon_heli"][a.type]
 	_card("air%d" % a.id, icon, "%s %s%s" % [Air.name_of(a), Loc.no(a.id), lvl], String(names.get(a.state, "")), false, true, true)
 	var fmax: float = float(Air.SPEC[a.type]["fuel"])
 	var ammo: String = ""
@@ -673,6 +697,11 @@ func show_aircraft(a: Aircraft, air: Air, player: Country) -> void :
 			amax = int(Air.FIGHTER_AAM[a.level])
 		Aircraft.Type.HELI:
 			ammo = Loc.t(" · ПУШКА")
+	var transport_job: Dictionary = air.airlift_for_aircraft(a) if a.transport() else {}
+	if a.transport():
+		ammo = Loc.t(" · МЕСТ %d · ДАЛЬНОСТЬ %d М") % [Air.TRANSPORT_SEATS[a.type], int(Air.TRANSPORT_RANGE[a.type])]
+		if not transport_job.is_empty():
+			ammo += Loc.t(" · ЗАНЯТ ДЕСАНТОМ")
 	var svc: String = Loc.t(" · ЗАПРАВКА") if a.state == Aircraft.State.PARKED and a.service_t > 1.0 else ""
 	if a.type == Aircraft.Type.FIGHTER and a.pylon > 0:
 		ammo += Loc.t(" · ПОДВЕС %s %d") % [Loc.t(Air.PYLON_NAMES[a.pylon]), a.pylon_n]
@@ -681,7 +710,7 @@ func show_aircraft(a: Aircraft, air: Air, player: Country) -> void :
 	_set_bar(0, a.fuel / fmax, "res_fuel")
 	_set_bar(1, float(a.missiles) / float(maxi(amax, 1)) if a.type != Aircraft.Type.HELI else 1.0, "res_jet")
 	var acts: Array = []
-	if a.airborne():
+	if a.airborne() and transport_job.is_empty():
 		acts.append(_act("ПОСАДКА", "icon_land", "air_land", a.state != Aircraft.State.RTB and a.state != Aircraft.State.LAND))
 	if a.type == Aircraft.Type.HELI:
 		acts.append(_act("ПАТРУЛЬ", "icon_patrol", "air_patrol", a.state != Aircraft.State.DEAD))

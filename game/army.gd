@@ -138,6 +138,9 @@ func count_units(country_id: int) -> int:
 			n += 1
 	if gw.naval != null:
 		n += gw.naval.aboard_n(country_id)
+	for home: Facility in gw.mil.air.airlifts:
+		if home.country_id == country_id:
+			n += gw.mil.air.airlift_aboard(home).size()
 	return n
 
 
@@ -293,7 +296,7 @@ func order_attack(country_id: int, city: City, only: Facility = null) -> int:
 			continue
 		if only != null and u.home != only:
 			continue
-		if keep_sea and u.home != null and gw.naval.busy(u.home):
+		if gw.mil.air.airlift_busy(u.home) or (keep_sea and u.home != null and gw.naval.busy(u.home)):
 			continue
 		if u.post != null:
 			continue
@@ -1735,6 +1738,8 @@ func _have(f: Facility) -> Dictionary:
 	if gw.naval != null:
 		for u2: Unit in gw.naval.aboard_of(f):
 			have[u2.type] = int(have.get(u2.type, 0)) + 1
+	for u2: Unit in gw.mil.air.airlift_aboard(f):
+		have[u2.type] = int(have.get(u2.type, 0)) + 1
 	return have
 
 
@@ -2102,7 +2107,7 @@ func army_brief(f: Facility) -> Dictionary:
 	var hp: float = 0.0
 	var mhp: float = 0.0
 	var at_sea: Array = gw.naval.aboard_of(f) if gw.get("naval") != null else []
-	for src: Array in [units, at_sea]:
+	for src: Array in [units, at_sea, gw.mil.air.airlift_aboard(f)]:
 		for u: Unit in src:
 			if u.home != f or not u.alive() or u.type == Unit.Type.FPV:
 				continue

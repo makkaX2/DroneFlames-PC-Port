@@ -42,7 +42,7 @@ static func known(world: GameWorld, f: Facility) -> bool:
 
 static func category_color(kind: int) -> Color:
 	match kind:
-		Facility.Kind.DRONE_FACTORY, Facility.Kind.DRONE_PORT, Facility.Kind.AIRFIELD, Facility.Kind.TEL, \
+		Facility.Kind.DRONE_FACTORY, Facility.Kind.DRONE_PORT, Facility.Kind.AIRFIELD, Facility.Kind.AIRBASE, Facility.Kind.TEL, \
 		Facility.Kind.MISSILE_FACTORY, Facility.Kind.DP_RAMP, Facility.Kind.DP_RUNWAY, Facility.Kind.DP_STORE:
 			return CAT_MIL
 		Facility.Kind.AD_MFG, Facility.Kind.AD_SPAAG, Facility.Kind.AD_SAM, Facility.Kind.AD_PATRIOT, \
@@ -74,7 +74,7 @@ static func minor(f: Facility) -> bool:
 
 static func priority(kind: int) -> int:
 	match kind:
-		Facility.Kind.DRONE_PORT, Facility.Kind.AIRFIELD, Facility.Kind.MISSILE_FACTORY, Facility.Kind.DRONE_FACTORY:
+		Facility.Kind.DRONE_PORT, Facility.Kind.AIRFIELD, Facility.Kind.AIRBASE, Facility.Kind.MISSILE_FACTORY, Facility.Kind.DRONE_FACTORY:
 			return 0
 		Facility.Kind.BARRACKS, Facility.Kind.TEL, Facility.Kind.POWER_PLANT, Facility.Kind.PORT, Facility.Kind.REFINERY, Facility.Kind.NUCLEAR_PLANT:
 			return 1

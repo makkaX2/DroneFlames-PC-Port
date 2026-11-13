@@ -32,6 +32,11 @@ static func of(gw: GameWorld) -> String:
 	for a: Aircraft in gw.mil.air.aircraft:
 		sx = (sx * 31 + roundi(a.pos.x * 2.0)) & 2147483647
 		sy = (sy * 31 + roundi(a.pos.y * 2.0)) & 2147483647
+	for home: Facility in gw.mil.air.airlifts:
+		var job: Dictionary = gw.mil.air.airlifts[home]
+		nums.append_array([float(home.id), float(job["stage"]), float((job["aircraft"] as Aircraft).id)])
+		for u: Unit in job["units"]:
+			hp = (hp * 31 + u.id + int(u.hp * 4.0)) & 2147483647
 	nums.append(float(hp))
 	for dr: Drone in gw.mil.drones:
 		sx = (sx * 31 + roundi(dr.pos.x * 2.0)) & 2147483647

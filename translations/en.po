@@ -34083,3 +34083,60 @@ msgstr "The city near the airport needs power"
 
 msgid "ПАССАЖИРЫ %d · ГРУЗЫ %d · ЭКСПОРТ %d"
 msgstr "PASSENGERS %d · CARGO %d · EXPORT %d"
+
+msgid "Авиабаза"
+msgstr "Air base"
+
+msgid "АВИАБАЗА"
+msgstr "AIR BASE"
+
+msgid "13 МЕСТ, ТРАНСПОРТНИКИ, ВОЗДУШНЫЙ ДЕСАНТ"
+msgstr "13 PARKING SPOTS, TRANSPORT AIRCRAFT AND AIRBORNE LANDINGS"
+
+msgid "Пеликан"
+msgstr "Pelican"
+
+msgid "Двурог"
+msgstr "Twinhorn"
+
+msgid "ТРАНСПОРТ %d/%d"
+msgstr "TRANSPORTS %d/%d"
+
+msgid "ВОЗДУШНЫЙ\nДЕСАНТ"
+msgstr "AIRBORNE\nLANDING"
+
+msgid "ПРЕРВАТЬ\nДЕСАНТ"
+msgstr "CANCEL\nLANDING"
+
+msgid "ВОЗДУШНЫЙ ДЕСАНТ: ВЫБЕРИТЕ ТОЧКУ ВЫСАДКИ"
+msgstr "AIRBORNE LANDING: SELECT A DROP ZONE"
+
+msgid "Высадить воздушный десант здесь"
+msgstr "Land the troops here"
+
+msgid "Постройте авиабазу и купите транспорт"
+msgstr "Build an air base and buy transport aircraft"
+
+msgid "Нет готовых транспортников с достаточной дальностью"
+msgstr "No ready transport aircraft within range"
+
+msgid "Следующий воздушный десант через %d с"
+msgstr "Next airborne landing in %d s"
+
+msgid "Войска идут к авиабазе"
+msgstr "Troops are heading to the air base"
+
+msgid "Десант в воздухе"
+msgstr "Troops in flight"
+
+msgid "Высадка десанта"
+msgstr "Troops landing"
+
+msgid "Десант возвращается"
+msgstr "Troops returning"
+
+msgid "Выберите сухую площадку для высадки"
+msgstr "Choose a dry landing zone"
+
+msgid "Высадка здесь закрыта"
+msgstr "Landing is prohibited here"

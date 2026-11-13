@@ -1133,7 +1133,7 @@ func on_strike(cell: Vector2i, r_px: float = 14.0) -> void :
 		gw.diplo.sky.trip.on_strike(p, r_px)
 	for f: Facility in facilities:
 		var rw: = Rect2()
-		if f.kind == Facility.Kind.AIRFIELD:
+		if f.kind in [Facility.Kind.AIRFIELD, Facility.Kind.AIRBASE]:
 			rw = Rect2(f.origin_px() + AF_RUNWAY.position, AF_RUNWAY.size)
 		elif f.kind == Facility.Kind.DP_RUNWAY:
 			rw = Rect2(gw.obj_origin(f.main_obj), Vector2(64, 12))

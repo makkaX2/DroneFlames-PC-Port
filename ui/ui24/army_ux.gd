@@ -1368,6 +1368,12 @@ func open_army(fid: int) -> void :
 				toast(Loc.t("Армия №%d: отход к казармам") % f.army_no, PackedInt32Array([fid]))
 			_reopen()), false, "ОТХОД — к своим казармам, пополниться", n > 0)
 	_rail_verb(r1, func() -> Array: return [fid])
+	if gw.mil.air.airlift_busy(f):
+		_verb(r1, "icon_close", Loc.t("ПРЕРВАТЬ\nДЕСАНТ"), func() -> void :
+			_sim("mil.air", "cancel_airlift", [f], func(_r: Variant) -> void : _reopen()))
+	elif gw.mil.has_kind(f.country_id, Facility.Kind.AIRBASE):
+		_verb(r1, "icon_airfield_b", Loc.t("ВОЗДУШНЫЙ\nДЕСАНТ"), func() -> void :
+			hud.main_node.begin_airlift(f), false, Loc.t("Перебросить отряды через авиабазу"), n > 0 and f.airlift_ready_at <= gw.game_time)
 	if not g.is_empty() and not FP.front_of(g).is_empty():
 		_line(vb, Loc.t("ФРОНТ группы %s: держит свой участок") % AS.gname(g), UiKit.MUTED)
 	else:
@@ -1431,6 +1437,9 @@ func _army_what(fid: int) -> Array:
 	var land: Dictionary = ab.get("landing", {})
 	if String(land.get("line", "")) != "":
 		what += Loc.t(" · десант: %s") % [String(land["line"]).to_lower()]
+	var airborne: String = gw.mil.air.airlift_status(f)
+	if not airborne.is_empty():
+		what += " · " + airborne
 	return [what, AS.ST[key][2]]
 
 

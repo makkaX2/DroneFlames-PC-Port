@@ -207,9 +207,12 @@ func _draw() -> void :
 			var ap: Vector2 = ac.pos.round()
 			if not ac.airborne():
 				_spr(aa, _ac_shadow(ac), ac.frame, ap + Vector2(1, 1))
-				_spr(aa, n, ac.frame, ap)
-				if ac.type == Aircraft.Type.HELI:
-					_spr(a5, "heli_rotor", 0, ap)
+				if ac.transport():
+					_draw_transport(ac, ap, false)
+				else:
+					_spr(aa, n, ac.frame, ap)
+					if ac.helicopter():
+						_spr(a5, "heli_rotor", 0, ap)
 				if ac == gw.selected_drone():
 					_brackets(ap, int(Air.SPEC[ac.type]["sel"]))
 			elif z >= 1.0:
@@ -255,11 +258,15 @@ func _draw() -> void :
 				continue
 			var n2: String = _ac_name(ac)
 			var p2: Vector2 = ac.pos.round()
-			_outlined(_ac_atlas(ac), n2, _ac_shadow(ac), ac.frame, p2)
-			if ac.type == Aircraft.Type.HELI:
-				_spr(gw.atlas5, "heli_rotor", int(FxLayer.vt * 12.0) % 4, p2)
+			if ac.transport():
+				_draw_transport(ac, p2, true)
+			else:
+				_outlined(_ac_atlas(ac), n2, _ac_shadow(ac), ac.frame, p2)
+				if ac.helicopter():
+					_spr(gw.atlas5, "heli_rotor", int(FxLayer.vt * 12.0) % 4, p2)
 			if ac == sel:
 				_brackets(p2, int(Air.SPEC[ac.type]["sel"]))
+		_draw_airlift_descents(mil.air)
 		if not Air.flare_fx.is_empty():
 			_flares()
 		if gw.aftermath != null and not gw.aftermath.air.falls.is_empty():
@@ -1224,6 +1231,51 @@ static func atlas316() -> SpriteAtlas:
 			var a: = SpriteAtlas.load_atlas("res://assets/sprites/atlas_air316.png", "res://assets/sprites/atlas_air316.json", true)
 			_a316 = a if a.has("attack") and a.has("attack_shadow") else null
 	return _a316
+
+
+const TRANSPORT_BODY: PackedVector2Array = [
+	Vector2(17, 0), Vector2(12, 3), Vector2(4, 3), Vector2(-4, 14), Vector2(-8, 14),
+	Vector2(-5, 3), Vector2(-12, 3), Vector2(-15, 7), Vector2(-17, 7), Vector2(-16, 0),
+	Vector2(-17, -7), Vector2(-15, -7), Vector2(-12, -3), Vector2(-5, -3), Vector2(-8, -14),
+	Vector2(-4, -14), Vector2(4, -3), Vector2(12, -3)
+]
+
+
+func _draw_transport(a: Aircraft, at: Vector2, flying: bool) -> void:
+	draw_set_transform(at, a.heading)
+	var paint := Color("#97a4a2")
+	if a.helicopter():
+		draw_rect(Rect2(-13, -3, 26, 6), Color("#344141"))
+		draw_rect(Rect2(-12, -2, 24, 4), paint)
+		for x: float in [-9.0, 9.0]:
+			var spin: float = FxLayer.vt * 15.0 if flying else 0.5
+			for blade: int in 3:
+				var shaft: Vector2 = Vector2.from_angle(spin + TAU * float(blade) / 3.0) * 7.0
+				draw_line(Vector2(x, 0), Vector2(x, 0) + shaft, Color("#424d4c"), 1.0)
+	else:
+		draw_colored_polygon(TRANSPORT_BODY, paint)
+		draw_rect(Rect2(9, -2, 4, 4), Color("#42515b"))
+		for y: float in [-10.0, -6.0, 6.0, 10.0]:
+			draw_rect(Rect2(-3, y - 1, 5, 2), Color("#626d70"))
+	draw_set_transform(Vector2.ZERO)
+
+
+func _draw_airlift_descents(air_service: Air) -> void:
+	for job: Dictionary in air_service.airlifts.values():
+		var aircraft: Aircraft = job["aircraft"]
+		if int(job["stage"]) != Air.AirliftStage.DESCENT or aircraft.helicopter():
+			continue
+		var at: Vector2 = job["point"]
+		if not _view(45.0).has_point(at) or not _see_air(int(job["cid"]), at):
+			continue
+		var height: float = clampf((float(job["release_at"]) - gw.game_time) / Air.AIRLIFT_DESCENT, 0.0, 1.0) * 28.0
+		var troops: Array = job["units"]
+		for i: int in troops.size():
+			var p: Vector2 = at + Vector2(float(i % 4) * 9.0 - 13.5, float(i / 4) * 9.0 - height)
+			draw_arc(p, 5.0, PI, TAU, 8, Color("#e5ddd0"), 2.0)
+			draw_line(p + Vector2(-4, 0), p + Vector2(0, 6), Color("#b9ae9d"))
+			draw_line(p + Vector2(4, 0), p + Vector2(0, 6), Color("#b9ae9d"))
+			draw_circle(p + Vector2(0, 7), 1.5, Color("#697751"))
 
 
 func _ac_atlas(ac: Aircraft) -> SpriteAtlas:
