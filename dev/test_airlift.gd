@@ -59,7 +59,11 @@ func _run() -> void:
 	assert((plan["aircraft"] as Aircraft).type == Aircraft.Type.TRANSPORT)
 	assert((plan["units"] as Array).size() == 6)
 	assert((plan["units"] as Array).has(members[0]))
-	assert(air.start_airlift(home, drop).is_empty())
+	var net := NetSession.new()
+	net.gw = world
+	net._exec({"k": "call", "s": player.id - 1, "o": "mil.air", "m": "start_airlift", "a": NetCodec.encode([home, drop])})
+	assert(air.airlift_busy(home))
+	net.free()
 	assert(not air.start_airlift(home, drop).is_empty())
 	assert(not air.order_fly(air.aircraft[0], drop).is_empty())
 	assert(not world.ops.start(home, Operations.Kind.DEFEND, drop).is_empty())
