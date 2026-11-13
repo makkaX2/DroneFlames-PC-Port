@@ -47,7 +47,7 @@ static func aam_of(a: Aircraft) -> int:
 
 
 static func dogfighter(a: Aircraft) -> bool:
-	return a.type == Aircraft.Type.FIGHTER or is_attack(a)
+	return a.type in [Aircraft.Type.FIGHTER, Aircraft.Type.DECK_FIGHTER] or is_attack(a)
 
 
 
@@ -112,7 +112,7 @@ func _threat(a: Aircraft) -> Dictionary:
 
 
 func steer(a: Aircraft, dt: float) -> bool:
-	if not enabled or not dogfighter(a) or not a.airborne() or a.base == null or not Air.SPEC.has(a.type):
+	if not enabled or not dogfighter(a) or not a.airborne() or (a.base == null and a.carrier_id == 0) or not Air.SPEC.has(a.type):
 		return false
 	if a.state != Aircraft.State.FLY and a.state != Aircraft.State.ORBIT and a.state != Aircraft.State.PATROL and a.state != Aircraft.State.RTB:
 		return false
@@ -120,7 +120,7 @@ func steer(a: Aircraft, dt: float) -> bool:
 	var vmax: float = float(sp["speed"])
 	var rate: float = float(sp["turn"]) * dt
 
-	if a.fuel < a.pos.distance_to(air.spot_pos(a.base, a.spot)) + Air.RESERVE_PX + 200.0:
+	if a.fuel < a.pos.distance_to(air.home_pos(a)) + Air.RESERVE_PX + 200.0:
 		return false
 	var want: float = a.heading
 	var k: float = 1.0

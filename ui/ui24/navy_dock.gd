@@ -564,6 +564,38 @@ func _build_card() -> void :
 		og.add_child(b)
 		obs[key] = b
 
+	var deck: HBoxContainer = HBoxContainer.new()
+	deck.add_theme_constant_override("separation", 4)
+	card.add_child(deck)
+	var deck_buy: Button = _btn_icon(Loc.t("ПАЛУБНЫЙ ИСТРЕБ."), "icon_fighter", "gold")
+	deck_buy.pressed.connect(func() -> void:
+		var s: Ship = _nv().ship(sel_sid)
+		if s != null:
+			_deck_command("buy_deck_fighter", [gw.player.id, s.id]))
+	deck.add_child(deck_buy)
+	var deck_auto: Button = _btn_icon("", "icon_patrol", "stone")
+	deck_auto.pressed.connect(func() -> void:
+		var s: Ship = _nv().ship(sel_sid)
+		if s != null:
+			_deck_command("set_deck_auto", [gw.player.id, s.id, not s.deck_auto]))
+	deck.add_child(deck_auto)
+	var deck_select: Button = _btn_icon(Loc.t("ВЫБРАТЬ БОРТ"), "icon_fighter", "stone")
+	deck_select.pressed.connect(func() -> void:
+		var s: Ship = _nv().ship(sel_sid)
+		if s == null:
+			return
+		var based: Array[Aircraft] = gw.mil.air.deck_aircraft(s)
+		if based.is_empty():
+			return
+		var index: int = posmod(int(deck_select.get_meta("index", 0)), based.size())
+		deck_select.set_meta("index", index + 1)
+		var a: Aircraft = based[index]
+		close()
+		hud.main_node._deselect()
+		hud.main_node.follow = a
+		hud.main_node.cam.center_on(a.pos))
+	deck.add_child(deck_select)
+
 	var sv_l: Label = UiKit.lbl("ОБСЛУЖИВАНИЕ У БАЗЫ", 10, UiKit.TITLE, 2, 3)
 	card.add_child(sv_l)
 	var sr: = HBoxContainer.new()
@@ -604,7 +636,7 @@ func _build_card() -> void :
 	svh.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	svh.custom_minimum_size.x = 1.0
 	card.add_child(svh)
-	card_refs = {"hic": hic, "nm": nm, "fit": fit, "hp": hp, "hpl": hpl, "st": stl, "pills": pills, "orders": obs, "svc": svc, "svl": sv_l, "svr": sr, "svh": svh}
+	card_refs = {"hic": hic, "nm": nm, "fit": fit, "hp": hp, "hpl": hpl, "st": stl, "pills": pills, "orders": obs, "svc": svc, "deck": deck, "deck_buy": deck_buy, "deck_auto": deck_auto, "deck_select": deck_select, "svl": sv_l, "svr": sr, "svh": svh}
 
 
 func _draw_hp(c: Control, v: float) -> void :
@@ -992,8 +1024,26 @@ func _fill_card() -> void :
 	(ob["asm"] as Button).disabled = int(s.ammo.get("asm", 0)) <= 0
 	(ob["cm"] as Button).visible = s.has_mod("vls")
 	(ob["cm"] as Button).disabled = int(s.ammo.get("cm", 0)) <= 0
+	(R["deck"] as Control).visible = s.hull == Ship.Hull.CARRIER
+	if s.hull == Ship.Hull.CARRIER:
+		var count: int = gw.mil.air.deck_aircraft(s).size()
+		var cap: int = Air.DECK_SPOTS.size()
+		var cost: int = int(Air.spec(Aircraft.Type.DECK_FIGHTER)["cost"])
+		var buy: Button = R["deck_buy"]
+		(buy.get_meta("lb") as Label).text = Loc.t("ИСТРЕБ. %d · %d/%d") % [cost, count, cap]
+		buy.disabled = count >= cap or gw.player.money < cost or not gw.player.has_res(Economy.res_cost("aircraft_%d" % Aircraft.Type.DECK_FIGHTER))
+		((R["deck_auto"] as Button).get_meta("lb") as Label).text = Loc.t("АВТОВЫЛЕТ ВКЛ") if s.deck_auto else Loc.t("АВТОВЫЛЕТ ВЫКЛ")
+		(R["deck_select"] as Button).disabled = count == 0
 	_fill_service(s)
 
+
+func _deck_command(method: String, args: Array) -> void:
+	NetSession.sim("mil.air", method, args, func(result: Variant) -> void:
+		if result == null:
+			hud.show_toast(Loc.t("Команда не выполнена"))
+		elif result is String and not String(result).is_empty():
+			hud.show_toast(String(result))
+		refresh())
 
 
 func _fill_service(s: Ship) -> void :

@@ -680,7 +680,7 @@ func _solar_act(f: Facility, mil: Military, player: Country, acts: Array) -> voi
 func show_aircraft(a: Aircraft, air: Air, player: Country) -> void :
 	var names: Dictionary = {Aircraft.State.PARKED: "НА СТОЯНКЕ", Aircraft.State.TAXI: "РУЛЁЖКА", Aircraft.State.ROLL: "ВЗЛЁТ", Aircraft.State.LIFT: "ВЗЛЁТ", Aircraft.State.FLY: "ПОЛЁТ", Aircraft.State.ORBIT: "БАРРАЖИРУЕТ", Aircraft.State.HOVER: "ВИСИТ", Aircraft.State.PATROL: "ПАТРУЛЬ", Aircraft.State.RTB: "НА БАЗУ", Aircraft.State.LAND: "ПОСАДКА", Aircraft.State.DEAD: "ПОТЕРЯН"}
 	var lvl: String = Loc.t(" · УР %d") % a.level if a.type == Aircraft.Type.FIGHTER else ""
-	var icon: String = ["icon_bomber", "icon_fighter", "icon_heli", "icon_attack_jet", "icon_bomber", "icon_heli"][a.type]
+	var icon: String = ["icon_bomber", "icon_fighter", "icon_heli", "icon_attack_jet", "icon_bomber", "icon_heli", "icon_fighter"][a.type]
 	_card("air%d" % a.id, icon, "%s %s%s" % [Air.name_of(a), Loc.no(a.id), lvl], String(names.get(a.state, "")), false, true, true)
 	var fmax: float = float(Air.SPEC[a.type]["fuel"])
 	var ammo: String = ""
@@ -692,7 +692,7 @@ func show_aircraft(a: Aircraft, air: Air, player: Country) -> void :
 		Aircraft.Type.ATTACK:
 			ammo = Loc.t(" · КАБ %d · НАР %d · В-В %d") % [a.kab, a.nar, a.missiles]
 			amax = 2
-		Aircraft.Type.FIGHTER:
+		Aircraft.Type.FIGHTER, Aircraft.Type.DECK_FIGHTER:
 			ammo = Loc.t(" · РАКЕТ В-В %d/%d") % [a.missiles, int(Air.FIGHTER_AAM[a.level])]
 			amax = int(Air.FIGHTER_AAM[a.level])
 		Aircraft.Type.HELI:
@@ -711,6 +711,10 @@ func show_aircraft(a: Aircraft, air: Air, player: Country) -> void :
 	_set_bar(1, float(a.missiles) / float(maxi(amax, 1)) if a.type != Aircraft.Type.HELI else 1.0, "res_jet")
 	var acts: Array = []
 	if a.airborne() and transport_job.is_empty():
+		for ship: Ship in gw.navy.ships:
+			if ship.alive() and ship.hull == Ship.Hull.CARRIER and ship.c == a.country_id and ship.id != a.carrier_id and a.type in [Aircraft.Type.HELI, Aircraft.Type.FIGHTER, Aircraft.Type.ATTACK, Aircraft.Type.DECK_FIGHTER]:
+				acts.append(_act(Loc.t("НА АВИАНОСЕЦ"), "icon_port", "carrier_transfer", a.state not in [Aircraft.State.ROLL, Aircraft.State.LIFT, Aircraft.State.LAND]))
+				break
 		acts.append(_act("ПОСАДКА", "icon_land", "air_land", a.state != Aircraft.State.RTB and a.state != Aircraft.State.LAND))
 	if a.type == Aircraft.Type.HELI:
 		acts.append(_act("ПАТРУЛЬ", "icon_patrol", "air_patrol", a.state != Aircraft.State.DEAD))

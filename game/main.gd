@@ -1124,6 +1124,9 @@ func _on_action(nm: String) -> void :
 		"airlift_cancel":
 			if selected_fac != null:
 				_sim("mil.air", "cancel_airlift", [selected_fac])
+		"carrier_transfer":
+			if follow is Aircraft:
+				_set_mode(Mode.CARRIER_TRANSFER)
 		"air_land":
 			if follow is Aircraft:
 				_sim("mil.air", "order_land", [follow])

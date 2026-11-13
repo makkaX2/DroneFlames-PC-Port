@@ -3,13 +3,15 @@ extends RefCounted
 
 
 
-enum Type{BOMBER, FIGHTER, HELI, ATTACK, TRANSPORT, TRANSPORT_HELI}
+enum Type{BOMBER, FIGHTER, HELI, ATTACK, TRANSPORT, TRANSPORT_HELI, DECK_FIGHTER}
 enum State{PARKED, TAXI, ROLL, LIFT, FLY, ORBIT, HOVER, PATROL, RTB, LAND, DEAD}
 
 var id: int = 0
 var type: int = Type.FIGHTER
 var country_id: int = 0
 var base: Facility
+var carrier_id: int = 0
+var deck_auto_sortie: bool = false
 var spot: int = -1
 var state: int = State.PARKED
 var pos: Vector2 = Vector2.ZERO

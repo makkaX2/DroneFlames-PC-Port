@@ -3,7 +3,7 @@ extends RefCounted
 
 
 
-enum Hull{LIGHT, MEDIUM, HEAVY}
+enum Hull{LIGHT, MEDIUM, HEAVY, CARRIER}
 enum State{IDLE, SAIL, SINK}
 
 var id: int = 0
@@ -33,6 +33,7 @@ var trail: PackedVector2Array = PackedVector2Array()
 var trail_t: float = 0.0
 var think_t: float = 0.0
 var auto: bool = true
+var deck_auto: bool = true
 var kills: int = 0
 var shot_t: float = -99.0
 var aim: float = 0.0
@@ -52,7 +53,7 @@ var art_t: float = -99.0
 var art_aim: float = 0.0
 
 const FIELDS: Array = ["id", "c", "hull", "mods", "name", "base", "pos", "heading", "speed", "hp", "hp_max", "state", "path", "pi", 
-	"ammo", "fires", "tgt", "order_tgt", "gun_cd", "refit", "refit_t", "sink_t", "trail", "trail_t", "think_t", "auto", "kills", "fleet", "ord", "rf_load", "fresh"]
+	"ammo", "fires", "tgt", "order_tgt", "gun_cd", "refit", "refit_t", "sink_t", "trail", "trail_t", "think_t", "auto", "deck_auto", "kills", "fleet", "ord", "rf_load", "fresh"]
 
 
 func alive() -> bool:

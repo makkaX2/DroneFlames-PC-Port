@@ -34140,3 +34140,39 @@ msgstr "Choose a dry landing zone"
 
 msgid "Высадка здесь закрыта"
 msgstr "Landing is prohibited here"
+
+msgid "Авианосец"
+msgstr "Aircraft carrier"
+
+msgid "Палубный истребитель"
+msgstr "Carrier fighter"
+
+msgid "ИСТРЕБ. %d · %d/%d"
+msgstr "FIGHTER %d · %d/%d"
+
+msgid "АВТОВЫЛЕТ ВКЛ"
+msgstr "AUTO LAUNCH ON"
+
+msgid "АВТОВЫЛЕТ ВЫКЛ"
+msgstr "AUTO LAUNCH OFF"
+
+msgid "ВЫБРАТЬ БОРТ"
+msgstr "SELECT AIRCRAFT"
+
+msgid "НА АВИАНОСЕЦ"
+msgstr "TO CARRIER"
+
+msgid "ВЫБЕРИТЕ СВОЙ АВИАНОСЕЦ"
+msgstr "SELECT YOUR CARRIER"
+
+msgid "Нужен свой авианосец"
+msgstr "You need your own aircraft carrier"
+
+msgid "Палуба заполнена"
+msgstr "The flight deck is full"
+
+msgid "Самолёт уже на этом авианосце"
+msgstr "This aircraft is already based on that carrier"
+
+msgid "Этот борт не подходит для палубы"
+msgstr "This aircraft cannot use the flight deck"

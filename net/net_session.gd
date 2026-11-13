@@ -41,6 +41,7 @@ const ALLOWED: Dictionary = {
 	"mil.retarget": -1, "mil.order_move": -1,
 	"mil.air.set_pylon": -1, "mil.air.buy": -1, "mil.air.order_land": -1, "mil.air.upgrade": -1,
 	"mil.air.start_airlift": -1, "mil.air.cancel_airlift": -1,
+	"mil.air.buy_deck_fighter": 0, "mil.air.set_deck_auto": 0, "mil.air.transfer_to_carrier": -1,
 	"mil.air.set_payload": -1, "mil.air.order_patrol": -1, "mil.air.order_fly": -1,
 	"mil.air.launch_kab": -1, "mil.air.launch_cruise": -1, "mil.air.multi_launch": -1,
 	"mil.air.kab_strike": 0, "mil.air.cas_support": 0,  # R316 attack jet (country id, jet id, targets / point)

@@ -413,7 +413,7 @@ func _cands(c: Country, mothballed: bool) -> Array:
 			continue
 		if not mothballed and a.state != Aircraft.State.PARKED:
 			continue
-		var ap: Vector2 = a.base.center_px() if a.base != null else a.pos
+		var ap: Vector2 = gw.mil.air.home_pos(a)
 		out.append([_pri_at(c, int(PRI_AIR.get(a.type, 30)), ap, front), float(int(Air.SPEC[a.type]["cost"])) * PCT_AIR, "a%d" % a.id, a])
 	return out
 

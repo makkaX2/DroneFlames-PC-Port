@@ -336,7 +336,7 @@ func _build_hulls(body: VBoxContainer) -> void :
 	var hb: = HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 5)
 	body.add_child(hb)
-	for h in 3:
+	for h in Navy.HULLS.size():
 		var hs: Dictionary = Navy.hull_spec(h)
 		var b: = Button.new()
 		b.focus_mode = Control.FOCUS_NONE
@@ -376,6 +376,9 @@ func _build_hulls(body: VBoxContainer) -> void :
 
 
 func _draw_ship(ci: Control, h: int, fit: Array, at: Vector2, k: float) -> void :
+	if h == Ship.Hull.CARRIER:
+		NavyLayer.draw_carrier(ci, at, 0.0, k)
+		return
 	var a: Variant = gw.get("atlas_navy1")
 	var key: String = HULL_SPR[clampi(h, 0, 2)]
 	if not (a is SpriteAtlas) or not (a as SpriteAtlas).has(key):
@@ -613,7 +616,7 @@ func blocked_rects() -> Array:
 
 
 func set_hull(h: int, reset_fit: bool = true) -> void :
-	hull = clampi(h, 0, 2)
+	hull = clampi(h, 0, Navy.HULLS.size() - 1)
 	if reset_fit or mods.size() != int(Navy.hull_spec(hull)["slots"]):
 		mods = []
 		var pre: Array = Navy.PRESETS[hull]
@@ -758,7 +761,7 @@ func _refresh(fit_changed: bool) -> void :
 	if base == null or gw.get("navy") == null:
 		return
 	var p: Country = gw.player
-	for h in 3:
+	for h in Navy.HULLS.size():
 		var b: Button = hull_btns[h][0]
 		var on: bool = h == hull
 		for st: String in ["normal", "hover"]:

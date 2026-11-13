@@ -106,6 +106,8 @@ func _set_mode(m: int) -> void :
 			hud.set_hint(Loc.t("%s (%s): ТАП ПО МЕСТУ") % [Loc.t(String(oi.get("name", ""))).to_upper(), Loc.t(String(oi.get("cost_text", ""))).to_upper()])
 		Mode.RECON:
 			hud.set_hint("РАЗВЕДДРОН: ТАП ПО ТОЧКЕ ДО 4.5 КМ ОТ ДРОНОПОРТА")
+		Mode.CARRIER_TRANSFER:
+			hud.set_hint(Loc.t("ВЫБЕРИТЕ СВОЙ АВИАНОСЕЦ"))
 		Mode.AIRLIFT:
 			hud.set_hint(Loc.t("ВОЗДУШНЫЙ ДЕСАНТ: ВЫБЕРИТЕ ТОЧКУ ВЫСАДКИ"))
 		Mode.EXPEDITION:

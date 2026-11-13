@@ -166,6 +166,15 @@ func _tap(pos: Vector2) -> void :
 					hud.show_toast(Loc.msg(Loc.mk("Приказ: %s", [Loc.t(String(world.ops.order_info(ok_k).get("name", "")))])))
 					overlay.ripple(wp, "alert_red")
 					_set_mode(Mode.NONE))
+		Mode.CARRIER_TRANSFER:
+			if not follow is Aircraft:
+				_set_mode(Mode.NONE)
+				return
+			_sim("mil.air", "transfer_to_carrier", [follow, wp], func(r: Variant) -> void:
+				if _why(r) != "":
+					hud.show_toast(_why(r))
+				elif mode == Mode.CARRIER_TRANSFER:
+					_set_mode(Mode.NONE))
 		Mode.AIRLIFT:
 			var home: Facility = airlift_from
 			_sim("mil.air", "start_airlift", [home, wp], func(r: Variant) -> void :

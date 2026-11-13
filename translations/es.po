@@ -22341,3 +22341,39 @@ msgstr "Elige una zona de desembarco en tierra"
 
 msgid "Высадка здесь закрыта"
 msgstr "No se permite desembarcar aquí"
+
+msgid "Авианосец"
+msgstr "Portaaviones"
+
+msgid "Палубный истребитель"
+msgstr "Caza embarcado"
+
+msgid "ИСТРЕБ. %d · %d/%d"
+msgstr "CAZA %d · %d/%d"
+
+msgid "АВТОВЫЛЕТ ВКЛ"
+msgstr "DESPEGUE AUTO SÍ"
+
+msgid "АВТОВЫЛЕТ ВЫКЛ"
+msgstr "DESPEGUE AUTO NO"
+
+msgid "ВЫБРАТЬ БОРТ"
+msgstr "ELEGIR AERONAVE"
+
+msgid "НА АВИАНОСЕЦ"
+msgstr "AL PORTAAVIONES"
+
+msgid "ВЫБЕРИТЕ СВОЙ АВИАНОСЕЦ"
+msgstr "ELIGE TU PORTAAVIONES"
+
+msgid "Нужен свой авианосец"
+msgstr "Necesitas un portaaviones propio"
+
+msgid "Палуба заполнена"
+msgstr "La cubierta está llena"
+
+msgid "Самолёт уже на этом авианосце"
+msgstr "El avión ya está asignado a este portaaviones"
+
+msgid "Этот борт не подходит для палубы"
+msgstr "Esta aeronave no puede usar la cubierta"

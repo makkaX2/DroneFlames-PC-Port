@@ -15,20 +15,22 @@ const HULLS: Array = [
 	{"key": "medium", "name": "Фрегат", "hp": 650.0, "speed": 17.0, "turn": 0.9, "sensor": 550.0, "slots": 4, "decoy": 4, 
 		"cost": {"money": 2600, "metal": 16, "titanium": 2, "fuel": 10}, "time": 80.0}, 
 	{"key": "heavy", "name": "Крейсер", "hp": 1300.0, "speed": 13.0, "turn": 0.6, "sensor": 700.0, "slots": 6, "decoy": 6, 
-		"cost": {"money": 5200, "metal": 30, "titanium": 6, "fuel": 16}, "time": 120.0}, 
+		"cost": {"money": 5200, "metal": 30, "titanium": 6, "fuel": 16}, "time": 120.0},
+	{"key": "carrier", "name": "Авианосец", "hp": 3000.0, "speed": 12.0, "turn": 0.48, "sensor": 800.0, "slots": 4, "decoy": 8,
+		"cost": {"money": 25000, "metal": 90, "titanium": 25, "fuel": 30}, "time": 210.0},
 ]
 
 const MODS: Dictionary = {
-	"gun": {"name": "Артустановка", "max": [1, 2, 2], "cost": {"money": 250, "metal": 2}, "time": 8.0}, 
-	"ciws": {"name": "ЗАК", "max": [1, 2, 2], "cost": {"money": 350, "metal": 2}, "time": 8.0, "ammo": "ciws", "n": 300}, 
-	"sam": {"name": "ЗРК", "max": [1, 1, 2], "cost": {"money": 700, "metal": 3, "titanium": 1}, "time": 14.0, "ammo": "sam", "n": 8}, 
-	"ash": {"name": "ПКР", "max": [1, 2, 2], "cost": {"money": 500, "metal": 3}, "time": 10.0, "ammo": "asm", "n": 4}, 
-	"vls": {"name": "УВП", "max": [0, 0, 2], "cost": {"money": 1200, "metal": 4, "titanium": 2}, "time": 20.0, "ammo": "cm", "n": 8}, 
-	"art": {"name": "Артбатарея", "max": [1, 1, 2], "cost": {"money": 600, "metal": 3}, "time": 12.0, "ammo": "art", "n": 24}, 
+	"gun": {"name": "Артустановка", "max": [1, 2, 2, 2], "cost": {"money": 250, "metal": 2}, "time": 8.0},
+	"ciws": {"name": "ЗАК", "max": [1, 2, 2, 2], "cost": {"money": 350, "metal": 2}, "time": 8.0, "ammo": "ciws", "n": 300},
+	"sam": {"name": "ЗРК", "max": [1, 1, 2, 2], "cost": {"money": 700, "metal": 3, "titanium": 1}, "time": 14.0, "ammo": "sam", "n": 8},
+	"ash": {"name": "ПКР", "max": [1, 2, 2, 0], "cost": {"money": 500, "metal": 3}, "time": 10.0, "ammo": "asm", "n": 4},
+	"vls": {"name": "УВП", "max": [0, 0, 2, 0], "cost": {"money": 1200, "metal": 4, "titanium": 2}, "time": 20.0, "ammo": "cm", "n": 8},
+	"art": {"name": "Артбатарея", "max": [1, 1, 2, 0], "cost": {"money": 600, "metal": 3}, "time": 12.0, "ammo": "art", "n": 24},
 }
 const MOD_ORDER: Array = ["gun", "ciws", "sam", "ash", "vls", "art"]
 
-const PRESETS: Array = [["gun", "ciws", "ash"], ["gun", "ciws", "sam", "ash"], ["gun", "ciws", "sam", "ash", "ash", "vls"]]
+const PRESETS: Array = [["gun", "ciws", "ash"], ["gun", "ciws", "sam", "ash"], ["gun", "ciws", "sam", "ash", "ash", "vls"], ["ciws", "sam", "", ""]]
 const AMMO_KEYS: Array = ["asm", "cm", "sam", "ciws", "decoy", "art"]
 
 const DOCK_R: float = 100.0
@@ -302,7 +304,7 @@ static func fit_why(hull: int, mods: Array) -> String:
 		var mx: int = int(MODS[m2]["max"][hull])
 		if mods.count(m2) > mx:
 			if mx == 0:
-				return Loc.t("%s - только на крейсере") % String(MODS[m2]["name"])
+				return Loc.t("%s недоступен для этого корпуса") % Loc.t(String(MODS[m2]["name"]))
 			return Loc.t("%s: не больше %d на корпус «%s»") % [String(MODS[m2]["name"]), mx, String(hs["name"])]
 	return ""
 
@@ -901,7 +903,7 @@ func spawn_ship(f: Facility, hull: int, mods: Array) -> Ship:
 	s.id = _id
 	_id += 1
 	s.c = f.country_id
-	s.hull = clampi(hull, 0, 2)
+	s.hull = clampi(hull, 0, HULLS.size() - 1)
 	for m: Variant in mods:
 		s.mods.append(String(m))
 	var key: String = "%d:%d" % [s.c, s.hull]
@@ -1925,6 +1927,8 @@ func _ignite(s: Ship) -> void :
 func _sink(s: Ship, by: int) -> void :
 	s.hp = 0.0
 	s.state = Ship.State.SINK
+	if s.hull == Ship.Hull.CARRIER:
+		gw.mil.air.carrier_lost(s)
 	s.sink_t = 0.0
 	s.refit = ""
 	s.fires.clear()
@@ -3016,7 +3020,7 @@ func load_state(d: Dictionary) -> void :
 	for sd: Variant in d.get("ships", []):
 		if sd is Dictionary:
 			var s: Ship = Ship.from_dict(sd)
-			if s.hull < 0 or s.hull > 2:
+			if s.hull < 0 or s.hull >= HULLS.size():
 				continue
 			for k: String in AMMO_KEYS:
 				s.ammo[k] = int(s.ammo.get(k, 0))

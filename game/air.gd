@@ -12,11 +12,14 @@ const SPEC: Dictionary = {
 	Aircraft.Type.ATTACK: {"name": "Штурмовик", "cost": 5000, "speed": 40.0, "turn": PI / 2.2, "fuel": 4200.0, "h": 9.0, "sprite": "attack", "sel": 13},
 	Aircraft.Type.TRANSPORT: {"name": "Пеликан", "cost": 3400, "speed": 34.0, "turn": PI / 2.0, "fuel": 6600.0, "h": 12.0, "sprite": "bomber", "sel": 16},
 	Aircraft.Type.TRANSPORT_HELI: {"name": "Двурог", "cost": 2200, "speed": 22.0, "turn": PI * 0.8, "fuel": 3200.0, "h": 6.0, "sprite": "heli", "sel": 13},
+	Aircraft.Type.DECK_FIGHTER: {"name": "Палубный истребитель", "cost": 4500, "speed": 47.0, "turn": PI / 2.0, "fuel": 4600.0, "h": 10.0, "sprite": "fighter", "sel": 12},
 }
 const UPGRADE_COST: int = 1500
 const FIGHTER_AAM: Array = [0, 2, 4, 6]
 const BOMBER_CR: int = 30
 const AIR_CAP: int = 6
+const DECK_SPOTS: Array[Vector2] = [Vector2(-14, 6), Vector2(-4, 6), Vector2(6, 6), Vector2(16, 6)]
+const DECK_PATROL: float = 420.0
 const AIRBASE_COMBAT: Array[Vector2] = [
 	Vector2(54, 29), Vector2(72, 29), Vector2(90, 29), Vector2(108, 29),
 	Vector2(54, 44), Vector2(72, 44), Vector2(90, 44), Vector2(108, 44), Vector2(36, 44),
@@ -218,6 +221,8 @@ func buy(af: Facility, type: int, country: Country) -> String:
 		return Loc.t("Нужен целый аэродром")
 	if af.kind not in [Facility.Kind.AIRFIELD, Facility.Kind.AIRBASE]:
 		return Loc.t("Нужен целый аэродром")
+	if type == Aircraft.Type.DECK_FIGHTER:
+		return Loc.t("Палубный истребитель покупается на авианосце")
 	if TRANSPORT_SEATS.has(type) and af.kind != Facility.Kind.AIRBASE:
 		return Loc.t("Транспорт покупается на авиабазе")
 	var cost: int = int(SPEC[type]["cost"])
@@ -278,11 +283,14 @@ func _order_fly(a: Aircraft, p: Vector2) -> String:
 		return Loc.t("ВПП повреждена")
 	if a.state == Aircraft.State.DEAD:
 		return Loc.t("Потерян")
+	if a.carrier_id > 0 and a.state == Aircraft.State.LAND:
+		return Loc.t("Идёт посадка")
 	if a.state == Aircraft.State.PARKED and a.fuel < 600.0:
 		return Loc.t("Мало топлива: идёт заправка")
 	if a.state == Aircraft.State.PARKED and gw.econ != null and gw.econ.upk != null and gw.econ.upk.grounded(a):
 		return Loc.t("На консервации: нет денег на содержание")
 	a.resume = 0
+	a.deck_auto_sortie = false
 	a.dest = p
 	match a.state:
 		Aircraft.State.PARKED:
@@ -318,7 +326,7 @@ func order_land(a: Aircraft) -> void :
 
 func _take_off(a: Aircraft) -> void :
 	a.service_t = 0.0
-	if a.helicopter():
+	if a.helicopter() or a.carrier_id > 0:
 		a.state = Aircraft.State.LIFT
 		return
 	var o: Vector2 = _o(a.base)
@@ -447,7 +455,9 @@ func update(dt: float) -> void :
 			_on_airbase_lost(a)
 			if a.state == Aircraft.State.DEAD:
 				continue
-		if a.type == Aircraft.Type.TRANSPORT_HELI and int(airlift_for_aircraft(a).get("stage", -1)) == AirliftStage.DESCENT:
+		if a.carrier_id > 0:
+			_step_deck_aircraft(a, dt)
+		elif a.type == Aircraft.Type.TRANSPORT_HELI and int(airlift_for_aircraft(a).get("stage", -1)) == AirliftStage.DESCENT:
 			a.h = move_toward(a.h, 0.0, 3.0 * dt)
 		else:
 			_step(a, dt)
@@ -590,7 +600,7 @@ func _fly(a: Aircraft, dt: float, vmax: float, turn: float) -> void :
 		a.patrol_ang += dt * vmax / HELI_PATROL_R
 		tgt = a.patrol_c + Vector2.from_angle(a.patrol_ang) * HELI_PATROL_R
 	elif a.state == Aircraft.State.RTB:
-		tgt = spot_pos(a.base, a.spot) if heli else _o(a.base) + Vector2(-50.0, Military.AF_ROLL_Y)
+		tgt = home_pos(a) if heli or a.carrier_id > 0 else _o(a.base) + Vector2(-50.0, Military.AF_ROLL_Y)
 	var to: Vector2 = tgt - a.pos
 	var dist: float = to.length()
 
@@ -599,14 +609,14 @@ func _fly(a: Aircraft, dt: float, vmax: float, turn: float) -> void :
 	if a.fuel <= 0.0:
 		_shot_down(a, "кончилось топливо")
 		return
-	var home: float = a.pos.distance_to(spot_pos(a.base, a.spot))
+	var home: float = a.pos.distance_to(home_pos(a))
 	if a.state != Aircraft.State.RTB and a.fuel < home + RESERVE_PX:
 		_mark_resume(a)
 		a.state = Aircraft.State.RTB
 		if gw.country_by_id(a.country_id).is_player:
 			gw.say(gw.country_by_id(a.country_id), Loc.mk("%s %d: мало топлива, возврат на базу", [name_of(a), a.id]))
 		return
-	if a.state == Aircraft.State.RTB and dist < (6.0 if heli else 14.0):
+	if a.state == Aircraft.State.RTB and dist < (18.0 if a.carrier_id > 0 else (6.0 if heli else 14.0)):
 		a.state = Aircraft.State.LAND
 		return
 	if heli:
@@ -696,8 +706,8 @@ func _parked(a: Aircraft) -> void :
 	a.state = Aircraft.State.PARKED
 	a.h = 0.0
 	a.speed = 0.0
-	a.pos = spot_pos(a.base, a.spot)
-	a.heading = 0.0
+	a.pos = home_pos(a)
+	a.heading = carrier_of(a).heading if a.carrier_id > 0 else 0.0
 	a.service_t = SERVICE_TIME
 	a.after_land = -1
 
@@ -721,7 +731,7 @@ func _service(a: Aircraft, dt: float) -> void :
 		var k: int = mini(BOMBER_CR - a.missiles, c.missile_stock[Military.MT_CRUISE])
 		c.missile_stock[Military.MT_CRUISE] -= k
 		a.missiles += k
-	elif a.type == Aircraft.Type.FIGHTER and a.missiles < int(FIGHTER_AAM[a.level]):
+	elif (a.type == Aircraft.Type.FIGHTER or a.type == Aircraft.Type.DECK_FIGHTER) and a.missiles < int(FIGHTER_AAM[a.level]):
 		var k2: int = mini(int(FIGHTER_AAM[a.level]) - a.missiles, c.missile_stock[Military.MT_AA])
 		c.missile_stock[Military.MT_AA] -= k2
 		a.missiles += k2
@@ -744,7 +754,7 @@ func _service(a: Aircraft, dt: float) -> void :
 
 
 func _mark_resume(a: Aircraft) -> void :
-	if a.sortie > 0 or a.auto_cr > 0 or a.cas > 0 or a.type == Aircraft.Type.BOMBER or a.transport():
+	if a.sortie > 0 or a.auto_cr > 0 or a.cas > 0 or a.type in [Aircraft.Type.BOMBER, Aircraft.Type.DECK_FIGHTER] or a.transport():
 		return
 	if a.state == Aircraft.State.PATROL:
 		a.resume = 2
@@ -783,6 +793,10 @@ func _engage() -> void :
 		if a.type == Aircraft.Type.ATTACK:
 			if a.missiles > 0:
 				_engage_fighter(a)
+		elif a.type == Aircraft.Type.DECK_FIGHTER and a.missiles > 0:
+			_engage_fighter(a)
+			if a.deck_auto_sortie and a.missiles <= 0:
+				order_land(a)
 		elif a.type == Aircraft.Type.FIGHTER and a.missiles > 0:
 			_engage_fighter(a)
 			if a.missiles <= 0 and a.pylon_n <= 0 and a.state != Aircraft.State.RTB and a.state != Aircraft.State.LAND:
@@ -1046,7 +1060,7 @@ func _release_point(from: Vector2, target: Vector2) -> Vector2:
 
 
 func _kab_reach(a: Aircraft) -> float:
-	var home: Vector2 = spot_pos(a.base, a.spot) if a.base != null else a.pos
+	var home: Vector2 = home_pos(a)
 	var back: float = a.pos.distance_to(home)
 	return maxf(0.0, (a.fuel - RESERVE_PX - 120.0 - back) * 0.5) + KAB_STANDOFF
 
@@ -1066,7 +1080,7 @@ func _kab_why(a: Aircraft, target: Vector2, rel: Vector2) -> String:
 		return Loc.t("Идёт сброс")
 	if a.state == Aircraft.State.PARKED and a.fuel < 600.0:
 		return Loc.t("Мало топлива: идёт заправка")
-	var home: Vector2 = spot_pos(a.base, a.spot) if a.base != null else a.pos
+	var home: Vector2 = home_pos(a)
 	var need: float = a.pos.distance_to(rel) + rel.distance_to(home) + RESERVE_PX + 120.0
 	if need > a.fuel:
 		if a.state == Aircraft.State.PARKED and need <= float(SPEC[a.type]["fuel"]):
@@ -1319,8 +1333,8 @@ func _kab_impact(d: Drone) -> void :
 
 
 
-const FLARE_N: Dictionary = {Aircraft.Type.BOMBER: 3, Aircraft.Type.FIGHTER: 2, Aircraft.Type.HELI: 2, Aircraft.Type.ATTACK: 3, Aircraft.Type.TRANSPORT: 3, Aircraft.Type.TRANSPORT_HELI: 2}
-const FLARE_DECOY: Dictionary = {Aircraft.Type.BOMBER: 25, Aircraft.Type.FIGHTER: 35, Aircraft.Type.HELI: 30, Aircraft.Type.ATTACK: 35, Aircraft.Type.TRANSPORT: 25, Aircraft.Type.TRANSPORT_HELI: 30}
+const FLARE_N: Dictionary = {Aircraft.Type.BOMBER: 3, Aircraft.Type.FIGHTER: 2, Aircraft.Type.HELI: 2, Aircraft.Type.ATTACK: 3, Aircraft.Type.TRANSPORT: 3, Aircraft.Type.TRANSPORT_HELI: 2, Aircraft.Type.DECK_FIGHTER: 2}
+const FLARE_DECOY: Dictionary = {Aircraft.Type.BOMBER: 25, Aircraft.Type.FIGHTER: 35, Aircraft.Type.HELI: 30, Aircraft.Type.ATTACK: 35, Aircraft.Type.TRANSPORT: 25, Aircraft.Type.TRANSPORT_HELI: 30, Aircraft.Type.DECK_FIGHTER: 35}
 const FLARE_R: float = 40.0
 static var flare_fx: Array = []
 var flare_stats: Array = [0, 0]
@@ -1696,7 +1710,7 @@ func bomber_summary(country_id: int) -> Array:
 
 
 func auto_note(a: Aircraft) -> String:
-	if a == null or a.state != Aircraft.State.PARKED or a.helicopter() or a.transport():
+	if a == null or a.state != Aircraft.State.PARKED or a.helicopter() or a.transport() or a.type == Aircraft.Type.DECK_FIGHTER:
 		return ""
 	var c: Country = gw.country_by_id(a.country_id)
 	if c == null or c.eliminated:
@@ -2416,7 +2430,7 @@ func _kab_route_px(a: Aircraft, targets: Array) -> float:
 		var rel: Vector2 = _release_point(p, t)
 		total += p.distance_to(rel)
 		p = rel
-	var home: Vector2 = spot_pos(a.base, a.spot) if a.base != null else a.pos
+	var home: Vector2 = home_pos(a)
 	return total + p.distance_to(home) + RESERVE_PX + 120.0
 
 
@@ -2506,7 +2520,7 @@ func cas_why(country_id: int, a_id: int, p: Vector2) -> String:
 		return Loc.t("Штурмовик заходит на посадку")
 	if a.state == Aircraft.State.PARKED and a.fuel < 600.0:
 		return Loc.t("Мало топлива: идёт заправка")
-	var home: Vector2 = spot_pos(a.base, a.spot) if a.base != null else a.pos
+	var home: Vector2 = home_pos(a)
 	var need: float = a.pos.distance_to(p) + CAS_RUN * 2.0 * CAS_PASSES + p.distance_to(home) + RESERVE_PX + 120.0
 	if need > a.fuel:
 		if a.state == Aircraft.State.PARKED and need <= float(SPEC[a.type]["fuel"]):
@@ -2664,6 +2678,153 @@ func _nar_impact(p: Vector2, by: int) -> void :
 			_shot_down(a2, "уничтожен на земле")
 
 
+
+
+func carrier_of(a: Aircraft) -> Ship:
+	return gw.navy.ship(a.carrier_id) if a.carrier_id > 0 and gw.navy != null else null
+
+
+func home_pos(a: Aircraft) -> Vector2:
+	var ship: Ship = carrier_of(a)
+	if ship != null:
+		return ship.pos + DECK_SPOTS[a.spot].rotated(ship.heading)
+	return spot_pos(a.base, a.spot) if a.base != null else a.pos
+
+
+func deck_aircraft(ship: Ship) -> Array[Aircraft]:
+	var result: Array[Aircraft] = []
+	for a: Aircraft in aircraft:
+		if a.carrier_id == ship.id and a.state != Aircraft.State.DEAD:
+			result.append(a)
+	return result
+
+
+func _deck_spot(ship: Ship) -> int:
+	var occupied: Array[int] = []
+	for a: Aircraft in deck_aircraft(ship):
+		occupied.append(a.spot)
+	for spot: int in DECK_SPOTS.size():
+		if not occupied.has(spot):
+			return spot
+	return -1
+
+
+func buy_deck_fighter(cid: int, ship_id: int) -> String:
+	var ship: Ship = gw.navy.ship(ship_id)
+	var country: Country = gw.country_by_id(cid)
+	if ship == null or not ship.alive() or ship.hull != Ship.Hull.CARRIER or ship.c != cid or country == null or country.eliminated:
+		return Loc.t("Нужен свой авианосец")
+	var spot: int = _deck_spot(ship)
+	if spot < 0:
+		return Loc.t("Палуба заполнена")
+	var type: int = Aircraft.Type.DECK_FIGHTER
+	var price: int = int(SPEC[type]["cost"])
+	var rc: Dictionary = Economy.res_cost("aircraft_%d" % type)
+	if country.money < price:
+		return Loc.t("Не хватает денег: нужно %d") % price
+	if not country.has_res(rc):
+		return Loc.t("Не хватает: %s (рудник или торговля)") % country.missing_res(rc)
+	country.money -= price
+	country.pay_res(rc)
+	gw.econ.stat_add(country, "spend", "aircraft", price)
+	for r: String in rc:
+		gw.econ.stat_res(country, r, "aircraft", -int(rc[r]))
+	var a := Aircraft.new()
+	a.id = _next_id
+	_next_id += 1
+	a.type = type
+	a.country_id = cid
+	a.carrier_id = ship.id
+	a.spot = spot
+	a.fuel = float(SPEC[type]["fuel"])
+	_parked(a)
+	aircraft.append(a)
+	return ""
+
+
+func set_deck_auto(cid: int, ship_id: int, enabled: bool) -> String:
+	var ship: Ship = gw.navy.ship(ship_id)
+	if ship == null or not ship.alive() or ship.hull != Ship.Hull.CARRIER or ship.c != cid:
+		return Loc.t("Нужен свой авианосец")
+	ship.deck_auto = enabled
+	return ""
+
+
+func transfer_to_carrier(a: Aircraft, point: Vector2) -> String:
+	if a == null or a.state == Aircraft.State.DEAD or not a.airborne() or a.state in [Aircraft.State.ROLL, Aircraft.State.LIFT, Aircraft.State.LAND]:
+		return Loc.t("Перебазирование доступно после взлёта")
+	if a.type not in [Aircraft.Type.HELI, Aircraft.Type.FIGHTER, Aircraft.Type.ATTACK, Aircraft.Type.DECK_FIGHTER]:
+		return Loc.t("Этот борт не подходит для палубы")
+	var ship: Ship = null
+	var near: float = 60.0
+	for candidate: Ship in gw.navy.ships:
+		if not candidate.alive() or candidate.hull != Ship.Hull.CARRIER or candidate.c != a.country_id:
+			continue
+		var distance: float = candidate.pos.distance_to(point)
+		if distance < near:
+			near = distance
+			ship = candidate
+	if ship == null:
+		return Loc.t("Выберите свой авианосец")
+	if a.carrier_id == ship.id:
+		return Loc.t("Самолёт уже на этом авианосце")
+	var spot: int = _deck_spot(ship)
+	if spot < 0:
+		return Loc.t("Палуба заполнена")
+	if a.fuel < a.pos.distance_to(ship.pos) + RESERVE_PX:
+		return Loc.t("Мало топлива для перелёта")
+	if a.sortie > 0 or a.cas > 0 or a.auto_cr > 0 or a.cr_pend > 0 or a.auto_ai:
+		return Loc.t("Борт занят другой задачей")
+	a.carrier_id = ship.id
+	a.base = null
+	a.spot = spot
+	a.resume = 0
+	a.deck_auto_sortie = false
+	order_land(a)
+	return ""
+
+
+func _step_deck_aircraft(a: Aircraft, dt: float) -> void:
+	var ship: Ship = carrier_of(a)
+	if ship == null or not ship.alive():
+		_shot_down(a, "авианосец потерян")
+		return
+	var spot: Vector2 = home_pos(a)
+	if a.state in [Aircraft.State.PARKED, Aircraft.State.LIFT, Aircraft.State.LAND]:
+		a.pos = spot
+		a.heading = ship.heading
+	if a.state == Aircraft.State.LAND:
+		a.h = move_toward(a.h, 0.0, 4.0 * dt)
+		if a.h <= 0.0:
+			_parked(a)
+		return
+	_step(a, dt)
+	if not ship.deck_auto:
+		if a.deck_auto_sortie and a.state in [Aircraft.State.FLY, Aircraft.State.ORBIT, Aircraft.State.PATROL]:
+			order_land(a)
+		return
+	if a.type != Aircraft.Type.DECK_FIGHTER:
+		return
+	if a.deck_auto_sortie and a.state in [Aircraft.State.FLY, Aircraft.State.ORBIT]:
+		if a.pos.distance_to(ship.pos) > DECK_PATROL * 1.6:
+			order_land(a)
+		return
+	if a.state != Aircraft.State.PARKED or a.service_t > 1.0 or a.missiles <= 0 or a.fuel < 2000.0:
+		return
+	for target: Object in _air_targets(a.country_id, ship.pos, DECK_PATROL, false):
+		if _order_fly(a, target.pos).is_empty():
+			a.deck_auto_sortie = true
+		break
+
+
+func carrier_lost(ship: Ship) -> void:
+	for a: Aircraft in deck_aircraft(ship):
+		a.carrier_id = 0
+		a.deck_auto_sortie = false
+		if a.state in [Aircraft.State.PARKED, Aircraft.State.LIFT, Aircraft.State.LAND]:
+			_shot_down(a, "погиб вместе с авианосцем")
+		else:
+			_recover_aircraft(a, "авианосец потерян")
 
 
 func airlift_busy(home: Facility) -> bool:
@@ -2935,6 +3096,10 @@ func _finish_airlift(home: Facility, job: Dictionary, point: Vector2, dropped: b
 
 
 func _on_airbase_lost(a: Aircraft) -> void:
+	_recover_aircraft(a, "авиабаза потеряна")
+
+
+func _recover_aircraft(a: Aircraft, loss_reason: String) -> void:
 	if a.airborne():
 		for af: Facility in mil.facilities:
 			if af == a.base or af.country_id != a.country_id or af.kind not in [Facility.Kind.AIRFIELD, Facility.Kind.AIRBASE] or not mil.alive(af):
@@ -2946,7 +3111,7 @@ func _on_airbase_lost(a: Aircraft) -> void:
 			a.spot = spot
 			a.state = Aircraft.State.RTB
 			return
-	_shot_down(a, "авиабаза потеряна")
+	_shot_down(a, loss_reason)
 
 
 func after_load() -> void :
