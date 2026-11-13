@@ -2243,7 +2243,7 @@ func _build_grid() -> void :
 			_fpv_fly[u.country_id] = int(_fpv_fly.get(u.country_id, 0)) + 1
 			continue
 		var k: = Vector2i(floori(u.pos.x / GRID_PX), floori(u.pos.y / GRID_PX))
-		var a: Array = _grid.get(k, _NO_UNITS)
+		var a: Array = _grid.get(k, [])
 		if a.is_empty():
 			_grid[k] = a
 		a.append(u)
@@ -2265,7 +2265,7 @@ func _build_grid() -> void :
 			continue
 		var c: Vector2 = f.center_px()
 		var k2: = Vector2i(floori(c.x / GRID_PX), floori(c.y / GRID_PX))
-		var b: Array = _fgrid.get(k2, _NO_FACS)
+		var b: Array = _fgrid.get(k2, [])
 		if b.is_empty():
 			_fgrid[k2] = b
 		b.append(f)
