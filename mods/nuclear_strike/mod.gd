@@ -159,12 +159,21 @@ func _trigger_nuclear_flash() -> void:
 
 func _on_world_started(main: Node, world: Node) -> void:
 	_cleanup_nodes()
+	main_ref = main
+	world_ref = world
+	if not Nuclear.weapons_enabled(world as GameWorld):
+		if mm_ref != null and mm_ref.has_method("cleanup_mod_hud") and main != null and main.hud != null:
+			mm_ref.call("cleanup_mod_hud", main.hud, Callable(self, "_on_hud_action"), ["nuclear_silo"])
+		print("[NuclearStrike] Nuclear weapons are disabled for this match.")
+		return
 	_ensure_hud(main, world)
 	if world != null:
 		world.set_meta("nuclear_strike_mod", self)
 	print("[NuclearStrike] Injected nuclear_silo into Army tab and world layers created.")
 
 func launch_strike_from_silo(f: Facility, target_world_pos: Vector2) -> bool:
+	if world_ref == null or not Nuclear.weapons_enabled(world_ref as GameWorld):
+		return false
 	if f == null or not is_instance_valid(f) or not bool(f.get_meta("has_warhead", false)):
 		return false
 	f.set_meta("has_warhead", false)
@@ -237,6 +246,10 @@ func _on_nuke_sheet_target() -> void:
 			UiKit.snd("ui_error")
 
 func _on_hud_action(nm: String) -> void:
+	if not Nuclear.weapons_enabled(world_ref as GameWorld):
+		if main_ref != null and main_ref.hud != null:
+			main_ref.hud.show_toast("Ядерное оружие отключено в правилах партии.")
+		return
 	match nm:
 		"nuclear_silo":
 			if main_ref != null and main_ref.hud != null:
@@ -308,6 +321,8 @@ func _is_silo(f: Facility) -> bool:
 func _on_match_tick(main: Node, world: Node, delta: float) -> void:
 	main_ref = main
 	world_ref = world
+	if not Nuclear.weapons_enabled(world as GameWorld):
+		return
 	if main != null and (main.hud == null or not main.hud.keys.has("nuclear_silo") or world_layer == null or flash_layer == null):
 		_ensure_hud(main, world)
 
@@ -347,6 +362,10 @@ func toggle_placement() -> void:
 func start_placement() -> void:
 	if world_ref == null or not is_instance_valid(world_ref):
 		return
+	if not Nuclear.weapons_enabled(world_ref as GameWorld):
+		if main_ref != null and main_ref.hud != null:
+			main_ref.hud.show_toast("Ядерное оружие отключено в правилах партии.")
+		return
 	var p = world_ref.player
 	if p == null:
 		return
@@ -375,6 +394,8 @@ func cancel_placement() -> void:
 func place_why(cell: Vector2i) -> String:
 	if world_ref == null or not is_instance_valid(world_ref):
 		return "Нет мира"
+	if not Nuclear.weapons_enabled(world_ref as GameWorld):
+		return Loc.t("Ядерное оружие отключено в правилах партии")
 	var d = world_ref.data
 	if d == null:
 		return "Нет данных"
@@ -574,6 +595,8 @@ func set_target_point(wpos: Vector2) -> void:
 		main_ref.hud.show_toast("Цель зафиксирована: квадрат (%d, %d). Нажмите «ПУСК МБР» в меню!" % [cell.x, cell.y])
 
 func launch_strike(target_world_pos: Vector2) -> void:
+	if world_ref == null or not Nuclear.weapons_enabled(world_ref as GameWorld):
+		return
 	if targeting_silo == null or not is_instance_valid(targeting_silo):
 		_cancel_targeting()
 		return

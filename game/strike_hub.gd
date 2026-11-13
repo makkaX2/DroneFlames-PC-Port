@@ -21,14 +21,14 @@ static func active_w_ids(gw: GameWorld = null) -> Array[String]:
 	if mm != null and mm.has_method("is_mod_loaded"):
 		if mm.is_mod_loaded("thermo_battery"):
 			out.append("thermo")
-		if mm.is_mod_loaded("nuclear_strike"):
+		if mm.is_mod_loaded("nuclear_strike") and Nuclear.weapons_enabled(gw):
 			out.append("nuke")
 		if mm.is_mod_loaded("iskander_strike"):
 			out.append("iskander")
 	elif gw != null:
 		if gw.has_meta("thermo_battery_mod"):
 			out.append("thermo")
-		if gw.has_meta("nuclear_strike_mod"):
+		if gw.has_meta("nuclear_strike_mod") and Nuclear.weapons_enabled(gw):
 			out.append("nuke")
 		if gw.has_meta("iskander_strike_mod"):
 			out.append("iskander")

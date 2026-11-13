@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.49-test (PC Port by @droneflamesmod)"
+const VERSION: String = "v0.33.5.50-test (PC Port by @droneflamesmod)"
 
 const WHATS_NEW: Array = [
+	"ЯДЕРНЫЕ ПРАВИЛА v0.33.5.50-test: ядерное оружие можно отключить для всей партии.",
 	"ГРАФИКА v0.33.5.49-test: авиабаза, гражданский аэропорт, самолёты, авианосец, колхозы и сезонная растительность из APK 0.40.5.",
 	"ВИЗУАЛ v0.33.5.48-test: четыре варианта колхозов и их руин, более объёмные столбы дыма вблизи.",
 	"МИР И ИИ v0.33.5.47-test: дорожная разметка и машины между городами, боты могут купить транспорт и отправить воздушный десант, а развитые флоты заказывают авианосцы.",
@@ -1536,6 +1537,9 @@ func show_setup() -> void :
 		var lengths: Array = WorldSettings.SEASON_LENGTHS.map(func(minutes: int) -> String: return Loc.t("%d МИН") % minutes)
 		_selector(vb, "ДЛИТЕЛЬНОСТЬ СЕЗОНА", lengths, func() -> int: return GameConfig.season_length_i, func(i: int) -> void:
 			GameConfig.season_length_i = i)
+	_selector(vb, "ЯДЕРНОЕ ОРУЖИЕ", ["ВЫКЛ", "ВКЛ"], func() -> int: return 1 if GameConfig.nuclear_weapons_enabled else 0, func(i: int) -> void:
+		GameConfig.nuclear_weapons_enabled = i == 1
+		Save.save_prefs(), 100.0, "icon_m_ballistic")
 	if mp_host:
 		var mp_bot_room: int = maxi(0, 8 - net.slots.size())
 		_selector(vb, "КАСТОМНЫЕ БОТЫ", ["ВКЛ", "ВЫКЛ"], func() -> int: return 0 if GameConfig.cb_on else 1, func(i: int) -> void :

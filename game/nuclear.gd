@@ -46,6 +46,10 @@ const FUND_WAIT: float = 120.0
 const FUND_SKIP: float = 900.0
 
 
+static func weapons_enabled(gw: GameWorld = null) -> bool:
+	return gw == null or gw.settings == null or gw.settings.nuclear_weapons_enabled
+
+
 
 
 

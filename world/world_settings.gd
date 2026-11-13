@@ -30,6 +30,7 @@ const SEASON_LENGTHS: Array[int] = [2, 4, 8]
 # Older saves lack this field and retain their original appearance.
 @export var season_start: int = -1
 @export var season_minutes: int = 4
+@export var nuclear_weapons_enabled: bool = true
 
 var layout_size: int = 0
 
