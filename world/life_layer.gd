@@ -10,6 +10,8 @@ const CAR_SPEED: float = 9.0
 const PED_SPEED: float = 2.5
 const TRUCK_SPEED: float = 16.0
 const SPRAY_TIME: float = 6.0
+const MAX_ROAD_CARS: int = 18
+const ROAD_CAR: int = 4
 
 var gw: GameWorld
 var agents: Array = []
@@ -62,6 +64,9 @@ func _process(delta: float) -> void :
 			2, 3:
 				if not gw.net_driven and not _drive(a, dt):
 					agents.remove_at(k)
+			ROAD_CAR:
+				if not _drive_road_car(a, cdt):
+					agents.remove_at(k)
 	queue_redraw()
 
 
@@ -96,6 +101,7 @@ func _populate(z: float) -> void :
 			continue
 		var key: String = "%d:%d" % [int(a["city"]), ty] if not a.has("mil") else "%d:m%d" % [int(a["city"]), int(a["mil"])]
 		have[key] = int(have.get(key, 0)) + 1
+	_populate_road_traffic(view, close)
 	if not close:
 		return
 	for c: City in gw.cities:
@@ -133,6 +139,62 @@ func _populate(z: float) -> void :
 					na["spr"] = String(WL.KINDS[mk])
 					have["%d:m%d" % [c.id, mk]] = int(have.get("%d:m%d" % [c.id, mk], 0)) + 1
 
+
+
+func _populate_road_traffic(view: Rect2, close: bool) -> void:
+	var occupied: Dictionary = {}
+	for i: int in range(agents.size() - 1, -1, -1):
+		var car: Dictionary = agents[i]
+		if int(car["type"]) != ROAD_CAR:
+			continue
+		if not close or not view.grow(100.0).has_point(car["pos"]):
+			agents.remove_at(i)
+		else:
+			occupied[car["route_id"]] = true
+	if not close or occupied.size() >= MAX_ROAD_CARS:
+		return
+	var routes: Array = gw.road_paths
+	if routes.is_empty():
+		return
+	var start: int = posmod(int(gw.game_time), routes.size())
+	for i: int in mini(48, routes.size()):
+		var id: int = (start + i) % routes.size()
+		var path: Array = routes[id]
+		if occupied.has(id) or path.size() < 24:
+			continue
+		for k: int in range(10, path.size() - 10, 10):
+			var cell: Vector2i = path[k]
+			var at: Vector2 = Vector2(cell * GameWorld.CELL) + Vector2(2, 2)
+			if not view.has_point(at) or not gw.road_ok(cell) or gw.data.has_flag(cell.x, cell.y, WorldData.F_CITY):
+				continue
+			var seed_value: int = Hash32.h2(id, k, int(gw.game_time / 4.0))
+			var dir: int = 1 if (seed_value & 1) == 0 else -1
+			if not gw.road_ok(path[k + dir]):
+				continue
+			agents.append({"type": ROAD_CAR, "city": -1, "route_id": id, "route": path, "i": k, "step": dir,
+				"spr": CAR_NAMES[seed_value % CAR_NAMES.size()], "pos": at,
+				"vel": Vector2((path[k + dir] as Vector2i) - cell)})
+			occupied[id] = true
+			break
+		if occupied.size() >= MAX_ROAD_CARS:
+			break
+
+
+func _drive_road_car(car: Dictionary, dt: float) -> bool:
+	var path: Array = car["route"]
+	var index: int = int(car["i"]) + int(car["step"])
+	if index < 0 or index >= path.size():
+		return false
+	var cell: Vector2i = path[index]
+	if not gw.road_ok(cell):
+		return false
+	var to: Vector2 = Vector2(cell * GameWorld.CELL) + Vector2(2, 2)
+	var pos: Vector2 = car["pos"]
+	car["vel"] = to - pos
+	car["pos"] = pos.move_toward(to, CAR_SPEED * dt)
+	if car["pos"] == to:
+		car["i"] = index
+	return true
 
 
 func _hot(cid: int) -> bool:
@@ -450,6 +512,9 @@ func _draw() -> void :
 			if ty == 0:
 
 				pos += Vector2( - v.y, v.x) * 0.0 + Vector2(v.y, - v.x) * -1.0
+		elif ty == ROAD_CAR:
+			v = a["vel"]
+			pos += v.normalized().orthogonal()
 		else:
 			v = a.get("vel", Vector2(1, 0))
 			if int(a["stage"]) == 1 or int(a["stage"]) == 3:

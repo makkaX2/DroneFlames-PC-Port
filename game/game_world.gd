@@ -48,6 +48,7 @@ func _ready() -> void :
 	ground.name = "Ground"
 	ground.gw = self
 	add_child(ground)
+	terrain.cells_changed.connect(ground._road_cells_changed)
 	forts = FortLayer.new()
 	forts.name = "Forts"
 	forts.gw = self
@@ -236,6 +237,8 @@ func new_world(s: WorldSettings) -> void :
 	_free_ids = PackedInt32Array()
 	_job_first.clear()
 	ground.decals.clear()
+	ground._road_view = Rect2i()
+	ground._road_marks.clear()
 	top.clear_all()
 	data = WorldGen.generate(s)
 	nature = preload("res://game/nature.gd").new(self)

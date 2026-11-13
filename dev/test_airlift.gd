@@ -154,6 +154,28 @@ func _run() -> void:
 	air._shot_down(heli, "тест")
 	_step(world)
 	assert(not air.airlift_busy(home) and world.army.count_units(player.id) == 5)
+
+	player.is_player = false
+	player.ai_diff = 2
+	player.at_war[2] = true
+	world.ai._airlift_equipment(player, air)
+	assert(air.count(player.id, Aircraft.Type.TRANSPORT) == 2)
+	base.craters.clear()
+	var foe: Country = world.create_country(false, true)
+	world.diplo.declare_war(player.id, foe.id, "test")
+	var city := City.new()
+	city.id = world.cities.size()
+	city.country_id = foe.id
+	city.center = Vector2i(189, 140)
+	city.radius = 10
+	world.cities.append(city)
+	for u: Unit in world.army.units_of(home):
+		u.pos = staging
+		if u.type == Unit.Type.TANK:
+			u.type = Unit.Type.INFANTRY
+	var idle: Array[Unit] = world.army.units_of(home)
+	assert(world.ai._airlift_offensive(player, city, idle))
+	assert(int(air.airlifts[home]["city"]) == city.id)
 	holder.free()
 	print("[AIRLIFT-TEST] PASS")
 	quit()

@@ -2950,6 +2950,11 @@ func start_airlift(home: Facility, point: Vector2) -> String:
 	var plan: Dictionary = airlift_plan(home, point)
 	if plan.has("why"):
 		return String(plan["why"])
+	_begin_airlift(home, point, plan)
+	return ""
+
+
+func _begin_airlift(home: Facility, point: Vector2, plan: Dictionary, follow_city: City = null) -> void:
 	gw.ops.cancel(home)
 	gw.army.tac.stop(home)
 	var members: Array[Unit] = plan["units"]
@@ -2966,9 +2971,9 @@ func start_airlift(home: Facility, point: Vector2) -> String:
 	airlifts[home] = {
 		"aircraft": plan["aircraft"], "units": members, "staging": plan["staging"],
 		"point": point, "stage": AirliftStage.BOARDING, "cid": home.country_id,
+		"city": follow_city.id if follow_city != null else -1,
 		"deadline": gw.game_time + clampf(float(plan["eta"]) * 1.6 + 20.0, 25.0, AIRLIFT_MARCH_LIMIT + 20.0)
 	}
-	return ""
 
 
 func cancel_airlift(home: Facility) -> void:
@@ -3069,6 +3074,7 @@ func _tick_airlift(home: Facility, job: Dictionary) -> void:
 func _finish_airlift(home: Facility, job: Dictionary, point: Vector2, dropped: bool) -> void:
 	var a: Aircraft = job["aircraft"]
 	var count: int = 0
+	var landed: Array[Unit] = []
 	var cid: int = int(job["cid"])
 	if dropped and a.helicopter():
 		if a.state == Aircraft.State.DEAD or a.country_id != cid:
@@ -3084,8 +3090,14 @@ func _finish_airlift(home: Facility, job: Dictionary, point: Vector2, dropped: b
 		u.pos = p if _airlift_site(cid, p).is_empty() else point
 		u.no_post_until = gw.game_time + 10.0
 		gw.army.units.append(u)
+		landed.append(u)
 		count += 1
 	airlifts.erase(home)
+	var city_id: int = int(job.get("city", -1))
+	if dropped and not landed.is_empty() and mil.alive(home) and city_id >= 0 and city_id < gw.cities.size():
+		var city: City = gw.cities[city_id]
+		if mil.hostile(cid, city.country_id):
+			gw.army.tac.start(home, landed, city)
 	if dropped and home.country_id == cid:
 		home.airlift_ready_at = gw.game_time + AIRLIFT_COOLDOWN
 	if count > 0:

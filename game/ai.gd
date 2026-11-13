@@ -139,6 +139,8 @@ func _targets(c: Country, P: Dictionary) -> Array:
 
 	if gw.game_time > float(Navy.BASE_AT[clampi(diff, 0, 2)]) and gw.get("navy") != null and gw.navy._land_ok(c) and gw.navy.wants_navy(c):
 		t.append([Facility.Kind.NAVAL_BASE, 1, 0.75 + 0.25 * float(diff) + aggr * 0.3 + thr * 0.3 + 0.1 * float(rich)])
+	if gw.game_time > 540.0 and diff >= 1 and not c.at_war.is_empty() and c.money >= 15000:
+		t.append([Facility.Kind.AIRBASE, 1, 0.75 * mil])
 	if gw.game_time > 240.0:
 		if n >= 2 and basics and c.at_war.is_empty() and c.power_cap > c.power_use and c.money >= 6000:
 			t.append([Facility.Kind.CIV_AIRPORT, 1, (0.4 + trade * 0.55) * eco])
@@ -683,7 +685,7 @@ func _place(c: Country, kind: int, cap: City) -> Facility:
 			var f0: Facility = mil.build(kind, sc, c, null, true)
 			if f0 != null:
 				return f0
-	if kind == Facility.Kind.AIRFIELD or kind == Facility.Kind.DRONE_PORT:
+	if kind in [Facility.Kind.AIRFIELD, Facility.Kind.AIRBASE, Facility.Kind.DRONE_PORT]:
 		return _air_place(c, kind)
 
 	var center: Vector2i = cap.center
@@ -1399,6 +1401,9 @@ func _offensive(c: Country, foe: Country) -> void :
 	if best != null:
 		var wk: String = "%d>%d" % [c.id, best.id]
 		var sea: bool = not _land_reach(c, cen, best)
+		if sea and _airlift_offensive(c, best, idle):
+			_off_t[c.id] = now + OFFENSIVE_GAP_SEA
+			return
 		_stat(c, "off_sea" if sea else "off_land")
 		var with_at: bool = false
 		if sea:
@@ -1675,6 +1680,7 @@ func _aviation(c: Country) -> void :
 		if f.kind == Facility.Kind.AIRFIELD and f.country_id == c.id and gw.mil.alive(f):
 			af = f
 			break
+	_airlift_equipment(c, air)
 	if af == null:
 		return
 	var diff: int = GameConfig.diff_of(c)
@@ -1728,6 +1734,48 @@ func _aviation(c: Country) -> void :
 					break
 
 
+
+
+func _airlift_equipment(c: Country, air: Air) -> void:
+	if c.at_war.is_empty() or GameConfig.diff_of(c) < 1:
+		return
+	if c.money >= 8500 and air.count(c.id, Aircraft.Type.TRANSPORT) == 0:
+		for base: Facility in gw.mil.facilities:
+			if base.country_id == c.id and base.kind == Facility.Kind.AIRBASE and gw.mil.alive(base):
+				air.buy(base, Aircraft.Type.TRANSPORT, c)
+				break
+	if c.money < 12000:
+		return
+	for carrier: Ship in gw.navy.ships:
+		if carrier.c == c.id and carrier.alive() and carrier.hull == Ship.Hull.CARRIER and air.deck_aircraft(carrier).size() < 2:
+			air.buy_deck_fighter(c.id, carrier.id)
+			break
+
+
+func _airlift_offensive(c: Country, city: City, idle: Array[Unit]) -> bool:
+	var air: Air = gw.mil.air
+	if GameConfig.diff_of(c) < 1 or not gw.diplo.at_war(c.id, city.country_id) or air.count(c.id, Aircraft.Type.TRANSPORT) == 0:
+		return false
+	var seen: Dictionary = {}
+	var center: Vector2 = Vector2(city.center * GameWorld.CELL) + Vector2(2, 2)
+	var distance: float = float(city.radius * GameWorld.CELL) + 24.0
+	var offsets: Array[Vector2] = [Vector2.LEFT, Vector2.UP, Vector2.RIGHT, Vector2.DOWN]
+	for u: Unit in idle:
+		var home: Facility = u.home
+		if home == null or seen.has(home) or air.airlift_busy(home) or gw.naval.busy(home):
+			continue
+		seen[home] = true
+		for offset: Vector2 in offsets:
+			var point: Vector2 = center + offset * distance
+			var plan: Dictionary = air.airlift_plan(home, point)
+			if not plan.has("units") or (plan["units"] as Array).size() < 4:
+				continue
+			air._begin_airlift(home, point, plan, city)
+			_stat(c, "off_airlift")
+			return true
+		if seen.size() >= 2:
+			break
+	return false
 
 
 const AIR_STRIKE_GAP: Array = [140.0, 110.0, 80.0]

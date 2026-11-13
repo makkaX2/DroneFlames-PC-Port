@@ -2800,7 +2800,17 @@ func ai_think(c: Country) -> void :
 	elif have >= [1, 3, 3][dif] and have % 3 == 2:
 		hull = 1
 	var base: Facility = bases[0]
-	var fit: Array = art.ai_fit(c, hull, PRESETS[hull])
+	if dif >= 1 and have >= 3 and not c.at_war.is_empty() and c.money >= 42000:
+		var carrier_count: int = 0
+		for ship: Ship in ships:
+			if ship.c == c.id and ship.alive() and ship.hull == Ship.Hull.CARRIER:
+				carrier_count += 1
+		for order: Dictionary in prod:
+			if int(order["c"]) == c.id and int(order["hull"]) == Ship.Hull.CARRIER:
+				carrier_count += 1
+		if carrier_count == 0:
+			hull = Ship.Hull.CARRIER
+	var fit: Array = ["ciws", "sam"] if hull == Ship.Hull.CARRIER else art.ai_fit(c, hull, PRESETS[hull])
 	var cost0: Dictionary = cost_of(hull, fit)
 
 

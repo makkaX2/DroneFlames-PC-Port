@@ -96,10 +96,31 @@ func _run() -> void:
 	assert(on_ice.pos != Vector2(400, 82) and on_ice.alive())
 	world.econ.nav_path(from, across)
 	assert(not world.econ.nav_last_ok, "Thawing should close the river crossing")
+	var road: Array[Vector2i] = []
+	for x: int in range(110, 154):
+		var cell := Vector2i(x, 48)
+		world.data.add_flag(cell.x, cell.y, WorldData.F_ROAD)
+		road.append(cell)
+	world.road_paths.assign([road])
+	world.ground._rebuild_road_marks(Rect2i(109, 45, 46, 8))
+	assert(world.ground._road_marks.size() >= 30)
+	world.life._populate_road_traffic(Rect2(420, 170, 240, 75), true)
+	var car: Dictionary = {}
+	for agent: Dictionary in world.life.agents:
+		if int(agent["type"]) == LifeLayer.ROAD_CAR:
+			car = agent
+			break
+	assert(not car.is_empty())
+	var previous: Vector2 = car["pos"]
+	assert(world.life._drive_road_car(car, 0.15))
+	assert(car["pos"] != previous)
+	var blocked: Vector2i = road[int(car["i"]) + int(car["step"])]
+	world.data.clear_flag(blocked.x, blocked.y, WorldData.F_ROAD)
+	assert(not world.life._drive_road_car(car, 0.15))
 	legacy.size = 256
 	world.new_world(legacy)
 	assert(world.terrain.material == null)
 	assert(not world.weather.is_processing() and not world.weather.visible)
 	world.free()
-	print("[SEASONS-TEST] PASS: setup, calendar, serialization, world reset, graphics toggle and ice crossings")
+	print("[SEASONS-TEST] PASS: setup, calendar, serialization, world reset, graphics toggle, ice crossings, road marks and traffic")
 	quit()
