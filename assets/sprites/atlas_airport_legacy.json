@@ -1,0 +1,64 @@
+{
+  "size": [
+    242,
+    170
+  ],
+  "sprites": {
+    "airbase_legacy": {
+      "x": 0,
+      "y": 0,
+      "w": 121,
+      "h": 85,
+      "fw": 30,
+      "fd": 21,
+      "ax": 0,
+      "ay": 84,
+      "frames": 1,
+      "fps": 0,
+      "kind": "building",
+      "shadow": "rock_deep"
+    },
+    "airbase_legacy_ruin": {
+      "x": 0,
+      "y": 85,
+      "w": 121,
+      "h": 85,
+      "fw": 30,
+      "fd": 21,
+      "ax": 0,
+      "ay": 84,
+      "frames": 1,
+      "fps": 0,
+      "kind": "ruin",
+      "shadow": "rock_deep"
+    },
+    "civ_airport_legacy": {
+      "x": 121,
+      "y": 0,
+      "w": 121,
+      "h": 65,
+      "fw": 30,
+      "fd": 14,
+      "ax": 0,
+      "ay": 65,
+      "frames": 1,
+      "fps": 0,
+      "kind": "building",
+      "shadow": "rock_deep"
+    },
+    "civ_airport_legacy_ruin": {
+      "x": 121,
+      "y": 66,
+      "w": 121,
+      "h": 65,
+      "fw": 30,
+      "fd": 14,
+      "ax": 0,
+      "ay": 65,
+      "frames": 1,
+      "fps": 0,
+      "kind": "ruin",
+      "shadow": "rock_deep"
+    }
+  }
+}

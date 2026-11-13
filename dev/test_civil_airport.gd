@@ -24,6 +24,7 @@ func _run() -> void:
 	world.player = player
 	world.data.owners.fill(player.id)
 	world.data.biome.fill(Biome.GRASS)
+	world.econ.deposits.clear()
 
 	var site := Vector2i(128, 128)
 	var capital := City.new()
@@ -44,9 +45,10 @@ func _run() -> void:
 	world.cities.append(town)
 	player.city_ids.append(town.id)
 
+	assert(world.mil.place_why(Facility.Kind.CIV_AIRPORT, site, player).is_empty(), world.mil.place_why(Facility.Kind.CIV_AIRPORT, site, player))
 	var airport: Facility = world.mil.build(Facility.Kind.CIV_AIRPORT, site, player)
 	assert(airport != null and world.mil.alive(airport))
-	assert(airport.obj_ids.size() >= 4 and airport.civil_city_id == capital.id)
+	assert(airport.size == Vector2i(48, 32) and airport.obj_ids.size() == 1 and airport.civil_city_id == capital.id)
 	assert(not Airport.site_reason(world, player, Vector2i(91, 90)).is_empty())
 	assert(player.money == 7000 and player.metal == 70 and player.wood == 80)
 	var cash: int = player.money
@@ -86,7 +88,7 @@ func _run() -> void:
 	cash = player.money
 	world.game_time = 120.0
 	world.econ._produce()
-	assert(airport.civil_cargo > 0 and airport.civil_export > 0)
+	assert(airport.civil_cargo > 0 and airport.civil_export > 0 and airport.civil_last_cargo)
 	assert(player.precious == stock - airport.civil_cargo)
 	assert(player.money == cash + Airport.LANDING_FEE + airport.civil_export)
 
@@ -98,7 +100,7 @@ func _run() -> void:
 	world.countries.append(adversary)
 	transit.at_war[adversary.id] = true
 	for y: int in range(64, 160):
-		for x: int in range(62, 107):
+		for x: int in range(62, 98):
 			world.data.set_owner_id(x, y, transit.id)
 	world.game_time = 130.0
 	world.econ._produce()
@@ -122,7 +124,8 @@ func _run() -> void:
 	world.econ._produce()
 	assert(not airport.civil_route_blocked and airport.civil_next_arrival == 180.0)
 	var rw: Vector2i = Vector2i(Airport.runway_point(airport) / GameWorld.CELL)
-	world.mil.on_strike(rw, 4.0)
+	world._apply_strike(rw, 3, "crater_m", 4.0)
+	assert(world.mil.alive(airport))
 	assert(not airport.runway_ok() and airport.repair_t == 60.0)
 	world.econ._produce()
 	assert(airport.civil_next_arrival < 0.0)
@@ -130,14 +133,31 @@ func _run() -> void:
 	assert(airport.runway_ok())
 	world.econ._produce()
 	assert(airport.civil_next_arrival == 180.0)
+	# Recreate the parts stored by an older test build.
+	var legacy := Facility.new()
+	legacy.kind = Facility.Kind.CIV_AIRPORT
+	legacy.country_id = player.id
+	legacy.cell = Vector2i(45, 175)
+	legacy.size = Vector2i(30, 14)
+	legacy.main_obj = world.add_object("airfield_tower", legacy.cell + Vector2i(27, 8), GameWorld.KIND_BUILDING)
+	legacy.obj_ids = PackedInt32Array([world.add_object("airfield_runway", legacy.cell, GameWorld.KIND_PROP), legacy.main_obj])
+	var old_runway: int = legacy.obj_ids[0]
+	world.mil._restore_airport_art(legacy)
+	assert(legacy.obj_ids.size() == 1 and legacy.size == Vector2i(30, 14))
+	assert(world.obj_state[old_runway] == 2 and world.mil.alive(legacy))
+	assert(world.spr_name[world.obj_spr[legacy.main_obj]] == "civ_airport_legacy")
+
 	var farm: Facility = world.mil.build(Facility.Kind.FARM, Vector2i(175, 155), player)
 	assert(farm != null and Military.uses_power(farm.kind))
 	for turn: int in [90, 180, 270]:
 		var name: String = "farm_r%d" % turn
-		assert(world.spr_index.has(name) and world.spr_ruin[world.spr_index[name]] == world.spr_index[name + "_ruin"])
+		assert(world.spr_index.has(name) and world.spr_ruin[world.spr_index[name]] == world.spr_index["farm_ruin"])
 	var turn: int = Hash32.h2(farm.cell.x, farm.cell.y, world.data.world_seed) % 4
 	var variant: String = "farm" if turn == 0 else "farm_r%d" % (turn * 90)
 	assert(world.spr_name[world.obj_spr[farm.main_obj]] == variant)
+	var farm_sid: int = world.obj_spr[farm.main_obj]
+	assert(world.spr_tex[farm_sid].resource_path.ends_with("atlas_farm385.png") or world.spr_tex[farm_sid].resource_path.ends_with("atlas_farm395.png"))
+	assert(world.farm_rows[farm_sid] > 0)
 	farm.powered = false
 	var food: int = player.food
 	cash = player.money

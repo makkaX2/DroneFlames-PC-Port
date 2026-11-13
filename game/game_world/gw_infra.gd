@@ -762,6 +762,8 @@ func _apply_strike(cell: Vector2i, r: int = 3, crater: String = "crater_m", r_px
 	var value: int = 0
 	var spare: PackedInt32Array = protect.take_spare(cell) if protect != null else PackedInt32Array()
 	var box: = Rect2i(cell - Vector2i(r + 8, r + 8), Vector2i(2 * r + 16, 2 * r + 16))
+	# Large facilities are indexed by their south edge for draw order.
+	box.size.y += Military.size_of(Facility.Kind.CIV_AIRPORT).y - 1
 	var fo: Dictionary = {}
 	var fo_ok: bool = false
 	for ck: ObjChunk in objects.chunks_in_rect(box):
@@ -774,6 +776,12 @@ func _apply_strike(cell: Vector2i, r: int = 3, crater: String = "crater_m", r_px
 			if (qx - cell.x) * (qx - cell.x) + (qy - cell.y) * (qy - cell.y) > r * r:
 				continue
 			var kind: int = obj_kind[id]
+			var sprite: String = spr_name[obj_spr[id]]
+			if sprite in ["airbase", "airbase_legacy", "civ_airport", "civ_airport_legacy"]:
+				# The apron and runways take craters separately. Only hits near the buildings collapse the facility.
+				var buildings_y: int = rr.position.y + roundi(rr.size.y * (0.62 if sprite.begins_with("airbase") else 0.70))
+				if cell.y + r < buildings_y:
+					continue
 			if kind == KIND_PROP:
 				continue
 			if not spare.is_empty() and spare.has(id):

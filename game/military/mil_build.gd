@@ -60,6 +60,10 @@ static func nw_for(kind: int, center: Vector2i) -> Vector2i:
 
 
 func _info(sprite: String) -> Dictionary:
+	if sprite == "airbase":
+		return MobileArt.atlas("atlas_r380").info(sprite)
+	if sprite == "civ_airport":
+		return MobileArt.atlas("atlas_air388").info(sprite)
 	for at: SpriteAtlas in [gw.atlas3, gw.atlas4, gw.atlas2, gw.atlas6, gw.atlas7, gw.atlas8, gw.atlas9, gw.atlas10, gw.atlas11, gw.atlas12]:
 		if at.has(sprite):
 			return at.info(sprite)
@@ -328,7 +332,7 @@ func build(kind: int, center: Vector2i, country: Country, parent: Facility = nul
 				d.set_biome(x, y, Biome.FIELD)
 			elif Defense.is_ad(kind) or kind == Facility.Kind.AD_RADAR or kind == Facility.Kind.AD_EW or is_field_work(kind):
 				pass
-			elif kind in [Facility.Kind.AIRFIELD, Facility.Kind.CIV_AIRPORT, Facility.Kind.AIRBASE]:
+			elif kind == Facility.Kind.AIRFIELD:
 				var lx: int = x - nw.x
 				d.set_biome(x, y, Biome.ROAD if y - nw.y == 4 and lx >= 2 and lx <= 27 else Biome.PLAZA)
 			elif kind != Facility.Kind.TEL and kind != Facility.Kind.COASTAL_ASM:
@@ -339,14 +343,12 @@ func build(kind: int, center: Vector2i, country: Country, parent: Facility = nul
 			for x in range(nw.x - 1, nw.x + f.size.x + 1):
 				if d.inside(x, y):
 					gw.remove_tree_at(Vector2i(x, y))
-	if kind in [Facility.Kind.AIRFIELD, Facility.Kind.CIV_AIRPORT, Facility.Kind.AIRBASE]:
+	if kind == Facility.Kind.AIRFIELD:
 		f.obj_ids.append(gw.add_object("airfield_runway", nw, GameWorld.KIND_PROP))
 		f.obj_ids.append(gw.add_object("airfield_hangar", nw + Vector2i(1, 7), GameWorld.KIND_BUILDING))
 		f.obj_ids.append(gw.add_object("airfield_hangar", nw + Vector2i(7, 7), GameWorld.KIND_BUILDING))
 		f.main_obj = gw.add_object("airfield_tower", nw + Vector2i(27, 8), GameWorld.KIND_BUILDING)
 		f.obj_ids.append(f.main_obj)
-		if kind == Facility.Kind.AIRBASE:
-			f.obj_ids.append(gw.add_object("airfield_hangar", nw + Vector2i(1, 15), GameWorld.KIND_BUILDING))
 	elif kind == Facility.Kind.NAVAL_BASE and gw.spr_index.has(Navy.variant_sprite(Navy.cur)):
 		f.variant = Navy.cur
 		f.main_obj = gw.add_object(Navy.variant_sprite(Navy.cur), nw, GameWorld.KIND_BUILDING)

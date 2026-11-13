@@ -10,6 +10,7 @@ var chunks: Array[ObjChunk] = []
 var sway_enabled: bool = true
 var autumn_sprites: Dictionary[int, int] = {}
 var autumn_level: int = 0
+var farm_row: int = 0
 var _sway_t: float = 0.0
 var _cursor: int = 0
 var cover_ver: int = 0
@@ -114,11 +115,18 @@ func _process(delta: float) -> void :
 				c.visible = true
 
 	var leaves: int = 0
+	var crops: int = 0
 	if gw.settings.seasons_enabled():
 		var turn: float = cos((gw.weather.phase - 2.35) * PI * 0.5)
 		leaves = roundi(smoothstep(0.25, 1.0, turn) * 8.0)
-	if leaves != autumn_level:
+		# The APK atlas rows run from summer to the following spring.
+		var phase: float = gw.weather.phase
+		crops = 5 if phase < 0.65 else 0
+		if phase >= 1.6:
+			crops = clampi(int((phase - 1.6) / 0.45) + 1, 1, 3) if phase < 3.0 else 4
+	if leaves != autumn_level or crops != farm_row:
 		autumn_level = leaves
+		farm_row = crops
 		for chunk: ObjChunk in chunks:
 			if chunk.visible:
 				chunk.queue_redraw()

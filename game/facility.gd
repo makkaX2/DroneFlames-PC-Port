@@ -42,6 +42,7 @@ var civil_route_blocked: bool = false
 var civil_route_retry_at: float = 0.0
 var civil_closed_owners: PackedByteArray = PackedByteArray()
 var civil_flights: int = 0
+var civil_last_cargo: bool = false
 var civil_passengers: int = 0
 var civil_cargo: int = 0
 var civil_export: int = 0

@@ -259,13 +259,14 @@ func show_facility(f: Facility, mil: Military, player: Country) -> void :
 						nb += 1
 					elif ac.transport():
 						nt += 1
-				info = Loc.t("САМОЛЁТОВ %d/%d · БОМБАРДИРОВЩИК %d/1 · ТИТАН %d") % [based.size() - nb - nt, Air.AIRBASE_COMBAT.size() if is_base else Air.AIR_CAP, nb, player.titanium]
+				var on_apron: int = based.size() - nt - (0 if f.size == Military.size_of(Facility.Kind.AIRBASE) else nb)
+				info = Loc.t("САМОЛЁТОВ %d/%d · БОМБАРДИРОВЩИК %d/1 · ТИТАН %d") % [on_apron, Air.combat_capacity(f), nb, player.titanium]
 				var anames: Array = ["БОМБАРД.", "ИСТРЕБ.", "ВЕРТОЛЁТ", "ШТУРМОВИК"]
 				for t2: int in [Aircraft.Type.BOMBER, Aircraft.Type.FIGHTER, Aircraft.Type.HELI, Aircraft.Type.ATTACK]:
 					var cost: int = int(Air.SPEC[t2]["cost"])
 					acts.append(_act("%s\n%d" % [anames[t2], cost], ["icon_bomber", "icon_fighter", "icon_heli", "icon_attack_jet"][t2], ["buy_bomber", "buy_fighter", "buy_heli", "buy_attack"][t2], player.money >= cost and player.titanium >= int(Air.TITANIUM.get(t2, 0))))
 				if is_base:
-					info += Loc.t("\nТРАНСПОРТ %d/%d") % [nt, Air.AIRBASE_TRANSPORT.size()]
+					info += Loc.t("\nТРАНСПОРТ %d/%d") % [nt, Air.AIRBASE_TRANSPORT_CAPACITY]
 					if not f.runway_ok():
 						info += Loc.t(" · РЕМОНТ ВПП %s") % _mmss(f.repair_t)
 					for t3: int in [Aircraft.Type.TRANSPORT, Aircraft.Type.TRANSPORT_HELI]:
@@ -273,7 +274,7 @@ func show_facility(f: Facility, mil: Military, player: Country) -> void :
 						var rc: Dictionary = Economy.res_cost("aircraft_%d" % t3)
 						var key: String = "buy_transport" if t3 == Aircraft.Type.TRANSPORT else "buy_transport_heli"
 						var icon: String = "icon_bomber" if t3 == Aircraft.Type.TRANSPORT else "icon_heli"
-						var can_buy: bool = nt < Air.AIRBASE_TRANSPORT.size() and player.money >= int(spec["cost"]) and player.has_res(rc)
+						var can_buy: bool = nt < Air.AIRBASE_TRANSPORT_CAPACITY and player.money >= int(spec["cost"]) and player.has_res(rc)
 						acts.append(_act("%s\n%d" % [Loc.t(spec["name"]).to_upper(), spec["cost"]], icon, key, can_buy))
 				detail = Loc.t("Бомбардировщик несёт крылатые ракеты, истребитель — ракеты «воздух-воздух» и подвес, вертолёт патрулирует. Штурмовик: 4 КАБ (делает ракетный завод), НАРы, пушка, 2 ракеты «воздух-воздух». Нужен титан.")
 				if is_base:

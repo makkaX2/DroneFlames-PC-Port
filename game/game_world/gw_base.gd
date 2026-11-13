@@ -146,6 +146,7 @@ var spr_frames: PackedInt32Array = PackedInt32Array()
 var spr_ruin: PackedInt32Array = PackedInt32Array()
 var spr_name: PackedStringArray = PackedStringArray()
 var spr_tex: Array[Texture2D] = []
+var farm_rows: Dictionary[int, int] = {}
 
 
 var obj_spr: PackedInt32Array = PackedInt32Array()

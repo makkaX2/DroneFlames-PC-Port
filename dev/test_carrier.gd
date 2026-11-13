@@ -89,7 +89,8 @@ func _run() -> void:
 		if heli.state == Aircraft.State.PARKED:
 			break
 	assert(heli.carrier_id == ship.id and heli.state == Aircraft.State.PARKED)
-	assert(air.buy_deck_fighter(player.id, ship.id).is_empty())
+	for slot: int in range(3, Air.DECK_CAPACITY):
+		assert(air.buy_deck_fighter(player.id, ship.id).is_empty())
 	assert(not air.buy_deck_fighter(player.id, ship.id).is_empty())
 
 	var ship_id: int = ship.id
@@ -101,7 +102,7 @@ func _run() -> void:
 	air = world.mil.air
 	ship = world.navy.ship(ship_id)
 	player = world.player
-	assert(ship.hull == Ship.Hull.CARRIER and not ship.deck_auto and air.deck_aircraft(ship).size() == 4)
+	assert(ship.hull == Ship.Hull.CARRIER and not ship.deck_auto and air.deck_aircraft(ship).size() == Air.DECK_CAPACITY)
 	flight = air.aircraft[0]
 	parked = air.aircraft[1]
 	assert(air.order_fly(flight, ship.pos + Vector2(170, 0)).is_empty())

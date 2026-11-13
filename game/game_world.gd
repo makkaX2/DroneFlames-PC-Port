@@ -1,6 +1,8 @@
 class_name GameWorld
 extends "res://game/game_world/gw_states.gd"
 
+const MobileArt = preload("res://core/mobile_art.gd")
+
 
 
 
@@ -132,9 +134,12 @@ func _ready() -> void :
 
 
 func _build_sprite_table() -> void :
-	var farm_atlas: SpriteAtlas = SpriteAtlas.load_atlas("res://assets/sprites/atlas_farm_port.png", "res://assets/sprites/atlas_farm_port.json")
-	for at: SpriteAtlas in [atlas, atlas2, atlas3, atlas4, atlas6, atlas7, atlas8, atlas9, atlas10, atlas11, atlas12, atlas13, atlas_navy1, atlas_mines27, atlas_uran30, farm_atlas]:
+	for at: SpriteAtlas in [atlas, atlas2, atlas3, atlas4, atlas6, atlas7, atlas8, atlas9, atlas10, atlas11, atlas12, atlas13, atlas_navy1, atlas_mines27, atlas_uran30]:
 		_add_sprites(at)
+	_add_sprites(MobileArt.select_sprites(MobileArt.atlas("atlas_r380"), ["airbase", "airbase_ruin"]))
+	_add_sprites(MobileArt.select_sprites(MobileArt.atlas("atlas_air388"), ["civ_airport", "civ_airport_ruin"]))
+	_add_sprites(MobileArt.atlas("atlas_airport_legacy"))
+	_register_mobile_farms()
 	spr_ruin.resize(spr_rect.size())
 	for i in spr_rect.size():
 		var sname: String = spr_name[i]
@@ -143,6 +148,8 @@ func _build_sprite_table() -> void :
 			spr_ruin[i] = int(spr_index[ruin])
 		elif sname.begins_with("ad_") and spr_index.has(sname.trim_suffix("_hull") + "_hull_ruin"):
 			spr_ruin[i] = int(spr_index[sname.trim_suffix("_hull") + "_hull_ruin"])
+		elif sname.begins_with("farm_r") and not sname.ends_with("_ruin"):
+			spr_ruin[i] = int(spr_index["farm_ruin"])
 		elif sname.begins_with("tel") and spr_index.has("tel_ruin"):
 			spr_ruin[i] = int(spr_index["tel_ruin"])
 		elif sname.begins_with("tree_") or sname == "bush_a":
@@ -151,21 +158,44 @@ func _build_sprite_table() -> void :
 			spr_ruin[i] = -1
 
 
-func _add_sprites(at: SpriteAtlas) -> void :
-	for sname: String in at.sprites:
-		var s: Dictionary = at.sprites[sname]
-		if String(s.get("kind", "")).begins_with("unit"):
-			continue
-		spr_index[sname] = spr_rect.size()
-		spr_tex.append(at.texture)
-		spr_name.append(sname)
-		spr_rect.append(Rect2(float(s["x"]), float(s["y"]), float(s["w"]), float(s["h"])))
-		spr_anchor.append(Vector2(float(s["ax"]), float(s["ay"])))
-		spr_fw.append(int(s["fw"]))
-		spr_fd.append(int(s["fd"]))
-		spr_frames.append(int(s["frames"]))
+func _register_mobile_farms() -> void:
+	for atlas_name: String in ["atlas_farm385", "atlas_farm395"]:
+		var farm_atlas: SpriteAtlas = MobileArt.atlas(atlas_name)
+		for name: String in farm_atlas.sprites:
+			var info: Dictionary = farm_atlas.info(name).duplicate()
+			var width: int = int(info["w"])
+			info.merge({"fw": 8, "fd": 6, "ax": floori((width - 32) * 0.5), "ay": info["h"]})
+			_set_sprite(name, info, farm_atlas.texture)
+			farm_rows[int(spr_index[name])] = 33 if atlas_name == "atlas_farm385" else 44
 
 
+func _add_sprites(at: SpriteAtlas) -> void:
+	for name: String in at.sprites:
+		var info: Dictionary = at.sprites[name]
+		if not String(info.get("kind", "")).begins_with("unit"):
+			_set_sprite(name, info, at.texture)
+
+
+func _set_sprite(name: String, info: Dictionary, texture: Texture2D) -> void:
+	var id: int = spr_rect.size()
+	# The original farm keeps its existing object ID.
+	if name == "farm" and spr_index.has(name):
+		id = int(spr_index[name])
+	else:
+		spr_index[name] = id
+		spr_tex.append(null)
+		spr_name.append(name)
+		spr_rect.append(Rect2())
+		spr_anchor.append(Vector2.ZERO)
+		spr_fw.append(0)
+		spr_fd.append(0)
+		spr_frames.append(0)
+	spr_tex[id] = texture
+	spr_rect[id] = Rect2(info["x"], info["y"], info["w"], info["h"])
+	spr_anchor[id] = Vector2(info["ax"], info["ay"])
+	spr_fw[id] = int(info["fw"])
+	spr_fd[id] = int(info["fd"])
+	spr_frames[id] = int(info["frames"])
 
 
 func new_world(s: WorldSettings) -> void :

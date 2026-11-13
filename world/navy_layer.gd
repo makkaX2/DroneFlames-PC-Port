@@ -1,6 +1,8 @@
 class_name NavyLayer
 extends Node2D
 
+const MobileArt = preload("res://core/mobile_art.gd")
+
 
 
 
@@ -174,14 +176,22 @@ func _draw() -> void :
 	_draw_wrecks(nv, view, now, kz, foam)
 	for s: Ship in nv.ships:
 		var p: Vector2 = s.pos.round()
-		if not view.has_point(p) or (s.c != me and not _shows_ship(s.c, p)):
+		if not view.grow(50.0 if s.hull == Ship.Hull.CARRIER else 0.0).has_point(p) or (s.c != me and not _shows_ship(s.c, p)):
 			continue
 		var list: float = clampf(s.sink_t / Navy.SINK_T, 0.0, 1.0) if s.state == Ship.State.SINK else 0.0
 		var flash: bool = now - s.hit_t < 0.25
 		var key: String = String(HULL_KEYS[s.hull])
 		if s.hull == Ship.Hull.CARRIER:
 			_wake(s, foam)
-			draw_carrier(self, p, s.heading, 1.0, 1.0 - list * 0.85)
+			var dir: int = s.dir16()
+			if s.state == Ship.State.SINK:
+				var sinking: String = "carrier_sink_0" if list < 0.5 else "carrier_sink_2"
+				MobileArt.draw(self, MobileArt.atlas("atlas_r380"), sinking, ((dir + 1) / 2) % 8, p, Color(1, 1, 1, 1.0 - list * 0.85))
+			else:
+				MobileArt.draw_carrier(self, "carrier_shadow", dir, p)
+				var tint := Color(1.6, 1.4, 1.2) if flash else Color.WHITE
+				var hull: String = "carrier_dmg" if s.hp < s.hp_max * 0.5 else "carrier"
+				MobileArt.draw_carrier(self, hull, dir, p, tint)
 		elif _at != null and _at.has(key):
 			_ship_art(s, p, key, list, flash, now)
 		else:
@@ -684,18 +694,9 @@ func _owner_mark(s: Ship, p: Vector2, length: float) -> void :
 	draw_rect(r, col)
 
 
-static func draw_carrier(layer: CanvasItem, at: Vector2, heading: float, scale_px: float, alpha: float = 1.0) -> void:
-	layer.draw_set_transform(at, heading, Vector2.ONE * scale_px)
-	layer.draw_colored_polygon(PackedVector2Array([
-		Vector2(-27, -9), Vector2(13, -9), Vector2(26, -5), Vector2(29, 0), Vector2(26, 6),
-		Vector2(12, 11), Vector2(-24, 11), Vector2(-29, 6), Vector2(-29, -5)
-	]), Color(0.15, 0.21, 0.25, alpha))
-	layer.draw_rect(Rect2(-25, -7, 46, 14), Color(0.37, 0.44, 0.46, alpha))
-	layer.draw_line(Vector2(-26, 0), Vector2(24, 0), Color(0.85, 0.83, 0.67, alpha), 1.0)
-	for x: int in [-14, -4, 6, 16]:
-		layer.draw_line(Vector2(x - 4, 3), Vector2(x + 4, 3), Color(0.74, 0.77, 0.72, alpha))
-	layer.draw_rect(Rect2(-5, -11, 10, 5), Color(0.72, 0.75, 0.73, alpha))
-	layer.draw_set_transform(Vector2.ZERO)
+static func draw_carrier(layer: CanvasItem, at: Vector2, heading: float, scale_px: float) -> void:
+	var dir: int = posmod(roundi(rad_to_deg(heading) / 22.5), 16)
+	MobileArt.draw_carrier(layer, "carrier", dir, at, Color.WHITE, scale_px)
 
 
 func _ship(s: Ship, p: Vector2, sc: float, alpha: float, list: float, flash: bool) -> void :

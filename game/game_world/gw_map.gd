@@ -101,6 +101,8 @@ func draw_object(ci: CanvasItem, id: int, phase: int) -> void :
 		if roll < objects.autumn_level:
 			s = objects.autumn_sprites[s]
 	var r: Rect2 = spr_rect[s]
+	if st == 0 and farm_rows.has(s):
+		r.position.y += farm_rows[s] * objects.farm_row
 	var fr: int = 0
 	var nf: int = spr_frames[s]
 	if st == 0 and obj_fix.has(id):

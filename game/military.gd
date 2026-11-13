@@ -1119,7 +1119,32 @@ func load_state(d: Dictionary) -> void :
 	brain.load_state(d.get("brain", {}))
 	_plan_cache_key = ""
 	for f: Facility in facilities:
+		_restore_airport_art(f)
 		f.fx = []
 		if (f.kind == Facility.Kind.POWER_PLANT or f.kind == Facility.Kind.REFINERY or f.kind == Facility.Kind.NUCLEAR_PLANT) and alive(f):
 			_ambient_fx(f)
 	forts_changed.emit()
+
+
+func _restore_airport_art(f: Facility) -> void:
+	if f.kind not in [Facility.Kind.AIRBASE, Facility.Kind.CIV_AIRPORT] or f.size == size_of(f.kind) or f.obj_ids.size() < 2:
+		return
+	# Old saves built these facilities from several airfield props.
+	if f.main_obj < 0 or gw.obj_state[f.main_obj] == 2:
+		return
+	var state: int = 0 if alive(f) else 1
+	if f.restore_t > 0.0:
+		state = gw.obj_state[f.main_obj]
+	for i: int in range(gw.ruins.size() - 1, -1, -1):
+		if f.obj_ids.has(int(gw.ruins[i][0])):
+			gw.ruins.remove_at(i)
+	for id: int in f.obj_ids:
+		if id != f.main_obj:
+			gw.remove_object(id)
+	var hidden: int = gw.obj_hidden[f.main_obj]
+	gw.remove_object(f.main_obj)
+	var sprite: String = String(SPRITES[f.kind]) + "_legacy"
+	f.main_obj = gw.add_object(sprite, f.cell, GameWorld.KIND_BUILDING)
+	f.obj_ids = PackedInt32Array([f.main_obj])
+	gw.obj_state[f.main_obj] = state
+	gw.obj_hidden[f.main_obj] = hidden

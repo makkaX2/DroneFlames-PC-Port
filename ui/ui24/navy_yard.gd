@@ -377,7 +377,7 @@ func _build_hulls(body: VBoxContainer) -> void :
 
 func _draw_ship(ci: Control, h: int, fit: Array, at: Vector2, k: float) -> void :
 	if h == Ship.Hull.CARRIER:
-		NavyLayer.draw_carrier(ci, at, 0.0, k)
+		NavyLayer.draw_carrier(ci, at, 0.0, k * 0.36)
 		return
 	var a: Variant = gw.get("atlas_navy1")
 	var key: String = HULL_SPR[clampi(h, 0, 2)]
@@ -883,7 +883,8 @@ func _q_row(o: Dictionary, i: int) -> Control:
 	var hb: = HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 6)
 	pc.add_child(hb)
-	hb.add_child(_icon(HULL_ICON[clampi(int(o["hull"]), 0, 2)], 24))
+	var hull: int = int(o["hull"])
+	hb.add_child(_icon("icon_carrier" if hull == Ship.Hull.CARRIER else HULL_ICON[hull], 24))
 	var tv: = VBoxContainer.new()
 	tv.add_theme_constant_override("separation", 2)
 	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -1,5 +1,7 @@
 extends RefCounted
 
+const MobileArt = preload("res://core/mobile_art.gd")
+
 const ARRIVAL_INTERVAL: float = 40.0
 const FIRST_ARRIVAL: float = 20.0
 const APPROACH: float = 15.0
@@ -71,8 +73,25 @@ static func can_accept(f: Facility, country: Country, mil: Military) -> bool:
 	return city != null and city.powered and not f.halted and mil.alive(f) and mil.has_power(f) and f.runway_ok()
 
 
-static func runway_point(f: Facility) -> Vector2:
-	return f.origin_px() + Vector2(54.0, 8.0)
+static func airport_offset(f: Facility, point: Vector2) -> Vector2:
+	return point * Vector2(f.size) / Vector2(MobileArt.AIRPORT_SIZE)
+
+
+static func runway_rect(f: Facility, departure: bool) -> Rect2:
+	var geo: Dictionary = MobileArt.atlas("atlas_air388").info("civ_airport")["geo"]
+	var line: Array = geo["rwy_t" if departure else "rwy_l"]
+	return Rect2(f.origin_px() + airport_offset(f, Vector2(line[0], line[1] - line[3] * 0.5)),
+		airport_offset(f, Vector2(line[2] - line[0], line[3])))
+
+
+static func runway_point(f: Facility, departure: bool = false) -> Vector2:
+	return runway_rect(f, departure).get_center()
+
+
+static func gate_point(f: Facility, flight: int) -> Vector2:
+	var gates: Array = MobileArt.atlas("atlas_air388").info("civ_airport")["geo"]["gates"]
+	var gate: Array = gates[posmod(f.id + flight, gates.size())]
+	return f.origin_px() + airport_offset(f, Vector2(gate[0], gate[1]))
 
 
 static func _airspace(gw: GameWorld, country: Country) -> PackedByteArray:
@@ -104,11 +123,11 @@ static func _route_open(data: WorldData, blocked: PackedByteArray, route: Packed
 	return true
 
 
-static func _edge_routes(data: WorldData, blocked: PackedByteArray, runway: Vector2, direction: int) -> PackedVector2Array:
+static func _edge_routes(data: WorldData, blocked: PackedByteArray, runway: Vector2, direction: int, runway_clearance: float) -> PackedVector2Array:
 	var world_size: Vector2 = Vector2(data.w, data.h) * GameWorld.CELL
 	var margin := Vector2(2, 2)
 	var exit_x: float = margin.x if direction < 0 else world_size.x - margin.x
-	var entry: Vector2 = Vector2(clampf(runway.x + 55.0 * direction, 2.0, world_size.x - 2.0), runway.y)
+	var entry: Vector2 = Vector2(clampf(runway.x + runway_clearance * direction, 2.0, world_size.x - 2.0), runway.y)
 	var edges: Array[Vector2] = [Vector2(exit_x, runway.y), Vector2(runway.x, margin.y), Vector2(runway.x, world_size.y - margin.y)]
 	var other_x: float = world_size.x - exit_x
 	for y: float in [margin.y, world_size.y * 0.25, world_size.y * 0.5, world_size.y * 0.75, world_size.y - margin.y]:
@@ -198,15 +217,17 @@ static func update_service(f: Facility, country: Country, economy: Economy) -> v
 	if f.civil_route_blocked and now < f.civil_route_retry_at and f.civil_closed_owners == blocked:
 		return
 	f.civil_closed_owners = blocked
-	var inbound_open: bool = _route_open(gw.data, blocked, f.civil_inbound)
-	var outbound_open: bool = _route_open(gw.data, blocked, f.civil_outbound)
+	var landing: Vector2 = runway_point(f)
+	var takeoff: Vector2 = runway_point(f, true)
+	var inbound_open: bool = not f.civil_inbound.is_empty() and f.civil_inbound[0] == landing and _route_open(gw.data, blocked, f.civil_inbound)
+	var outbound_open: bool = not f.civil_outbound.is_empty() and f.civil_outbound[0] == takeoff and _route_open(gw.data, blocked, f.civil_outbound)
 	if not inbound_open or not outbound_open:
 		var reschedule: bool = not inbound_open and not f.civil_inbound.is_empty()
-		var runway: Vector2 = runway_point(f)
+		var clearance: float = airport_offset(f, Vector2(108, 0)).x
 		if not inbound_open:
-			f.civil_inbound = _edge_routes(gw.data, blocked, runway, -1)
+			f.civil_inbound = _edge_routes(gw.data, blocked, landing, -1, clearance)
 		if not outbound_open:
-			f.civil_outbound = _edge_routes(gw.data, blocked, runway, 1)
+			f.civil_outbound = _edge_routes(gw.data, blocked, takeoff, 1, clearance)
 		f.civil_route_blocked = f.civil_inbound.is_empty() or f.civil_outbound.is_empty()
 		if f.civil_route_blocked:
 			f.civil_next_arrival = -1.0
@@ -227,6 +248,7 @@ static func update_service(f: Facility, country: Country, economy: Economy) -> v
 	f.civil_next_arrival = now + ARRIVAL_INTERVAL
 	f.civil_flights += 1
 	var cargo: int = _export_cargo(f, country, economy) if f.civil_flights % 4 == 0 else 0
+	f.civil_last_cargo = cargo > 0
 	if cargo == 0:
 		var city: City = city_for(f, economy.gw, country)
 		f.civil_passengers += clampi(city.residents / 20, 8, 96)

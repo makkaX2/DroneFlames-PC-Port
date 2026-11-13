@@ -10,6 +10,7 @@ extends RefCounted
 
 
 
+const MobileArt = preload("res://core/mobile_art.gd")
 const AW = preload("res://game/air_wreck.gd")
 const AM = preload("res://game/aftermath.gd")
 const AD = preload("res://world/aftermath_draw.gd")
@@ -22,7 +23,8 @@ static func _ac_sprite(gw: GameWorld, src: int) -> Array:
 			return [a316, "attack_nokab"]
 		return [gw.atlas5, "fighter"]
 	if Air.SPEC.has(src):
-		return [gw.atlas5, String(Air.SPEC[src]["sprite"])]
+		var atlas: SpriteAtlas = MobileArt.atlas("atlas_r380") if Air.mobile_sprite(src) else gw.atlas5
+		return [atlas, String(Air.SPEC[src]["sprite"])]
 	return [gw.atlas5, "fighter"]
 
 

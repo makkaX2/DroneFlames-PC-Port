@@ -6,8 +6,8 @@ extends RefCounted
 
 
 
-const ATLAS_PNG: String = "res://assets/sprites/atlas_flora.png"
-const ATLAS_JSON: String = "res://assets/sprites/atlas_flora.json"
+const ATLAS_PNG: String = "res://assets/sprites/atlas_flora_seasons.png"
+const ATLAS_JSON: String = "res://assets/sprites/atlas_flora_seasons.json"
 const DECID: Array = ["tree_oak_a", "tree_oak_b", "tree_birch_a", "tree_oak_a", "tree_oak_b"]
 const PINES: Array = ["tree_pine_a", "tree_pine_b"]
 

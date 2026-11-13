@@ -100,9 +100,11 @@ const AF_END_X: float = 118.0
 const AF_TAXI_Y: float = 18.0
 const AF_SPOTS: Array = [Vector2(58, 25), Vector2(72, 25), Vector2(86, 25), Vector2(100, 25), Vector2(58, 38), Vector2(72, 38), Vector2(86, 38), Vector2(100, 38)]
 
+const MobileArt = preload("res://core/mobile_art.gd")
+
 const SIZES: Dictionary = {
-	Facility.Kind.AIRBASE: Vector2i(30, 21),
-	Facility.Kind.CIV_AIRPORT: Vector2i(30, 14),
+	Facility.Kind.AIRBASE: MobileArt.AIRBASE_SIZE,
+	Facility.Kind.CIV_AIRPORT: MobileArt.AIRPORT_SIZE,
 	Facility.Kind.POLICE_STATION: Vector2i(6, 4),
 	Facility.Kind.NUCLEAR_PLANT: Vector2i(18, 11), Facility.Kind.URANIUM_MINE: Vector2i(6, 6), 
 	Facility.Kind.COASTAL_ASM: Vector2i(6, 2), 
@@ -181,8 +183,8 @@ const PURPOSE: Dictionary = {
 	Facility.Kind.DUGOUT: "УКРЫТИЕ НА 3 БОЙЦОВ: ЛЕЧИТ, ЗАЩИТА x3", 
 }
 const SPRITES: Dictionary = {
-	Facility.Kind.CIV_AIRPORT: "airfield_runway",
-	Facility.Kind.AIRBASE: "airfield_runway",
+	Facility.Kind.CIV_AIRPORT: "civ_airport",
+	Facility.Kind.AIRBASE: "airbase",
 	Facility.Kind.POLICE_STATION: "barracks",
 	Facility.Kind.NUCLEAR_PLANT: "npp_core", Facility.Kind.URANIUM_MINE: "umine", 
 	Facility.Kind.NAVAL_BASE: "navbase", Facility.Kind.COASTAL_ASM: "coastal_asm", 
@@ -337,8 +339,8 @@ var dig_cells: Dictionary = {}
 
 
 const ICON_OF: Dictionary = {
-	Facility.Kind.CIV_AIRPORT: "icon_airfield_b",
-	Facility.Kind.AIRBASE: "icon_airfield_b",
+	Facility.Kind.CIV_AIRPORT: "icon_airport",
+	Facility.Kind.AIRBASE: "icon_airbase",
 	Facility.Kind.DRONE_FACTORY: "icon_dronefactory", Facility.Kind.AIRFIELD: "icon_airfield_b", 
 	Facility.Kind.DRONE_PORT: "icon_droneport", Facility.Kind.DP_RAMP: "icon_ramp", Facility.Kind.DP_RUNWAY: "icon_dprunway", 
 	Facility.Kind.DP_STORE: "icon_store", Facility.Kind.TEL: "icon_tel", Facility.Kind.MISSILE_FACTORY: "icon_missile_factory", 

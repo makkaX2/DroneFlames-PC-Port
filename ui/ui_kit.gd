@@ -26,6 +26,8 @@ static var atlas18: SpriteAtlas
 static var atlas19: SpriteAtlas
 static var atlas20: SpriteAtlas
 static var atlas_dip26: SpriteAtlas
+const MobileArt = preload("res://core/mobile_art.gd")
+
 static var atlas_navy1: SpriteAtlas
 static var atlas_uran30ui: SpriteAtlas
 static var atlas_navy30: SpriteAtlas
@@ -170,7 +172,7 @@ static func snd(id: String) -> void :
 
 
 static func _all() -> Array:
-	return [atlas_ui319, atlas9, atlas, atlas2, atlas3, atlas4, atlas5, atlas6, atlas7, atlas8, atlas10, atlas11, atlas12, atlas13, atlas14, atlas15, atlas16, atlas17, atlas18, atlas19, atlas20, atlas_dip26, atlas_navy1, atlas_net29, atlas_acc1, atlas_navy30, atlas_uran30ui, atlas_cosm_fr, atlas_cosm_bn, atlas_cosm_tt]
+	return [atlas_ui319, atlas9, atlas, atlas2, atlas3, atlas4, atlas5, atlas6, atlas7, atlas8, atlas10, atlas11, atlas12, atlas13, atlas14, atlas15, atlas16, atlas17, atlas18, atlas19, atlas20, atlas_dip26, atlas_navy1, MobileArt.atlas("atlas_r380"), MobileArt.atlas("atlas_air388"), atlas_net29, atlas_acc1, atlas_navy30, atlas_uran30ui, atlas_cosm_fr, atlas_cosm_bn, atlas_cosm_tt]
 
 
 static func has(sprite_name: String) -> bool:

@@ -1,0 +1,511 @@
+{
+ "cell_px": 4,
+ "image": "atlas_air388.png",
+ "size": [
+  392,
+  464
+ ],
+ "gen": "tools/art/gen_air388_airport.py (R388b: civil airport 48x32, zone B)",
+ "anchor": "kind building/ruin/ground: draw at (cell_x*4 - ax, (cell_y + fd)*4 - ay), cell = NW cell of the footprint",
+ "anchor_units": "kind unit_icon: plain 24x24 icons, ax = ay = 0",
+ "local_px": "civ_airport.geo is in FOOTPRINT px (see geo_note): frame px = (x, y + 21)",
+ "light": "top-left",
+ "palette": "palettes/main_named.json",
+ "doc": "docs/twink_briefs/r388_geo_B.md",
+ "sprites": {
+  "civ_airport": {
+   "x": 1,
+   "y": 1,
+   "w": 193,
+   "h": 149,
+   "fw": 48,
+   "fd": 32,
+   "ax": 0,
+   "ay": 148,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "geo": {
+    "rwy_l": [
+     8,
+     12,
+     184,
+     8
+    ],
+    "rwy_l_thr": [
+     [
+      10,
+      12
+     ],
+     [
+      182,
+      12
+     ]
+    ],
+    "rwy_l_touch": [
+     22,
+     170
+    ],
+    "rwy_t": [
+     8,
+     36,
+     184,
+     8
+    ],
+    "rwy_t_thr": [
+     [
+      10,
+      36
+     ],
+     [
+      182,
+      36
+     ]
+    ],
+    "faf_out": 220,
+    "twy_a": [
+     12,
+     52,
+     180,
+     4
+    ],
+    "links": [
+     [
+      12,
+      16,
+      52
+     ],
+     [
+      180,
+      16,
+      52
+     ],
+     [
+      96,
+      40,
+      52
+     ],
+     [
+      60,
+      52,
+      62
+     ],
+     [
+      164,
+      52,
+      62
+     ]
+    ],
+    "apron_lane": [
+     52,
+     62,
+     172,
+     4
+    ],
+    "holds": {
+     "H_TW": [
+      12,
+      46
+     ],
+     "H_TE": [
+      180,
+      46
+     ],
+     "X_W": [
+      12,
+      24
+     ],
+     "X_E": [
+      180,
+      24
+     ]
+    },
+    "apron": [
+     52,
+     56,
+     176,
+     92
+    ],
+    "gates": [
+     [
+      64,
+      78,
+      4
+     ],
+     [
+      88,
+      78,
+      4
+     ],
+     [
+      112,
+      78,
+      4
+     ],
+     [
+      136,
+      78,
+      4
+     ],
+     [
+      160,
+      78,
+      4
+     ]
+    ],
+    "bridges": [
+     [
+      69,
+      93,
+      66,
+      86
+     ],
+     [
+      93,
+      93,
+      90,
+      86
+     ],
+     [
+      117,
+      93,
+      114,
+      86
+     ],
+     [
+      141,
+      93,
+      138,
+      86
+     ],
+     [
+      165,
+      93,
+      162,
+      86
+     ]
+    ],
+    "pushback": [
+     [
+      64,
+      62
+     ],
+     [
+      88,
+      62
+     ],
+     [
+      112,
+      62
+     ],
+     [
+      136,
+      62
+     ],
+     [
+      160,
+      62
+     ]
+    ],
+    "terminal": [
+     52,
+     94,
+     172,
+     112
+    ],
+    "gallery": [
+     52,
+     94,
+     172,
+     102
+    ],
+    "terminal_hall": [
+     60,
+     102,
+     164,
+     112
+    ],
+    "tower": [
+     181,
+     100
+    ],
+    "tower_top": [
+     181,
+     100,
+     26
+    ],
+    "tower_cab_z": 22,
+    "hangars": [
+     [
+      2,
+      62,
+      16,
+      78
+     ],
+     [
+      19,
+      62,
+      33,
+      78
+     ],
+     [
+      36,
+      62,
+      50,
+      78
+     ]
+    ],
+    "hangar_apron": [
+     2,
+     78,
+     52,
+     92
+    ],
+    "fire_station": [
+     8,
+     102,
+     44,
+     112
+    ],
+    "tower_block": [
+     176,
+     101,
+     188,
+     111
+    ],
+    "beacons": [
+     [
+      181,
+      74
+     ],
+     [
+      9,
+      55
+     ],
+     [
+      43,
+      55
+     ]
+    ],
+    "fuel": [
+     176,
+     56,
+     190,
+     92
+    ],
+    "fuel_tanks": [
+     [
+      183,
+      64
+     ],
+     [
+      183,
+      74
+     ],
+     [
+      183,
+      84
+     ]
+    ],
+    "parking": [
+     52,
+     115,
+     150,
+     124
+    ],
+    "road": [
+     0,
+     124,
+     192,
+     128
+    ],
+    "flood": [
+     [
+      76,
+      92,
+      12
+     ],
+     [
+      124,
+      92,
+      12
+     ],
+     [
+      172,
+      92,
+      12
+     ]
+    ],
+    "windsock": [
+     24,
+     22
+    ],
+    "rapid_exits": [
+     [
+      124,
+      16,
+      52
+     ],
+     [
+      68,
+      16,
+      52
+     ]
+    ],
+    "holds_x": [
+     [
+      12,
+      24
+     ],
+     [
+      68,
+      24
+     ],
+     [
+      124,
+      24
+     ],
+     [
+      180,
+      24
+     ]
+    ],
+    "lineup": [
+     [
+      12,
+      36
+     ],
+     [
+      180,
+      36
+     ]
+    ],
+    "hold_lamps_note": "each hold bar has 2 light base px at (x - 3, y) and (x + 2, y) for the stop-bar lamps"
+   },
+   "geo_note": "geo = footprint px from the NW corner of the 192x128 footprint (docs/twink_briefs/r388_geo_B.md); frame px = (x, y + 21). rwy_* / twy_a / apron_lane = [x0, axis_y, x1, width]; links = [x, y0, y1] (4 px wide); gates = [x, y, dir16] (4 = nose south); bridges = [facade_x, facade_y, door_x, door_y] as SEEN on the flat ground (aircraft are drawn flat; the 2-3 px tall tube / cab voxels stand 2-3 px further south); tower_top / flood = [x, y, height_px] (frame y = y + 21 - h); rects = [x0, y0, x1, y1).",
+   "note": "civil airport 48x32 cells. Draw civ_airport_ground, then aircraft on the apron, then civ_airport (jet bridges and apron vehicles are in civ_airport); civ_airport_dmg_ov on top of civ_airport while the airport is closed by a strike. No text, no logos."
+  },
+  "civ_airport_ground": {
+   "x": 196,
+   "y": 1,
+   "w": 193,
+   "h": 149,
+   "fw": 48,
+   "fd": 32,
+   "ax": 0,
+   "ay": 148,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "height": 0,
+   "of": "civ_airport",
+   "note": "paving + markings only (same anchor as civ_airport)"
+  },
+  "civ_airport_build": {
+   "x": 1,
+   "y": 152,
+   "w": 193,
+   "h": 149,
+   "fw": 48,
+   "fd": 32,
+   "ax": 0,
+   "ay": 148,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "of": "civ_airport",
+   "note": "construction stage (graded earth, part-paved runways, terminal frame, crane)"
+  },
+  "civ_airport_ruin": {
+   "x": 196,
+   "y": 152,
+   "w": 193,
+   "h": 149,
+   "fw": 48,
+   "fd": 32,
+   "ax": 0,
+   "ay": 148,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "civ_airport",
+   "shadow": "rock_deep"
+  },
+  "civ_airport_dmg_ov": {
+   "x": 1,
+   "y": 303,
+   "w": 193,
+   "h": 149,
+   "fw": 48,
+   "fd": 32,
+   "ax": 0,
+   "ay": 148,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "overlay_of": "civ_airport",
+   "note": "damage overlay: transparent except damage (roof holes + fire, smashed glass, collapsed bridge of gate 2, burnt hangar H3, craters / scorch); draw on top of civ_airport (same anchor)"
+  },
+  "icon_airport": {
+   "x": 196,
+   "y": 303,
+   "w": 24,
+   "h": 24,
+   "fw": 0,
+   "fd": 0,
+   "ax": 0,
+   "ay": 0,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit_icon",
+   "size": 24
+  },
+  "icon_plane_civ": {
+   "x": 222,
+   "y": 303,
+   "w": 24,
+   "h": 24,
+   "fw": 0,
+   "fd": 0,
+   "ax": 0,
+   "ay": 0,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit_icon",
+   "size": 24
+  },
+  "icon_ap_mil": {
+   "x": 248,
+   "y": 303,
+   "w": 24,
+   "h": 24,
+   "fw": 0,
+   "fd": 0,
+   "ax": 0,
+   "ay": 0,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit_icon",
+   "size": 24
+  },
+  "civ_airport_build_ruin": {
+   "x": 196,
+   "y": 152,
+   "w": 193,
+   "h": 149,
+   "fw": 48,
+   "fd": 32,
+   "ax": 0,
+   "ay": 148,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "civ_airport_build",
+   "shadow": "rock_deep",
+   "alias_of": "civ_airport_ruin"
+  }
+ }
+}

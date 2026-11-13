@@ -1,6 +1,8 @@
 class_name UnitsLayer
 extends Node2D
 
+const MobileArt = preload("res://core/mobile_art.gd")
+
 
 
 
@@ -198,7 +200,6 @@ func _draw() -> void :
 			elif z >= 1.0:
 				var hh: float = _shadow_h(d)
 				_spr(da, dn + "_shadow", d.frame, gp + Vector2(hh, hh))
-		var a5: SpriteAtlas = gw.atlas5
 		for ac: Aircraft in mil.air.aircraft:
 			if ac.state == Aircraft.State.DEAD or not _see_air(ac.country_id, ac.pos):
 				continue
@@ -207,17 +208,14 @@ func _draw() -> void :
 			var ap: Vector2 = ac.pos.round()
 			if not ac.airborne():
 				_spr(aa, _ac_shadow(ac), ac.frame, ap + Vector2(1, 1))
-				if ac.transport():
-					_draw_transport(ac, ap, false)
-				else:
-					_spr(aa, n, ac.frame, ap)
-					if ac.helicopter():
-						_spr(a5, "heli_rotor", 0, ap)
+				_spr(aa, n, ac.frame, ap)
+				_draw_aircraft_rotors(ac, ap)
 				if ac == gw.selected_drone():
 					_brackets(ap, int(Air.SPEC[ac.type]["sel"]))
 			elif z >= 1.0:
 				var sh: float = roundf(ac.h)
 				_spr(aa, _ac_shadow(ac), ac.frame, ap + Vector2(sh, sh), Color(1, 1, 1, 0.5))
+		_draw_carrier_islands()
 		if z >= 1.0:
 			_kab_shadows()
 		if z >= 1.0:
@@ -258,12 +256,8 @@ func _draw() -> void :
 				continue
 			var n2: String = _ac_name(ac)
 			var p2: Vector2 = ac.pos.round()
-			if ac.transport():
-				_draw_transport(ac, p2, true)
-			else:
-				_outlined(_ac_atlas(ac), n2, _ac_shadow(ac), ac.frame, p2)
-				if ac.helicopter():
-					_spr(gw.atlas5, "heli_rotor", int(FxLayer.vt * 12.0) % 4, p2)
+			_outlined(_ac_atlas(ac), n2, _ac_shadow(ac), ac.frame, p2)
+			_draw_aircraft_rotors(ac, p2)
 			if ac == sel:
 				_brackets(p2, int(Air.SPEC[ac.type]["sel"]))
 		_draw_airlift_descents(mil.air)
@@ -1233,31 +1227,28 @@ static func atlas316() -> SpriteAtlas:
 	return _a316
 
 
-const TRANSPORT_BODY: PackedVector2Array = [
-	Vector2(17, 0), Vector2(12, 3), Vector2(4, 3), Vector2(-4, 14), Vector2(-8, 14),
-	Vector2(-5, 3), Vector2(-12, 3), Vector2(-15, 7), Vector2(-17, 7), Vector2(-16, 0),
-	Vector2(-17, -7), Vector2(-15, -7), Vector2(-12, -3), Vector2(-5, -3), Vector2(-8, -14),
-	Vector2(-4, -14), Vector2(4, -3), Vector2(12, -3)
-]
-
-
-func _draw_transport(a: Aircraft, at: Vector2, flying: bool) -> void:
-	draw_set_transform(at, a.heading)
-	var paint := Color("#97a4a2")
-	if a.helicopter():
-		draw_rect(Rect2(-13, -3, 26, 6), Color("#344141"))
-		draw_rect(Rect2(-12, -2, 24, 4), paint)
-		for x: float in [-9.0, 9.0]:
-			var spin: float = FxLayer.vt * 15.0 if flying else 0.5
-			for blade: int in 3:
-				var shaft: Vector2 = Vector2.from_angle(spin + TAU * float(blade) / 3.0) * 7.0
-				draw_line(Vector2(x, 0), Vector2(x, 0) + shaft, Color("#424d4c"), 1.0)
+func _draw_aircraft_rotors(ac: Aircraft, at: Vector2) -> void:
+	if not ac.helicopter():
+		return
+	var spinning: bool = ac.state != Aircraft.State.PARKED
+	if ac.type == Aircraft.Type.TRANSPORT_HELI:
+		var atlas: SpriteAtlas = _ac_atlas(ac)
+		var hubs: Array = atlas.info("heli_tr_body")["hubs"][ac.frame]
+		var phase: int = int(FxLayer.vt * 18.0) % 6 if spinning else 0
+		for i: int in range(1, -1, -1):
+			var hub: Array = hubs[i]
+			_spr(atlas, "heli_tr_rotor", (phase + 3 * i) % 6, at + Vector2(hub[0], hub[1]))
 	else:
-		draw_colored_polygon(TRANSPORT_BODY, paint)
-		draw_rect(Rect2(9, -2, 4, 4), Color("#42515b"))
-		for y: float in [-10.0, -6.0, 6.0, 10.0]:
-			draw_rect(Rect2(-3, y - 1, 5, 2), Color("#626d70"))
-	draw_set_transform(Vector2.ZERO)
+		_spr(gw.atlas5, "heli_rotor", int(FxLayer.vt * 12.0) % 4 if spinning else 0, at)
+
+
+func _draw_carrier_islands() -> void:
+	if gw.navy == null:
+		return
+	var view: Rect2 = _view(86.0)
+	for ship: Ship in gw.navy.ships:
+		if ship.hull == Ship.Hull.CARRIER and ship.alive() and view.has_point(ship.pos) and _see_air(ship.c, ship.pos):
+			MobileArt.draw_carrier(self, "carrier_island", ship.dir16(), ship.pos.round())
 
 
 func _draw_airlift_descents(air_service: Air) -> void:
@@ -1272,19 +1263,25 @@ func _draw_airlift_descents(air_service: Air) -> void:
 		var troops: Array = job["units"]
 		for i: int in troops.size():
 			var p: Vector2 = at + Vector2(float(i % 4) * 9.0 - 13.5, float(i / 4) * 9.0 - height)
-			draw_arc(p, 5.0, PI, TAU, 8, Color("#e5ddd0"), 2.0)
-			draw_line(p + Vector2(-4, 0), p + Vector2(0, 6), Color("#b9ae9d"))
-			draw_line(p + Vector2(4, 0), p + Vector2(0, 6), Color("#b9ae9d"))
-			draw_circle(p + Vector2(0, 7), 1.5, Color("#697751"))
+			var phase: int = int(FxLayer.vt * 3.0 + i) % 4
+			var atlas: SpriteAtlas = MobileArt.atlas("atlas_r380")
+			if (troops[i] as Unit).type == Unit.Type.IFV:
+				_spr(atlas, "para_cargo", phase % 2, p)
+			else:
+				_spr(atlas, "para_trooper_%d" % phase, 0, p)
 
 
 func _ac_atlas(ac: Aircraft) -> SpriteAtlas:
+	if Air.mobile_sprite(ac.type):
+		return MobileArt.atlas("atlas_r380")
 	if ac.type == Aircraft.Type.ATTACK and atlas316() != null:
 		return _a316
 	return gw.atlas5
 
 
 func _ac_name(ac: Aircraft) -> String:
+	if ac.type == Aircraft.Type.DECK_FIGHTER and ac.carrier_id > 0 and ac.state == Aircraft.State.PARKED:
+		return "navfighter_wing_folded"
 	if ac.type == Aircraft.Type.ATTACK:
 		if atlas316() == null:
 			return "fighter"
@@ -1293,6 +1290,10 @@ func _ac_name(ac: Aircraft) -> String:
 
 
 func _ac_shadow(ac: Aircraft) -> String:
+	if ac.type == Aircraft.Type.TRANSPORT_HELI:
+		return "heli_tr_shadow"
+	if _ac_name(ac) == "navfighter_wing_folded":
+		return "navfighter_shadow_folded"
 	if ac.type == Aircraft.Type.ATTACK:
 		return "attack_shadow" if atlas316() != null else "fighter_shadow"
 	return String(Air.SPEC[ac.type]["sprite"]) + "_shadow"

@@ -1,6 +1,8 @@
 class_name Air
 extends RefCounted
 
+const MobileArt = preload("res://core/mobile_art.gd")
+
 
 
 
@@ -10,21 +12,19 @@ const SPEC: Dictionary = {
 	Aircraft.Type.FIGHTER: {"name": "Истребитель", "cost": 3000, "speed": 48.0, "turn": PI / 2.0, "fuel": 5000.0, "h": 10.0, "sprite": "fighter", "sel": 11}, 
 	Aircraft.Type.HELI: {"name": "Вертолёт", "cost": 1800, "speed": 16.0, "turn": PI * 0.8, "fuel": 3600.0, "h": 6.0, "sprite": "heli", "sel": 11}, 
 	Aircraft.Type.ATTACK: {"name": "Штурмовик", "cost": 5000, "speed": 40.0, "turn": PI / 2.2, "fuel": 4200.0, "h": 9.0, "sprite": "attack", "sel": 13},
-	Aircraft.Type.TRANSPORT: {"name": "Пеликан", "cost": 3400, "speed": 34.0, "turn": PI / 2.0, "fuel": 6600.0, "h": 12.0, "sprite": "bomber", "sel": 16},
-	Aircraft.Type.TRANSPORT_HELI: {"name": "Двурог", "cost": 2200, "speed": 22.0, "turn": PI * 0.8, "fuel": 3200.0, "h": 6.0, "sprite": "heli", "sel": 13},
-	Aircraft.Type.DECK_FIGHTER: {"name": "Палубный истребитель", "cost": 4500, "speed": 47.0, "turn": PI / 2.0, "fuel": 4600.0, "h": 10.0, "sprite": "fighter", "sel": 12},
+	Aircraft.Type.TRANSPORT: {"name": "Пеликан", "cost": 3400, "speed": 34.0, "turn": PI / 2.0, "fuel": 6600.0, "h": 12.0, "sprite": "transport_jet", "sel": 16},
+	Aircraft.Type.TRANSPORT_HELI: {"name": "Двурог", "cost": 2200, "speed": 22.0, "turn": PI * 0.8, "fuel": 3200.0, "h": 6.0, "sprite": "heli_tr_body", "sel": 13},
+	Aircraft.Type.DECK_FIGHTER: {"name": "Палубный истребитель", "cost": 4500, "speed": 47.0, "turn": PI / 2.0, "fuel": 4600.0, "h": 10.0, "sprite": "navfighter", "sel": 12},
 }
 const UPGRADE_COST: int = 1500
 const FIGHTER_AAM: Array = [0, 2, 4, 6]
 const BOMBER_CR: int = 30
 const AIR_CAP: int = 6
-const DECK_SPOTS: Array[Vector2] = [Vector2(-14, 6), Vector2(-4, 6), Vector2(6, 6), Vector2(16, 6)]
+const DECK_CAPACITY: int = 6
 const DECK_PATROL: float = 420.0
-const AIRBASE_COMBAT: Array[Vector2] = [
-	Vector2(54, 29), Vector2(72, 29), Vector2(90, 29), Vector2(108, 29),
-	Vector2(54, 44), Vector2(72, 44), Vector2(90, 44), Vector2(108, 44), Vector2(36, 44),
-]
-const AIRBASE_TRANSPORT: Array[Vector2] = [Vector2(50, 66), Vector2(76, 66), Vector2(102, 66)]
+const LEGACY_AIRBASE_COMBAT_CAPACITY: int = 9
+const AIRBASE_COMBAT_CAPACITY: int = 10
+const AIRBASE_TRANSPORT_CAPACITY: int = 3
 const TRANSPORT_SEATS: Dictionary = {Aircraft.Type.TRANSPORT: 8, Aircraft.Type.TRANSPORT_HELI: 3}
 const TRANSPORT_RANGE: Dictionary = {Aircraft.Type.TRANSPORT: 2600.0, Aircraft.Type.TRANSPORT_HELI: 1000.0}
 const AIRLIFT_MARCH_LIMIT: float = 180.0
@@ -172,13 +172,52 @@ func _o(af: Facility) -> Vector2:
 	return af.origin_px()
 
 
+static func mobile_sprite(type: int) -> bool:
+	return type in [Aircraft.Type.TRANSPORT, Aircraft.Type.TRANSPORT_HELI, Aircraft.Type.DECK_FIGHTER]
+
+
+static func combat_capacity(af: Facility) -> int:
+	if af.kind != Facility.Kind.AIRBASE:
+		return AIR_CAP
+	return AIRBASE_COMBAT_CAPACITY if af.size == MobileArt.AIRBASE_SIZE else LEGACY_AIRBASE_COMBAT_CAPACITY
+
+
+static func airbase_scale(af: Facility) -> Vector2:
+	return Vector2(af.size) / Vector2(MobileArt.AIRBASE_SIZE)
+
+
+static func airbase_runway(af: Facility) -> Vector4:
+	var line: Array = MobileArt.atlas("atlas_r380").info("airbase")["runways"][0]
+	var factor: Vector2 = airbase_scale(af)
+	return Vector4(line[0] * factor.x, line[1] * factor.y, line[2] * factor.x, line[3] * factor.y)
+
+
+func _runway(af: Facility) -> Vector4:
+	if af.kind == Facility.Kind.AIRBASE:
+		return airbase_runway(af)
+	return Vector4(Military.AF_START_X, Military.AF_ROLL_Y, Military.AF_END_X, Military.AF_ROLL_Y)
+
+
+func _taxi_y(af: Facility) -> float:
+	return 47.0 * airbase_scale(af).y if af.kind == Facility.Kind.AIRBASE else Military.AF_TAXI_Y
+
+
 func spot_pos(af: Facility, spot: int) -> Vector2:
+	if af.kind == Facility.Kind.AIRBASE:
+		var points: Dictionary = MobileArt.atlas("atlas_r380").info("airbase")
+		var combat: int = combat_capacity(af)
+		var point: Array = points["spots_heavy"][spot - combat] if spot >= combat else points["spots"][maxi(0, spot)]
+		var offset := Vector2(point[0], point[1])
+		if spot < 0:
+			offset = Vector2(20, 23)
+		return _o(af) + offset * airbase_scale(af)
 	if spot < 0:
 		return _o(af) + Vector2(30, 8)
-	if af.kind == Facility.Kind.AIRBASE:
-		var transport_slot: int = spot - AIRBASE_COMBAT.size()
-		return _o(af) + (AIRBASE_TRANSPORT[transport_slot] if transport_slot >= 0 else AIRBASE_COMBAT[spot])
 	return _o(af) + Vector2(Military.AF_SPOTS[spot])
+
+
+func _staging_point(af: Facility) -> Vector2:
+	return _o(af) + Vector2(af.size.x * GameWorld.CELL * 0.5, af.size.y * GameWorld.CELL + 10.0)
 
 
 func _free_spot(af: Facility, bomber: bool) -> int:
@@ -207,9 +246,14 @@ func free_spot(af: Facility, type: int) -> int:
 	for a: Aircraft in based_at(af):
 		used[a.spot] = true
 	if type == Aircraft.Type.BOMBER:
-		return -2 if used.has(-1) else -1
-	var start: int = AIRBASE_COMBAT.size() if TRANSPORT_SEATS.has(type) else 0
-	var end: int = start + (AIRBASE_TRANSPORT.size() if start > 0 else AIRBASE_COMBAT.size())
+		for a: Aircraft in based_at(af):
+			if a.type == Aircraft.Type.BOMBER:
+				return -2
+		if af.size != MobileArt.AIRBASE_SIZE:
+			return -1
+	var combat: int = combat_capacity(af)
+	var start: int = combat if TRANSPORT_SEATS.has(type) else 0
+	var end: int = start + (AIRBASE_TRANSPORT_CAPACITY if start > 0 else combat)
 	for spot: int in range(start, end):
 		if not used.has(spot):
 			return spot
@@ -247,6 +291,8 @@ func buy(af: Facility, type: int, country: Country) -> String:
 	a.base = af
 	a.spot = spot
 	a.pos = spot_pos(af, spot)
+	a.heading = _parking_heading(a)
+	a.update_frame()
 	a.fuel = float(SPEC[type]["fuel"])
 	a.service_t = SERVICE_TIME
 	if type == Aircraft.Type.ATTACK:
@@ -330,10 +376,13 @@ func _take_off(a: Aircraft) -> void :
 		a.state = Aircraft.State.LIFT
 		return
 	var o: Vector2 = _o(a.base)
+	var runway: Vector4 = _runway(a.base)
+	var start: Vector2 = o + Vector2(runway.x, runway.y)
 	if a.spot < 0:
-		a.taxi = [o + Vector2(Military.AF_START_X, Military.AF_ROLL_Y)]
+		a.taxi = [start]
 	else:
-		a.taxi = [Vector2(a.pos.x, o.y + Military.AF_TAXI_Y), o + Vector2(Military.AF_START_X, Military.AF_TAXI_Y), o + Vector2(Military.AF_START_X, Military.AF_ROLL_Y)]
+		var taxi_y: float = o.y + _taxi_y(a.base)
+		a.taxi = [Vector2(a.pos.x, taxi_y), Vector2(start.x, taxi_y), start]
 	a.state = Aircraft.State.TAXI
 
 
@@ -575,7 +624,7 @@ func _step(a: Aircraft, dt: float) -> void :
 			if a.speed > vmax * LIFT_FRAC:
 				a.h = minf(a.h + 3.0 * dt, float(sp["h"]))
 			a.pos.x += a.speed * dt
-			if a.pos.x >= o.x + Military.AF_END_X:
+			if a.pos.x >= o.x + _runway(a.base).z:
 				Sfx.play("jet_flyby", a.pos)
 				a.state = Aircraft.State.FLY if a.after_land != Aircraft.State.PATROL else Aircraft.State.PATROL
 				a.after_land = -1
@@ -600,7 +649,7 @@ func _fly(a: Aircraft, dt: float, vmax: float, turn: float) -> void :
 		a.patrol_ang += dt * vmax / HELI_PATROL_R
 		tgt = a.patrol_c + Vector2.from_angle(a.patrol_ang) * HELI_PATROL_R
 	elif a.state == Aircraft.State.RTB:
-		tgt = home_pos(a) if heli or a.carrier_id > 0 else _o(a.base) + Vector2(-50.0, Military.AF_ROLL_Y)
+		tgt = home_pos(a) if heli or a.carrier_id > 0 else _o(a.base) + Vector2(-50.0, _runway(a.base).y)
 	var to: Vector2 = tgt - a.pos
 	var dist: float = to.length()
 
@@ -687,17 +736,21 @@ func _land(a: Aircraft, dt: float) -> void :
 		return
 
 	var o: Vector2 = _o(a.base)
-	_turn(a, (Vector2(o.x + 70.0, o.y + Military.AF_ROLL_Y) - a.pos).angle(), PI * dt)
+	var runway: Vector4 = _runway(a.base)
+	var roll_y: float = o.y + runway.y
+	var touchdown: float = o.x + lerpf(runway.x, runway.z, 0.45)
+	_turn(a, (Vector2(touchdown + 10.0, roll_y) - a.pos).angle(), PI * dt)
 	a.speed = move_toward(a.speed, 14.0, 8.0 * dt)
 	a.pos += Vector2.from_angle(a.heading) * a.speed * dt
 	a.h = maxf(0.0, a.h - 4.0 * dt)
-	if a.h <= 0.0 and a.pos.x >= o.x + 60.0:
-		a.pos.y = o.y + Military.AF_ROLL_Y
+	if a.h <= 0.0 and a.pos.x >= touchdown:
+		a.pos.y = roll_y
 		var sp: Vector2 = spot_pos(a.base, a.spot)
 		if a.spot < 0:
 			a.taxi = [sp]
 		else:
-			a.taxi = [Vector2(a.pos.x, o.y + Military.AF_TAXI_Y), Vector2(sp.x, o.y + Military.AF_TAXI_Y), sp]
+			var taxi_y: float = o.y + _taxi_y(a.base)
+			a.taxi = [Vector2(a.pos.x, taxi_y), Vector2(sp.x, taxi_y), sp]
 		a.state = Aircraft.State.TAXI
 		a.after_land = 99
 
@@ -707,7 +760,8 @@ func _parked(a: Aircraft) -> void :
 	a.h = 0.0
 	a.speed = 0.0
 	a.pos = home_pos(a)
-	a.heading = carrier_of(a).heading if a.carrier_id > 0 else 0.0
+	a.heading = _parking_heading(a)
+	a.update_frame()
 	a.service_t = SERVICE_TIME
 	a.after_land = -1
 
@@ -2687,8 +2741,17 @@ func carrier_of(a: Aircraft) -> Ship:
 func home_pos(a: Aircraft) -> Vector2:
 	var ship: Ship = carrier_of(a)
 	if ship != null:
-		return ship.pos + DECK_SPOTS[a.spot].rotated(ship.heading)
+		var point: Array = MobileArt.atlas("atlas_r380").info("carrier")["spots"][ship.dir16()][a.spot]
+		return ship.pos + Vector2(point[0], point[1])
 	return spot_pos(a.base, a.spot) if a.base != null else a.pos
+
+
+func _parking_heading(a: Aircraft) -> float:
+	var ship: Ship = carrier_of(a)
+	if ship != null:
+		var spot: Array = MobileArt.atlas("atlas_r380").info("carrier")["spots_local"][a.spot]
+		return ship.heading + deg_to_rad(spot[3])
+	return -PI * 0.5 if a.base != null and a.base.kind == Facility.Kind.AIRBASE and a.spot >= 0 else 0.0
 
 
 func deck_aircraft(ship: Ship) -> Array[Aircraft]:
@@ -2703,7 +2766,7 @@ func _deck_spot(ship: Ship) -> int:
 	var occupied: Array[int] = []
 	for a: Aircraft in deck_aircraft(ship):
 		occupied.append(a.spot)
-	for spot: int in DECK_SPOTS.size():
+	for spot: int in DECK_CAPACITY:
 		if not occupied.has(spot):
 			return spot
 	return -1
@@ -2792,7 +2855,7 @@ func _step_deck_aircraft(a: Aircraft, dt: float) -> void:
 	var spot: Vector2 = home_pos(a)
 	if a.state in [Aircraft.State.PARKED, Aircraft.State.LIFT, Aircraft.State.LAND]:
 		a.pos = spot
-		a.heading = ship.heading
+		a.heading = _parking_heading(a) if a.state == Aircraft.State.PARKED else ship.heading
 	if a.state == Aircraft.State.LAND:
 		a.h = move_toward(a.h, 0.0, 4.0 * dt)
 		if a.h <= 0.0:
@@ -2898,7 +2961,7 @@ func airlift_plan(home: Facility, point: Vector2) -> Dictionary:
 		if distance > float(TRANSPORT_RANGE[a.type]) or a.fuel < 2.0 * distance + RESERVE_PX + 250.0:
 			continue
 		have_range = true
-		var staging: Vector2 = gw.econ.land_point(a.base.origin_px() + Vector2(68, 94), 8)
+		var staging: Vector2 = gw.econ.land_point(_staging_point(a.base), 8)
 		if not _airlift_site(home.country_id, staging).is_empty():
 			continue
 		if not march_times.has(a.base):
@@ -3053,7 +3116,7 @@ func _tick_airlift(home: Facility, job: Dictionary) -> void:
 		return
 	if stage == AirliftStage.RETURNING:
 		if a.state == Aircraft.State.PARKED:
-			var staging: Vector2 = gw.econ.land_point(a.base.origin_px() + Vector2(68, 94), 8)
+			var staging: Vector2 = gw.econ.land_point(_staging_point(a.base), 8)
 			_finish_airlift(home, job, staging, false)
 		elif a.state in [Aircraft.State.FLY, Aircraft.State.ORBIT, Aircraft.State.HOVER]:
 			a.state = Aircraft.State.RTB
@@ -3131,6 +3194,10 @@ func after_load() -> void :
 		while c.missile_stock.size() < Military.MT_CAP.size():
 			c.missile_stock.append(0)
 	for a: Aircraft in aircraft:
+		if a.state == Aircraft.State.PARKED and (a.carrier_id > 0 or (a.base != null and a.base.kind == Facility.Kind.AIRBASE)):
+			a.pos = home_pos(a)
+			a.heading = _parking_heading(a)
+			a.update_frame()
 		if a.type == Aircraft.Type.BOMBER and (a.payload == 1 or a.kab > 0):
 			var c2: Country = gw.country_by_id(a.country_id)
 			if c2 != null:

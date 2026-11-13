@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://nqejsum2yvkk"
-path="res://.godot/imported/atlas_farm_port.png-af812ee8a9b8b66196444ba6bdb00a45.ctex"
+uid="uid://d4cfqy0wuatrb"
+path="res://.godot/imported/atlas_airport_legacy.png-7d09a3717b935a44f1e41ca90866d4ca.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/atlas_farm_port.png"
-dest_files=["res://.godot/imported/atlas_farm_port.png-af812ee8a9b8b66196444ba6bdb00a45.ctex"]
+source_file="res://assets/sprites/atlas_airport_legacy.png"
+dest_files=["res://.godot/imported/atlas_airport_legacy.png-7d09a3717b935a44f1e41ca90866d4ca.ctex"]
 
 [params]
 

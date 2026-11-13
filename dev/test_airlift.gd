@@ -31,10 +31,13 @@ func _run() -> void:
 	player.fuel = 150
 	world.data.owners.fill(player.id)
 	world.data.biome.fill(Biome.GRASS)
+	world.econ.deposits.clear()
 	world.data.flags.fill(0)
 	world.econ.build_nav()
 
-	var base: Facility = world.mil.build(Facility.Kind.AIRBASE, Vector2i(105, 90), player)
+	var base_site := Vector2i(105, 90)
+	assert(world.mil.place_why(Facility.Kind.AIRBASE, base_site, player).is_empty(), world.mil.place_why(Facility.Kind.AIRBASE, base_site, player))
+	var base: Facility = world.mil.build(Facility.Kind.AIRBASE, base_site, player)
 	var field: Facility = world.mil.build(Facility.Kind.AIRFIELD, Vector2i(175, 90), player)
 	var home: Facility = world.mil.build(Facility.Kind.BARRACKS, Vector2i(105, 130), player)
 	assert(base != null and field != null and home != null)
@@ -45,7 +48,7 @@ func _run() -> void:
 	assert(air.buy(base, Aircraft.Type.TRANSPORT, player).is_empty())
 	assert(not air.buy(base, Aircraft.Type.TRANSPORT_HELI, player).is_empty())
 	assert(air.free_spot(base, Aircraft.Type.FIGHTER) >= 0)
-	assert(1 + Air.AIRBASE_COMBAT.size() + Air.AIRBASE_TRANSPORT.size() == 13)
+	assert(base.size == Vector2i(40, 28) and Air.combat_capacity(base) == 10)
 
 	home.prod_type = 3
 	var members: Array[Unit] = []
@@ -111,7 +114,7 @@ func _run() -> void:
 	base = heli.base
 	base.craters.append(base.origin_px())
 	home.airlift_ready_at = 0.0
-	var staging: Vector2 = base.origin_px() + Vector2(68, 94)
+	var staging: Vector2 = air._staging_point(base)
 	for u: Unit in world.army.units_of(home):
 		u.pos = staging
 		u.path.clear()

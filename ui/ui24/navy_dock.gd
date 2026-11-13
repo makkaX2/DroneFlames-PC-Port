@@ -1027,7 +1027,7 @@ func _fill_card() -> void :
 	(R["deck"] as Control).visible = s.hull == Ship.Hull.CARRIER
 	if s.hull == Ship.Hull.CARRIER:
 		var count: int = gw.mil.air.deck_aircraft(s).size()
-		var cap: int = Air.DECK_SPOTS.size()
+		var cap: int = Air.DECK_CAPACITY
 		var cost: int = int(Air.spec(Aircraft.Type.DECK_FIGHTER)["cost"])
 		var buy: Button = R["deck_buy"]
 		(buy.get_meta("lb") as Label).text = Loc.t("ИСТРЕБ. %d · %d/%d") % [cost, count, cap]

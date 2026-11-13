@@ -1133,7 +1133,16 @@ func on_strike(cell: Vector2i, r_px: float = 14.0) -> void :
 		gw.diplo.sky.trip.on_strike(p, r_px)
 	for f: Facility in facilities:
 		var rw: = Rect2()
-		if f.kind in [Facility.Kind.AIRFIELD, Facility.Kind.AIRBASE, Facility.Kind.CIV_AIRPORT]:
+		if f.kind == Facility.Kind.CIV_AIRPORT:
+			var landing: Rect2 = CivilAirport.runway_rect(f, false)
+			var takeoff: Rect2 = CivilAirport.runway_rect(f, true)
+			rw = landing if absf(p.y - landing.get_center().y) < absf(p.y - takeoff.get_center().y) else takeoff
+		elif f.kind == Facility.Kind.AIRBASE:
+			var factor: Vector2 = Air.airbase_scale(f)
+			var lines: Array = MobileArt.atlas("atlas_r380").info("airbase")["runways"]
+			var line: Array = lines[0] if p.y - f.origin_px().y < (float(lines[0][1]) + float(lines[1][1])) * 0.5 * factor.y else lines[1]
+			rw = Rect2(f.origin_px() + Vector2(line[0], line[1] - 5) * factor, Vector2(line[2] - line[0], 10) * factor)
+		elif f.kind == Facility.Kind.AIRFIELD:
 			rw = Rect2(f.origin_px() + AF_RUNWAY.position, AF_RUNWAY.size)
 		elif f.kind == Facility.Kind.DP_RUNWAY:
 			rw = Rect2(gw.obj_origin(f.main_obj), Vector2(64, 12))
@@ -1141,7 +1150,8 @@ func on_strike(cell: Vector2i, r_px: float = 14.0) -> void :
 			continue
 		if not rw.grow(r_px * 0.5).has_point(p):
 			continue
-		var c: = Vector2(clampf(p.x, rw.position.x + 6.0, rw.end.x - 6.0), clampf(p.y, rw.position.y + 5.0, rw.end.y - 5.0))
+		var inset: float = minf(5.0, rw.size.y * 0.5)
+		var c := Vector2(clampf(p.x, rw.position.x + 6.0, rw.end.x - 6.0), clampf(p.y, rw.position.y + inset, rw.end.y - inset))
 		f.craters.append(c.round())
 		f.repair_t = 60.0 if f.kind == Facility.Kind.CIV_AIRPORT else RUNWAY_REPAIR
 		if gw.country_by_id(f.country_id).is_player:
