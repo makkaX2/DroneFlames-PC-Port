@@ -10,6 +10,7 @@ var _dyn_fps_timer: float = 0.0
 var _dyn_fps_low_time: float = 0.0
 var _dyn_fps_high_time: float = 0.0
 var _playtime_accum: float = 0.0
+var _mod_manager: Node = null
 
 
 
@@ -18,6 +19,7 @@ var _playtime_accum: float = 0.0
 
 func _ready() -> void :
 	RenderingServer.set_default_clear_color(Palette.c("water_deep"))
+	_mod_manager = get_node_or_null("/root/ModManager")
 	world = GameWorld.new()
 	world.name = "World"
 	add_child(world)
@@ -585,8 +587,8 @@ func _process(delta: float) -> void :
 		var dyn_tag: String = " dyn_stage=%d" % _dyn_fps_stage if GameConfig.dynamic_fps_target > 0 else ""
 		print("[Perf] fps=%d draw_calls=%d objects=%d cities=%d zoom=%.2f%s" % [Engine.get_frames_per_second(), int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)), world.obj_spr.size() - world._free_ids.size(), world.cities.size(), cam.zoom.x, dyn_tag])
 	_adaptive_perf_tick(delta)
-	if has_node("/root/ModManager") and not in_menu:
-		get_node("/root/ModManager").call_hook("on_match_tick", [self, world, delta])
+	if _mod_manager != null and is_instance_valid(_mod_manager) and not in_menu:
+		_mod_manager.call_hook("on_match_tick", [self, world, delta])
 
 
 func _adaptive_perf_tick(delta: float) -> void :

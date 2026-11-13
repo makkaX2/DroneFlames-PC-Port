@@ -49,14 +49,16 @@ func update(dt: float) -> void :
 	if _t < DT:
 		return
 	_t = 0.0
+	var enterprises_by_country: Dictionary = {}
+	for f: Facility in gw.mil.facilities:
+		if Economy.is_enterprise(f.kind) and gw.mil.alive(f):
+			var owner: int = f.country_id
+			enterprises_by_country[owner] = int(enterprises_by_country.get(owner, 0)) + 1
 	for c: Country in gw.countries:
 		var pop: int = 0
 		for cid in c.city_ids:
 			pop += city_points(gw.cities[cid].kind)
-		var ent: int = 0
-		for f: Facility in gw.mil.facilities:
-			if f.country_id == c.id and Economy.is_enterprise(f.kind) and gw.mil.alive(f):
-				ent += 1
+		var ent: int = int(enterprises_by_country.get(c.id, 0))
 		c.score_eco = c.earned / EARN_DIV + pop + ent * 25
 		c.score_mil = c.destroyed / DESTROY_DIV + c.captured * CAPTURE_PTS
 		c.score = c.score_eco + c.score_mil

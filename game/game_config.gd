@@ -86,6 +86,11 @@ static var plan_pos: Vector2 = Vector2(-1, -1)
 static var power_save: bool = false
 static var android: bool = OS.has_feature("android") or (OS.is_debug_build() and not OS.get_environment("DF_FAKE_ANDROID") in ["", "0"])
 
+# Android-only display orientation. 0 follows the device sensor, 1 locks landscape,
+# and 2 locks portrait. Desktop builds intentionally ignore this preference.
+const ORIENTATION_NAMES: Array[String] = ["АВТО", "ПЕЙЗАЖНАЯ", "ПОРТРЕТНАЯ"]
+static var orientation_i: int = 0
+
 static var fps_i: int = 1
 const FPS_CAPS: Array = [30, 60, 0]
 

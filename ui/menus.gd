@@ -6,9 +6,10 @@ extends CanvasLayer
 
 signal request(name: String)
 
-const VERSION: String = "v0.33.5.51-test (PC Port by @droneflamesmod)"
+const VERSION: String = "v0.33.5.52-test (PC Port by @droneflamesmod)"
 
 const WHATS_NEW: Array = [
+	"ОПТИМИЗАЦИЯ И ANDROID v0.33.5.52-test: настройка ориентации экрана только на Android (авто, альбомная, портретная), ускорены подсчёт рейтинга, очередь навигации и поиск ближайшей авиации/дронов; кэширован ModManager в тике матча, убраны лишние временные массивы и повторные расстояния. В Windows-сборке включён нативный WebRTC P2P из Android-паритета с relay-запасным режимом.",
 	"ИСПРАВЛЕНИЯ v0.33.5.51-test: публикация новой тестовой сборки, потеря десанта при сбитом самолёте, авиабазы ИИ, передача аэропортов и оригинальные иконки мастерской 0.40.8.",
 	"ЯДЕРНЫЕ ПРАВИЛА v0.33.5.50-test: ядерное оружие можно отключить для всей партии.",
 	"ГРАФИКА v0.33.5.49-test: авиабаза, гражданский аэропорт, самолёты, авианосец, колхозы и сезонная растительность из APK 0.40.5.",
@@ -3743,6 +3744,15 @@ func show_settings_sub(kind: String) -> void :
 			Save.save_prefs()
 			call_deferred("show_settings_sub", "gfx"), VW_SHORT)
 		_label(vb, "Быстрое: рисует технику целиком без нарезки полосками.", 9, UiKit.MUTED)
+		if OS.get_name() == "Android":
+			_selector(vb, "ОРИЕНТАЦИЯ ЭКРАНА", GameConfig.ORIENTATION_NAMES,
+				func() -> int: return clampi(GameConfig.orientation_i, 0, GameConfig.ORIENTATION_NAMES.size() - 1),
+				func(i: int) -> void:
+					GameConfig.orientation_i = clampi(i, 0, GameConfig.ORIENTATION_NAMES.size() - 1)
+					Save.apply_orientation()
+					Save.apply_ui_scale()
+					Save.save_prefs(), VW_SHORT)
+			_label(vb, "Только Android: авто-поворот, альбомная или портретная ориентация.", 9, UiKit.MUTED)
 		if not GameConfig.android:
 			var resolutions: Array[Vector2i] = Save.available_display_resolutions()
 			var resolution_labels: Array[String] = Save.display_resolution_labels(resolutions)

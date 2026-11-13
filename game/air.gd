@@ -582,9 +582,11 @@ func _heli_sound() -> void :
 	var bd: float = INF
 	if lp.is_finite():
 		for a: Aircraft in aircraft:
-			if a.helicopter() and a.state != Aircraft.State.DEAD and a.airborne() and a.pos.distance_squared_to(lp) < bd:
-				bd = a.pos.distance_squared_to(lp)
-				best = a.pos
+			if a.helicopter() and a.state != Aircraft.State.DEAD and a.airborne():
+				var d2: float = a.pos.distance_squared_to(lp)
+				if d2 < bd:
+					bd = d2
+					best = a.pos
 	Sfx.loop("heli", "heli_loop", best.is_finite(), best)
 
 

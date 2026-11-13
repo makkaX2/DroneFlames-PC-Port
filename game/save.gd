@@ -39,7 +39,7 @@ const GENERIC: Array = ["defense", "diplo", "ai", "session"]
 const CFG: Array = ["bots", "difficulty", "aggression", "victory", "target_i", "time_i", "size_i", "tutorial", "fog", "ore_preset", "ore_custom", "creative", "expand_i", "reserves_i", "ai_autodig", "alliances", "limit_i"]
 
 
-const PREFS: Array = ["night", "hints", "econ_fx", "clouds", "precipitation", "season_start", "season_length_i", "nuclear_weapons_enabled", "fx_level", "performance_mode", "graphics_chosen", "pause_fps_limit", "ground_detail", "day_grade", "perf_hud", "confirm_actions", "dev_mode", "arch_i", "opening", "notif_mode", "plan_pos", "power_save", "my_name", "my_flag", "my_land", "cb_on", "cb_list", "my_money", "lang", "pseudo_loc", "fps_i", "ui_scale_i", "ui_scale_auto", "resolution_w", "resolution_h", "mods_enabled", "chunk_culling", "tree_batching", "tree_sway_mode", "object_lod", "simple_cover", "strat_lod_z", "dynamic_fps_target"]
+const PREFS: Array = ["night", "hints", "econ_fx", "clouds", "precipitation", "season_start", "season_length_i", "nuclear_weapons_enabled", "fx_level", "performance_mode", "graphics_chosen", "pause_fps_limit", "ground_detail", "day_grade", "perf_hud", "confirm_actions", "dev_mode", "arch_i", "opening", "notif_mode", "plan_pos", "power_save", "orientation_i", "my_name", "my_flag", "my_land", "cb_on", "cb_list", "my_money", "lang", "pseudo_loc", "fps_i", "ui_scale_i", "ui_scale_auto", "resolution_w", "resolution_h", "mods_enabled", "chunk_culling", "tree_batching", "tree_sway_mode", "object_lod", "simple_cover", "strat_lod_z", "dynamic_fps_target"]
 const DISPLAY_RESOLUTIONS: Array[Vector2i] = [
 	Vector2i(3840, 2160), Vector2i(2560, 1600), Vector2i(2560, 1440),
 	Vector2i(1920, 1200), Vector2i(1920, 1080), Vector2i(1680, 1050),
@@ -925,6 +925,7 @@ static func load_prefs() -> void :
 	var cf: = ConfigFile.new()
 	if cf.load(prefs_path) != OK:
 		apply_display_resolution()
+		apply_orientation()
 		apply_power_save()
 		apply_ui_scale()
 		Loc.boot()
@@ -943,7 +944,9 @@ static func load_prefs() -> void :
 	GameConfig.object_lod = clampi(GameConfig.object_lod, 0, 2)
 	GameConfig.strat_lod_z = clampi(GameConfig.strat_lod_z, 0, 3)
 	GameConfig.dynamic_fps_target = clampi(GameConfig.dynamic_fps_target, 0, 3)
+	GameConfig.orientation_i = clampi(GameConfig.orientation_i, 0, GameConfig.ORIENTATION_NAMES.size() - 1)
 	apply_display_resolution()
+	apply_orientation()
 	apply_power_save()
 	apply_ui_scale()
 	Loc.boot()
@@ -1007,6 +1010,18 @@ static func apply_display_resolution() -> void:
 		return
 	tree.root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	tree.root.content_scale_size = selected
+
+
+static func apply_orientation() -> void:
+	if OS.get_name() != "Android" or not DisplayServer.has_feature(DisplayServer.FEATURE_ORIENTATION):
+		return
+	var target: int = DisplayServer.SCREEN_ORIENTATION_SENSOR
+	match clampi(GameConfig.orientation_i, 0, 2):
+		1:
+			target = DisplayServer.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+		2:
+			target = DisplayServer.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+	DisplayServer.screen_set_orientation(target)
 
 
 

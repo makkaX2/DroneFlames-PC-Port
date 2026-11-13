@@ -86,9 +86,11 @@ func _audio_tick() -> void :
 	for d: Drone in drones:
 		if d.state == Drone.State.DONE or not d.airborne():
 			continue
-		if d.kind == 0 and lp.is_finite() and d.pos.distance_squared_to(lp) < bd:
-			bd = d.pos.distance_squared_to(lp)
-			buzz = d.pos
+		if d.kind == 0 and lp.is_finite():
+			var d2: float = d.pos.distance_squared_to(lp)
+			if d2 < bd:
+				bd = d2
+				buzz = d.pos
 		if pl != null and not alarm.is_finite() and hostile(d.country_id, pl.id):
 			alarm = _alarm_city(d.target, pl)
 	if pl != null and not alarm.is_finite():

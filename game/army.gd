@@ -2243,7 +2243,7 @@ func _build_grid() -> void :
 			_fpv_fly[u.country_id] = int(_fpv_fly.get(u.country_id, 0)) + 1
 			continue
 		var k: = Vector2i(floori(u.pos.x / GRID_PX), floori(u.pos.y / GRID_PX))
-		var a: Array = _grid.get(k, [])
+		var a: Array = _grid.get(k, _NO_UNITS)
 		if a.is_empty():
 			_grid[k] = a
 		a.append(u)
@@ -2265,7 +2265,7 @@ func _build_grid() -> void :
 			continue
 		var c: Vector2 = f.center_px()
 		var k2: = Vector2i(floori(c.x / GRID_PX), floori(c.y / GRID_PX))
-		var b: Array = _fgrid.get(k2, [])
+		var b: Array = _fgrid.get(k2, _NO_FACS)
 		if b.is_empty():
 			_fgrid[k2] = b
 		b.append(f)
@@ -2281,7 +2281,7 @@ func _near(p: Vector2, r: float) -> Array:
 	var y1: int = floori((p.y + r) / GRID_PX)
 	for cy in range(y0, y1 + 1):
 		for cx in range(x0, x1 + 1):
-			var a: Array = _grid.get(Vector2i(cx, cy), [])
+			var a: Array = _grid.get(Vector2i(cx, cy), _NO_UNITS)
 			if not a.is_empty():
 				out.append_array(a)
 	return out
@@ -2295,7 +2295,7 @@ func _near_fac(p: Vector2, r: float) -> Array:
 	var y1: int = floori((p.y + r) / GRID_PX)
 	for cy in range(y0, y1 + 1):
 		for cx in range(x0, x1 + 1):
-			var a: Array = _fgrid.get(Vector2i(cx, cy), [])
+			var a: Array = _fgrid.get(Vector2i(cx, cy), _NO_FACS)
 			if not a.is_empty():
 				out.append_array(a)
 	return out

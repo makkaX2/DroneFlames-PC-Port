@@ -857,16 +857,18 @@ func soft_tick() -> void :
 	if _soft_jobs.is_empty():
 		return
 	_soft_budget()
-	for j: Dictionary in _soft_jobs.duplicate():
-		if _soft_tick_left <= 0:
-			break
+	var i: int = 0
+	while i < _soft_jobs.size() and _soft_tick_left > 0:
+		var j: Dictionary = _soft_jobs[i]
 		if int(j["ver"]) != _nav_ver:
-			_soft_jobs.erase(j)
+			_soft_jobs.remove_at(i)
 			continue
 		_job_run(j, _soft_tick_left)
 		if bool(j["done"]):
-			_soft_jobs.erase(j)
+			_soft_jobs.remove_at(i)
 			_soft_done(j)
+			continue
+		i += 1
 
 
 func _soft_budget() -> void :
