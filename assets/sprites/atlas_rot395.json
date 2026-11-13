@@ -1,0 +1,1014 @@
+{
+ "cell_px": 4,
+ "image": "atlas_rot395.png",
+ "size": [
+  512,
+  256
+ ],
+ "anchor": "ax,ay = pixel edges: footprint = cols [ax, ax+fw*4), rows [ay-fd*4, ay) of the frame; draw frame at (cell_x*4-ax, (cell_y+fd)*4-ay), cell = NW cell of footprint",
+ "turn": "R395: <base>_r90 / _r180 / _r270 = the base voxel model turned clockwise (screen) on the ground grid and rendered again (light top-left, shadow right-down); r90 / r270: fw / fd swapped",
+ "local_px": "out / dock / smoke / steam / flare / tanks / tanks_fire: frame-local px like the base atlases",
+ "light": "top-left; building shadows baked opaque, falling right-down",
+ "palette": "palettes/main_named.json",
+ "sprites": {
+  "farm_r90": {
+   "x": 249,
+   "y": 69,
+   "w": 25,
+   "h": 35,
+   "fw": 6,
+   "fd": 8,
+   "ax": 0,
+   "ay": 33,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "farm",
+   "turn": 90
+  },
+  "farm_r90_ruin": {
+   "x": 275,
+   "y": 69,
+   "w": 25,
+   "h": 35,
+   "fw": 6,
+   "fd": 8,
+   "ax": 0,
+   "ay": 33,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "farm_r90",
+   "shadow": "rock_deep"
+  },
+  "farm_r180": {
+   "x": 69,
+   "y": 110,
+   "w": 32,
+   "h": 25,
+   "fw": 8,
+   "fd": 6,
+   "ax": 0,
+   "ay": 25,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "farm",
+   "turn": 180
+  },
+  "farm_r180_ruin": {
+   "x": 102,
+   "y": 110,
+   "w": 32,
+   "h": 25,
+   "fw": 8,
+   "fd": 6,
+   "ax": 0,
+   "ay": 25,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "farm_r180",
+   "shadow": "rock_deep"
+  },
+  "farm_r270": {
+   "x": 377,
+   "y": 1,
+   "w": 24,
+   "h": 43,
+   "fw": 6,
+   "fd": 8,
+   "ax": 0,
+   "ay": 43,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "farm",
+   "turn": 270
+  },
+  "farm_r270_ruin": {
+   "x": 402,
+   "y": 1,
+   "w": 24,
+   "h": 43,
+   "fw": 6,
+   "fd": 8,
+   "ax": 0,
+   "ay": 43,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "farm_r270",
+   "shadow": "rock_deep"
+  },
+  "drone_factory_r90": {
+   "x": 107,
+   "y": 69,
+   "w": 26,
+   "h": 38,
+   "fw": 6,
+   "fd": 8,
+   "ax": 0,
+   "ay": 37,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "drone_factory",
+   "turn": 90,
+   "vents": [
+    [
+     21.0,
+     16.0
+    ]
+   ]
+  },
+  "drone_factory_r90_ruin": {
+   "x": 134,
+   "y": 69,
+   "w": 26,
+   "h": 38,
+   "fw": 6,
+   "fd": 8,
+   "ax": 0,
+   "ay": 37,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "drone_factory_r90",
+   "shadow": "rock_deep"
+  },
+  "drone_factory_r180": {
+   "x": 1,
+   "y": 110,
+   "w": 33,
+   "h": 27,
+   "fw": 8,
+   "fd": 6,
+   "ax": 0,
+   "ay": 26,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "drone_factory",
+   "turn": 180,
+   "vents": [
+    [
+     7.0,
+     10.0
+    ]
+   ]
+  },
+  "drone_factory_r180_ruin": {
+   "x": 35,
+   "y": 110,
+   "w": 33,
+   "h": 27,
+   "fw": 8,
+   "fd": 6,
+   "ax": 0,
+   "ay": 26,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "drone_factory_r180",
+   "shadow": "rock_deep"
+  },
+  "drone_factory_r270": {
+   "x": 213,
+   "y": 1,
+   "w": 25,
+   "h": 48,
+   "fw": 6,
+   "fd": 8,
+   "ax": 0,
+   "ay": 47,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "drone_factory",
+   "turn": 270,
+   "vents": [
+    [
+     2.0,
+     9.0
+    ]
+   ]
+  },
+  "drone_factory_r270_ruin": {
+   "x": 239,
+   "y": 1,
+   "w": 25,
+   "h": 48,
+   "fw": 6,
+   "fd": 8,
+   "ax": 0,
+   "ay": 47,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "drone_factory_r270",
+   "shadow": "rock_deep"
+  },
+  "missile_factory_r90": {
+   "x": 427,
+   "y": 1,
+   "w": 26,
+   "h": 41,
+   "fw": 6,
+   "fd": 8,
+   "ax": 1,
+   "ay": 40,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "missile_factory",
+   "turn": 90,
+   "out": [
+    1,
+    35
+   ],
+   "vents": [
+    [
+     20.0,
+     23.0
+    ]
+   ]
+  },
+  "missile_factory_r90_ruin": {
+   "x": 454,
+   "y": 1,
+   "w": 26,
+   "h": 41,
+   "fw": 6,
+   "fd": 8,
+   "ax": 1,
+   "ay": 40,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "missile_factory_r90",
+   "shadow": "rock_deep"
+  },
+  "missile_factory_r180": {
+   "x": 345,
+   "y": 69,
+   "w": 35,
+   "h": 32,
+   "fw": 8,
+   "fd": 6,
+   "ax": 1,
+   "ay": 31,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "missile_factory",
+   "turn": 180,
+   "out": [
+    4,
+    6
+   ],
+   "vents": [
+    [
+     8.0,
+     17.0
+    ]
+   ]
+  },
+  "missile_factory_r180_ruin": {
+   "x": 381,
+   "y": 69,
+   "w": 35,
+   "h": 32,
+   "fw": 8,
+   "fd": 6,
+   "ax": 1,
+   "ay": 31,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "missile_factory_r180",
+   "shadow": "rock_deep"
+  },
+  "missile_factory_r270": {
+   "x": 481,
+   "y": 1,
+   "w": 25,
+   "h": 40,
+   "fw": 6,
+   "fd": 8,
+   "ax": 0,
+   "ay": 39,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "missile_factory",
+   "turn": 270,
+   "out": [
+    23,
+    9
+   ],
+   "vents": [
+    [
+     4.0,
+     5.0
+    ]
+   ]
+  },
+  "missile_factory_r270_ruin": {
+   "x": 1,
+   "y": 69,
+   "w": 25,
+   "h": 40,
+   "fw": 6,
+   "fd": 8,
+   "ax": 0,
+   "ay": 39,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "missile_factory_r270",
+   "shadow": "rock_deep"
+  },
+  "civ_factory_r90": {
+   "x": 301,
+   "y": 69,
+   "w": 21,
+   "h": 35,
+   "fw": 5,
+   "fd": 7,
+   "ax": 0,
+   "ay": 34,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "civ_factory",
+   "turn": 90,
+   "dock": [
+    1,
+    22
+   ],
+   "smoke": [
+    17,
+    12
+   ],
+   "vents": [
+    [
+     17.5,
+     12.0
+    ]
+   ]
+  },
+  "civ_factory_r90_ruin": {
+   "x": 323,
+   "y": 69,
+   "w": 21,
+   "h": 35,
+   "fw": 5,
+   "fd": 7,
+   "ax": 0,
+   "ay": 34,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "civ_factory_r90",
+   "shadow": "rock_deep"
+  },
+  "civ_factory_r180": {
+   "x": 135,
+   "y": 110,
+   "w": 31,
+   "h": 23,
+   "fw": 7,
+   "fd": 5,
+   "ax": 1,
+   "ay": 23,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "civ_factory",
+   "turn": 180,
+   "dock": [
+    11,
+    3
+   ],
+   "smoke": [
+    3,
+    1
+   ],
+   "vents": [
+    [
+     3.5,
+     1.0
+    ]
+   ]
+  },
+  "civ_factory_r180_ruin": {
+   "x": 167,
+   "y": 110,
+   "w": 31,
+   "h": 23,
+   "fw": 7,
+   "fd": 5,
+   "ax": 1,
+   "ay": 23,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "civ_factory_r180",
+   "shadow": "rock_deep"
+  },
+  "civ_factory_r270": {
+   "x": 335,
+   "y": 1,
+   "w": 20,
+   "h": 46,
+   "fw": 5,
+   "fd": 7,
+   "ax": 0,
+   "ay": 45,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "civ_factory",
+   "turn": 270,
+   "dock": [
+    18,
+    26
+   ],
+   "smoke": [
+    2,
+    0
+   ],
+   "vents": [
+    [
+     2.5,
+     0.0
+    ]
+   ]
+  },
+  "civ_factory_r270_ruin": {
+   "x": 356,
+   "y": 1,
+   "w": 20,
+   "h": 46,
+   "fw": 5,
+   "fd": 7,
+   "ax": 0,
+   "ay": 45,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "civ_factory_r270",
+   "shadow": "rock_deep"
+  },
+  "barracks_r90": {
+   "x": 417,
+   "y": 69,
+   "w": 17,
+   "h": 31,
+   "fw": 4,
+   "fd": 6,
+   "ax": 0,
+   "ay": 30,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "barracks",
+   "turn": 90,
+   "out": [
+    0,
+    24
+   ]
+  },
+  "barracks_r90_ruin": {
+   "x": 435,
+   "y": 69,
+   "w": 17,
+   "h": 31,
+   "fw": 4,
+   "fd": 6,
+   "ax": 0,
+   "ay": 30,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "barracks_r90",
+   "shadow": "rock_deep"
+  },
+  "barracks_r180": {
+   "x": 199,
+   "y": 110,
+   "w": 25,
+   "h": 20,
+   "fw": 6,
+   "fd": 4,
+   "ax": 0,
+   "ay": 19,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "barracks",
+   "turn": 180,
+   "out": [
+    4,
+    2
+   ]
+  },
+  "barracks_r180_ruin": {
+   "x": 225,
+   "y": 110,
+   "w": 25,
+   "h": 20,
+   "fw": 6,
+   "fd": 4,
+   "ax": 0,
+   "ay": 19,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "barracks_r180",
+   "shadow": "rock_deep"
+  },
+  "barracks_r270": {
+   "x": 453,
+   "y": 69,
+   "w": 17,
+   "h": 29,
+   "fw": 4,
+   "fd": 6,
+   "ax": 0,
+   "ay": 28,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "barracks",
+   "turn": 270,
+   "out": [
+    15,
+    7
+   ]
+  },
+  "barracks_r270_ruin": {
+   "x": 471,
+   "y": 69,
+   "w": 17,
+   "h": 29,
+   "fw": 4,
+   "fd": 6,
+   "ax": 0,
+   "ay": 28,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "barracks_r270",
+   "shadow": "rock_deep"
+  },
+  "refinery_r90": {
+   "x": 69,
+   "y": 1,
+   "w": 35,
+   "h": 66,
+   "fw": 8,
+   "fd": 10,
+   "ax": 1,
+   "ay": 65,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "refinery",
+   "turn": 90,
+   "flare_x": 31,
+   "flare_y": 0,
+   "tanks": [
+    [
+     26,
+     45
+    ],
+    [
+     26,
+     53
+    ],
+    [
+     16,
+     45
+    ],
+    [
+     16,
+     55
+    ]
+   ],
+   "vents": [
+    [
+     30.5,
+     15.0
+    ],
+    [
+     28.5,
+     17.0
+    ],
+    [
+     27.5,
+     3.0
+    ]
+   ]
+  },
+  "refinery_r90_ruin": {
+   "x": 105,
+   "y": 1,
+   "w": 35,
+   "h": 66,
+   "fw": 8,
+   "fd": 10,
+   "ax": 1,
+   "ay": 65,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "refinery_r90",
+   "shadow": "rock_deep",
+   "tanks_fire": [
+    [
+     26,
+     48
+    ],
+    [
+     26,
+     57
+    ],
+    [
+     16,
+     48
+    ],
+    [
+     16,
+     57
+    ]
+   ]
+  },
+  "refinery_r180": {
+   "x": 161,
+   "y": 69,
+   "w": 43,
+   "h": 36,
+   "fw": 10,
+   "fd": 8,
+   "ax": 1,
+   "ay": 35,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "refinery",
+   "turn": 180,
+   "flare_x": 39,
+   "flare_y": 7,
+   "tanks": [
+    [
+     15,
+     23
+    ],
+    [
+     5,
+     22
+    ],
+    [
+     15,
+     13
+    ],
+    [
+     5,
+     14
+    ]
+   ],
+   "vents": [
+    [
+     31.5,
+     13.0
+    ],
+    [
+     26.5,
+     8.0
+    ],
+    [
+     37.5,
+     4.0
+    ]
+   ]
+  },
+  "refinery_r180_ruin": {
+   "x": 205,
+   "y": 69,
+   "w": 43,
+   "h": 36,
+   "fw": 10,
+   "fd": 8,
+   "ax": 1,
+   "ay": 35,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "refinery_r180",
+   "shadow": "rock_deep",
+   "tanks_fire": [
+    [
+     15,
+     26
+    ],
+    [
+     5,
+     26
+    ],
+    [
+     15,
+     16
+    ],
+    [
+     5,
+     16
+    ]
+   ]
+  },
+  "refinery_r270": {
+   "x": 265,
+   "y": 1,
+   "w": 34,
+   "h": 46,
+   "fw": 8,
+   "fd": 10,
+   "ax": 1,
+   "ay": 45,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "refinery",
+   "turn": 270,
+   "flare_x": 2,
+   "flare_y": 17,
+   "tanks": [
+    [
+     6,
+     14
+    ],
+    [
+     6,
+     3
+    ],
+    [
+     16,
+     14
+    ],
+    [
+     16,
+     5
+    ]
+   ],
+   "vents": [
+    [
+     3.5,
+     16.0
+    ],
+    [
+     5.5,
+     8.0
+    ],
+    [
+     6.5,
+     16.0
+    ]
+   ]
+  },
+  "refinery_r270_ruin": {
+   "x": 300,
+   "y": 1,
+   "w": 34,
+   "h": 46,
+   "fw": 8,
+   "fd": 10,
+   "ax": 1,
+   "ay": 45,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "refinery_r270",
+   "shadow": "rock_deep",
+   "tanks_fire": [
+    [
+     6,
+     17
+    ],
+    [
+     6,
+     7
+    ],
+    [
+     16,
+     17
+    ],
+    [
+     16,
+     7
+    ]
+   ]
+  },
+  "power_plant_r90": {
+   "x": 141,
+   "y": 1,
+   "w": 35,
+   "h": 51,
+   "fw": 8,
+   "fd": 9,
+   "ax": 1,
+   "ay": 49,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "power_plant",
+   "turn": 90,
+   "steam": [
+    [
+     24,
+     4
+    ],
+    [
+     24,
+     18
+    ]
+   ],
+   "smoke": [
+    [
+     29,
+     11
+    ],
+    [
+     28,
+     15
+    ]
+   ],
+   "vents": [
+    [
+     30.5,
+     11.0
+    ],
+    [
+     30.5,
+     15.0
+    ]
+   ]
+  },
+  "power_plant_r90_ruin": {
+   "x": 177,
+   "y": 1,
+   "w": 35,
+   "h": 51,
+   "fw": 8,
+   "fd": 9,
+   "ax": 1,
+   "ay": 49,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "power_plant_r90",
+   "shadow": "rock_deep"
+  },
+  "power_plant_r180": {
+   "x": 27,
+   "y": 69,
+   "w": 39,
+   "h": 38,
+   "fw": 9,
+   "fd": 8,
+   "ax": 1,
+   "ay": 37,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "power_plant",
+   "turn": 180,
+   "steam": [
+    [
+     29,
+     13
+    ],
+    [
+     16,
+     13
+    ]
+   ],
+   "smoke": [
+    [
+     6,
+     2
+    ],
+    [
+     2,
+     1
+    ]
+   ],
+   "vents": [
+    [
+     7.5,
+     3.0
+    ],
+    [
+     3.5,
+     3.0
+    ]
+   ]
+  },
+  "power_plant_r180_ruin": {
+   "x": 67,
+   "y": 69,
+   "w": 39,
+   "h": 38,
+   "fw": 9,
+   "fd": 8,
+   "ax": 1,
+   "ay": 37,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "power_plant_r180",
+   "shadow": "rock_deep"
+  },
+  "power_plant_r270": {
+   "x": 1,
+   "y": 1,
+   "w": 33,
+   "h": 67,
+   "fw": 8,
+   "fd": 9,
+   "ax": 0,
+   "ay": 66,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "power_plant",
+   "turn": 270,
+   "steam": [
+    [
+     7,
+     43
+    ],
+    [
+     7,
+     30
+    ]
+   ],
+   "smoke": [
+    [
+     3,
+     4
+    ],
+    [
+     3,
+     0
+    ]
+   ],
+   "vents": [
+    [
+     2.5,
+     5.0
+    ],
+    [
+     2.5,
+     1.0
+    ]
+   ]
+  },
+  "power_plant_r270_ruin": {
+   "x": 35,
+   "y": 1,
+   "w": 33,
+   "h": 67,
+   "fw": 8,
+   "fd": 9,
+   "ax": 0,
+   "ay": 66,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "power_plant_r270",
+   "shadow": "rock_deep"
+  }
+ }
+}

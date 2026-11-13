@@ -1,0 +1,8 @@
+add_library(df_pc_math_imports STATIC math_imports.cpp)
+target_include_directories(df_pc_math_imports PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_link_libraries(df_pc_math_imports PUBLIC androidrecomp)
+target_compile_features(df_pc_math_imports PUBLIC cxx_std_17)
+target_compile_definitions(df_pc_math_imports PRIVATE DF_MATH_DIAGNOSTIC_COUNTERS=0)
+if(MSVC)
+  target_compile_options(df_pc_math_imports PRIVATE /O2 /fp:strict)
+endif()

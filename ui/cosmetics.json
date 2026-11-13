@@ -325,7 +325,7 @@
   {
    "code": "fr_cbt",
    "kind": "frame",
-   "name": "ТЕСТЕР ЗБТ",
+   "name": "ПЕРВОПРОХОДЕЦ",
    "rarity": "legendary",
    "unlock": null,
    "is_default": false,
@@ -695,7 +695,7 @@
   {
    "code": "bn_cbt",
    "kind": "banner",
-   "name": "ТЕСТЕР ЗБТ",
+   "name": "ПЕРВОПРОХОДЕЦ",
    "rarity": "legendary",
    "unlock": null,
    "is_default": false,
@@ -1075,7 +1075,7 @@
   {
    "code": "tt_cbt",
    "kind": "title",
-   "name": "ТЕСТЕР ЗБТ",
+   "name": "ПЕРВОПРОХОДЕЦ",
    "rarity": "legendary",
    "unlock": null,
    "is_default": false,

@@ -1,5 +1,5 @@
 {
- "version": "R340",
+ "version": "R397",
  "size": [
   540,
   960
@@ -119,6 +119,35 @@
      "section": "ECONOMY",
      "sub": "WHAT MAKES WHAT",
      "file": "en/04_econ_chains.ogv"
+    }
+   }
+  },
+  {
+   "n": 25,
+   "id": "build_rotate",
+   "section": "ЭКОНОМИКА",
+   "title": "Поворот построек",
+   "sub": "НА 90° ПЕРЕД СТРОЙКОЙ",
+   "duration": 12.7,
+   "file": "25_build_rotate.ogv",
+   "l10n": {
+    "ru": {
+     "title": "Поворот построек",
+     "section": "ЭКОНОМИКА",
+     "sub": "НА 90° ПЕРЕД СТРОЙКОЙ",
+     "file": "25_build_rotate.ogv"
+    },
+    "uk": {
+     "title": "Поворот будівель",
+     "section": "ЕКОНОМІКА",
+     "sub": "НА 90° ПЕРЕД БУДІВНИЦТВОМ",
+     "file": "uk/25_build_rotate.ogv"
+    },
+    "en": {
+     "title": "Turning buildings",
+     "section": "ECONOMY",
+     "sub": "90° BEFORE YOU BUILD",
+     "file": "en/25_build_rotate.ogv"
     }
    }
   },
@@ -355,6 +384,35 @@
    }
   },
   {
+   "n": 24,
+   "id": "army_desant",
+   "section": "АРМИЯ",
+   "title": "Десант",
+   "sub": "МОРЕМ И ВОЗДУХОМ",
+   "duration": 18.9,
+   "file": "24_army_desant.ogv",
+   "l10n": {
+    "ru": {
+     "title": "Десант",
+     "section": "АРМИЯ",
+     "sub": "МОРЕМ И ВОЗДУХОМ",
+     "file": "24_army_desant.ogv"
+    },
+    "uk": {
+     "title": "Десант",
+     "section": "АРМІЯ",
+     "sub": "МОРЕМ І ПОВІТРЯМ",
+     "file": "uk/24_army_desant.ogv"
+    },
+    "en": {
+     "title": "Landing",
+     "section": "ARMY",
+     "sub": "BY SEA AND BY AIR",
+     "file": "en/24_army_desant.ogv"
+    }
+   }
+  },
+  {
    "n": 13,
    "id": "ad_who",
    "section": "ПВО",
@@ -500,6 +558,35 @@
    }
   },
   {
+   "n": 23,
+   "id": "strike_nuke",
+   "section": "УДАРЫ",
+   "title": "Ядерное оружие",
+   "sub": "ШАХТА И ПУСК",
+   "duration": 25.7,
+   "file": "23_strike_nuke.ogv",
+   "l10n": {
+    "ru": {
+     "title": "Ядерное оружие",
+     "section": "УДАРЫ",
+     "sub": "ШАХТА И ПУСК",
+     "file": "23_strike_nuke.ogv"
+    },
+    "uk": {
+     "title": "Ядерна зброя",
+     "section": "УДАРИ",
+     "sub": "ШАХТА Й ПУСК",
+     "file": "uk/23_strike_nuke.ogv"
+    },
+    "en": {
+     "title": "Nuclear weapons",
+     "section": "STRIKES",
+     "sub": "SILO AND LAUNCH",
+     "file": "en/23_strike_nuke.ogv"
+    }
+   }
+  },
+  {
    "n": 18,
    "id": "navy_basics",
    "section": "ФЛОТ",
@@ -641,6 +728,35 @@
      "section": "GAME",
      "sub": "PAUSE AND REWIND",
      "file": "en/22_game_saves.ogv"
+    }
+   }
+  },
+  {
+   "n": 26,
+   "id": "game_seasons",
+   "section": "ПАРТИЯ",
+   "title": "Смена сезонов",
+   "sub": "ЛЕТО · ОСЕНЬ · ЗИМА",
+   "duration": 13.7,
+   "file": "26_game_seasons.ogv",
+   "l10n": {
+    "ru": {
+     "title": "Смена сезонов",
+     "section": "ПАРТИЯ",
+     "sub": "ЛЕТО · ОСЕНЬ · ЗИМА",
+     "file": "26_game_seasons.ogv"
+    },
+    "uk": {
+     "title": "Зміна сезонів",
+     "section": "ПАРТІЯ",
+     "sub": "ЛІТО · ОСІНЬ · ЗИМА",
+     "file": "uk/26_game_seasons.ogv"
+    },
+    "en": {
+     "title": "Seasons",
+     "section": "GAME",
+     "sub": "SUMMER · AUTUMN · WINTER",
+     "file": "en/26_game_seasons.ogv"
     }
    }
   }

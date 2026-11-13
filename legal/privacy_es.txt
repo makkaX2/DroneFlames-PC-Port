@@ -1,0 +1,52 @@
+# Política de privacidad
+> DroneFlames · Versión 1 · En vigor desde el 11.11.2026
+
+## Quiénes somos
+DroneFlames está desarrollado por Alexander Kolesnyk («nosotros»). Preguntas sobre esta política y tus datos: studiosnaipix@gmail.com.
+
+## Jugar sin cuenta
+Las partidas de un jugador, el tutorial, los editores de mapas y de mods y las partidas en red local (Wi-Fi) funcionan sin cuenta. Tus partidas guardadas, tus ajustes, los mods y mapas instalados, la aceptación de estos documentos en el juego y la edad que indicaste en el Taller se guardan solo en tu dispositivo. No los recibimos.
+
+## Qué recogemos cuando creas una cuenta
+· Dirección de correo electrónico, apodo (nick) y contraseña. Se usan para iniciar sesión, para enviarte los códigos de recuperación de contraseña y de eliminación de la cuenta y para mostrar tu apodo a otros jugadores. Se envían a nuestro servidor mediante una conexión cifrada.
+· Una verificación del dispositivo al registrarte, iniciar sesión o renovar la sesión: Apple App Attest en iOS, Google Play Integrity en Android y un ticket de Steam en PC. Confirma que la solicitud procede de una copia auténtica del juego y protege las cuentas frente a bots y abusos.
+
+## Juego en línea
+· Los resultados de las partidas en línea, tu clasificación e historial de partidas y los objetos cosméticos de tu perfil (marcos, estandartes, títulos).
+· Los mensajes del chat de las partidas en línea pasan por nuestro servidor, que filtra las palabras inaceptables antes de entregarlos.
+· Los jugadores se conectan directamente (WebRTC) o a través de nuestro servidor de retransmisión. Como en cualquier juego en línea, nuestro servidor y los dispositivos de los demás jugadores ven tu dirección IP durante la partida.
+· Las denuncias que envías: el motivo y tu comentario; una denuncia contra un jugador de una partida incluye también los mensajes del chat de esa partida, y una denuncia sobre la conexión incluye datos de red (ping, pérdida de paquetes).
+· Tu lista de bloqueados: los jugadores bloqueados no pueden entrar en tus salas ni escribirte, y sus mods quedan ocultos para ti.
+
+## Taller
+Los mods y mapas que publicas (archivos, título, descripción, etiquetas, la marca 16+), sus valoraciones y su número de descargas se guardan en nuestro servidor y se muestran a otros jugadores junto con tu apodo. Un moderador revisa cada mod y cada versión antes de su publicación. Para explorar el catálogo no se necesita cuenta.
+
+## Imágenes de tu dispositivo
+El editor de mapas puede convertir en mapa una imagen que elijas. La imagen se procesa en tu dispositivo y no se sube; solo se sube un mapa que decidas publicar.
+
+## Lo que no hacemos
+· Sin publicidad y sin identificadores publicitarios.
+· Sin SDK de análisis ni de informes de fallos de terceros.
+· Sin seguimiento en otras aplicaciones y sitios web.
+· No vendemos tus datos personales ni los compartimos con terceros para sus propios fines. Los proveedores de alojamiento y de red de nuestro servidor tratan los datos únicamente para hacer funcionar el juego por encargo nuestro.
+
+## Para qué usamos los datos
+Para gestionar las cuentas, las partidas en línea, el chat, las clasificaciones y el Taller, para revisar denuncias y moderar el contenido y para proteger a los jugadores frente a trampas y abusos.
+
+## Dónde y durante cuánto tiempo
+Los datos se guardan en nuestro servidor (drone-flames.snaipix.com). Los datos de la cuenta se conservan mientras exista la cuenta. Las partidas guardadas y los ajustes permanecen en tu dispositivo hasta que elimines el juego.
+
+## Eliminar tu cuenta
+En el juego: Multijugador → Perfil → Eliminar cuenta. Se envía un código de confirmación a tu correo electrónico (en PC la confirmación se hace a través de Steam). Se eliminan de forma permanente: la cuenta y el inicio de sesión por correo, tu apodo, tu clasificación e historial de partidas y los objetos cosméticos. El modo de un jugador y las partidas guardadas en tu dispositivo se mantienen. Para retirar tus mods publicados, despublícalos en el Taller antes de eliminar la cuenta o escríbenos.
+
+## Menores
+Las funciones en línea requieren una cuenta con dirección de correo electrónico. Los mods del Taller con escenas violentas o aterradoras llevan la marca 16+ y se ocultan a los jugadores que han indicado que tienen menos de 16 años (se pregunta una vez y la respuesta se guarda solo en el dispositivo). Si crees que un menor nos ha facilitado datos personales sin el consentimiento de sus padres, escríbenos y los eliminaremos.
+
+## Tus derechos
+Puedes cambiar tu apodo en el perfil y eliminar la cuenta en el juego en cualquier momento. Para solicitar una copia de tus datos, su rectificación o su supresión, escribe a studiosnaipix@gmail.com.
+
+## Cambios
+Cuando esta política cambie, publicaremos la nueva versión en el juego con un nuevo número de versión y una nueva fecha.
+
+## Contacto
+Alexander Kolesnyk · studiosnaipix@gmail.com

@@ -1,40 +1,16 @@
-# Godot editor cache & local state (keep global_script_class_cache.cfg & imported)
-.godot/editor/
-.godot/app_userdata/
-.godot/exported/
-.godot/shader_cache/
-.godot/.gdignore
-*.translation
-
-# Build & packaging output
-build/
-dist/
-legacy_build/
-test_install/
-*.uid
-*.tmp
-*.log
-
-# Python cache
+/build*/
+/.vs/
+/addons/df_pc_bridge/bin/
+*.obj
+*.lib
+*.dll
+*.pdb
+*.ilk
+*.exp
 __pycache__/
-*.pyc
-
-# OS specific files
-Thumbs.db
-Desktop.ini
-.DS_Store
-
-# Dev verification artifacts
-verify_*.png
-dev/check_symbols.py
-tools/reconstruct_godot.py
-
-# Telegram Serverless Bot
-wdadwaddwadwdaabot/node_modules/
-wdadwaddwadwdaabot/.tgcloud/
-
-
-# Windows engine binaries are staged by build.py
-/DroneFlames.exe
-/DroneFlames_Debug.exe
-/DroneFlames_console.exe
+.godot/editor/
+.godot/shader_cache/
+.godot/mono/
+.godot/uid_cache.bin
+.godot/global_script_class_cache.cfg
+.godot/scene_groups_cache.cfg

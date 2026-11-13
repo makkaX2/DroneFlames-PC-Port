@@ -1,0 +1,1972 @@
+{
+ "cell_px": 4,
+ "image": "atlas_rot397.png",
+ "size": [
+  1024,
+  736
+ ],
+ "anchor": "ax,ay = pixel edges: footprint = cols [ax, ax+fw*4), rows [ay-fd*4, ay) of the frame; draw frame at (cell_x*4-ax, (cell_y+fd)*4-ay), cell = NW cell of footprint",
+ "turn": "R397: <base>_r90 / _r180 / _r270 (npp_core*, airbase) = the base voxel model turned clockwise (screen) and rendered again (light top-left, shadow right-down); r90 / r270: fw / fd swapped. tools/art/gen_rot397_atlas.py",
+ "palette": "palettes/main_named.json",
+ "sprites": {
+  "npp_core_r90": {
+   "x": 43,
+   "y": 674,
+   "w": 45,
+   "h": 47,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core",
+   "turn": 90,
+   "beacon": [
+    [
+     37,
+     1
+    ]
+   ]
+  },
+  "npp_core_r90_ruin": {
+   "x": 89,
+   "y": 674,
+   "w": 45,
+   "h": 47,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_r90",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     29,
+     23
+    ],
+    [
+     13,
+     29
+    ]
+   ]
+  },
+  "npp_core_r180": {
+   "x": 549,
+   "y": 603,
+   "w": 34,
+   "h": 53,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 52,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core",
+   "turn": 180,
+   "beacon": [
+    [
+     3,
+     5
+    ]
+   ]
+  },
+  "npp_core_r180_ruin": {
+   "x": 584,
+   "y": 603,
+   "w": 34,
+   "h": 53,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 52,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_r180",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     19,
+     34
+    ],
+    [
+     13,
+     18
+    ]
+   ]
+  },
+  "npp_core_r270": {
+   "x": 93,
+   "y": 603,
+   "w": 44,
+   "h": 70,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 69,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core",
+   "turn": 270,
+   "beacon": [
+    [
+     5,
+     0
+    ]
+   ]
+  },
+  "npp_core_r270_ruin": {
+   "x": 138,
+   "y": 603,
+   "w": 44,
+   "h": 70,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 69,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_r270",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     14,
+     53
+    ],
+    [
+     30,
+     47
+    ]
+   ]
+  },
+  "npp_core_r90_dmg": {
+   "x": 135,
+   "y": 674,
+   "w": 45,
+   "h": 47,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_dmg",
+   "turn": 90,
+   "beacon": [
+    [
+     37,
+     1
+    ]
+   ],
+   "damaged_of": "npp_core_r90"
+  },
+  "npp_core_r90_dmg_ruin": {
+   "x": 181,
+   "y": 674,
+   "w": 45,
+   "h": 47,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_r90_dmg",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     29,
+     23
+    ],
+    [
+     13,
+     29
+    ]
+   ]
+  },
+  "npp_core_r180_dmg": {
+   "x": 619,
+   "y": 603,
+   "w": 34,
+   "h": 53,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 52,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_dmg",
+   "turn": 180,
+   "beacon": [
+    [
+     3,
+     5
+    ]
+   ],
+   "damaged_of": "npp_core_r180"
+  },
+  "npp_core_r180_dmg_ruin": {
+   "x": 654,
+   "y": 603,
+   "w": 34,
+   "h": 53,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 52,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_r180_dmg",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     19,
+     34
+    ],
+    [
+     13,
+     18
+    ]
+   ]
+  },
+  "npp_core_r270_dmg": {
+   "x": 183,
+   "y": 603,
+   "w": 44,
+   "h": 70,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 69,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_dmg",
+   "turn": 270,
+   "beacon": [
+    [
+     5,
+     0
+    ]
+   ],
+   "damaged_of": "npp_core_r270"
+  },
+  "npp_core_r270_dmg_ruin": {
+   "x": 228,
+   "y": 603,
+   "w": 44,
+   "h": 70,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 69,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_r270_dmg",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     14,
+     53
+    ],
+    [
+     30,
+     47
+    ]
+   ]
+  },
+  "npp_core_usa_r90": {
+   "x": 595,
+   "y": 674,
+   "w": 45,
+   "h": 44,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 43,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_usa",
+   "turn": 90,
+   "beacon": [
+    [
+     30,
+     3
+    ]
+   ]
+  },
+  "npp_core_usa_r90_ruin": {
+   "x": 641,
+   "y": 674,
+   "w": 45,
+   "h": 44,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 43,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_usa_r90",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     29,
+     20
+    ],
+    [
+     13,
+     26
+    ]
+   ]
+  },
+  "npp_core_usa_r180": {
+   "x": 689,
+   "y": 603,
+   "w": 34,
+   "h": 52,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 51,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_usa",
+   "turn": 180,
+   "beacon": [
+    [
+     17,
+     16
+    ]
+   ]
+  },
+  "npp_core_usa_r180_ruin": {
+   "x": 724,
+   "y": 603,
+   "w": 34,
+   "h": 52,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 51,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_usa_r180",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     19,
+     33
+    ],
+    [
+     13,
+     17
+    ]
+   ]
+  },
+  "npp_core_usa_r270": {
+   "x": 779,
+   "y": 674,
+   "w": 45,
+   "h": 43,
+   "fw": 11,
+   "fd": 8,
+   "ax": 1,
+   "ay": 42,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_usa",
+   "turn": 270,
+   "beacon": [
+    [
+     14,
+     6
+    ]
+   ]
+  },
+  "npp_core_usa_r270_ruin": {
+   "x": 825,
+   "y": 674,
+   "w": 45,
+   "h": 43,
+   "fw": 11,
+   "fd": 8,
+   "ax": 1,
+   "ay": 42,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_usa_r270",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     15,
+     26
+    ],
+    [
+     31,
+     20
+    ]
+   ]
+  },
+  "npp_core_usa_r90_dmg": {
+   "x": 687,
+   "y": 674,
+   "w": 45,
+   "h": 44,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 43,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_usa_dmg",
+   "turn": 90,
+   "beacon": [
+    [
+     30,
+     3
+    ]
+   ],
+   "damaged_of": "npp_core_usa_r90"
+  },
+  "npp_core_usa_r90_dmg_ruin": {
+   "x": 733,
+   "y": 674,
+   "w": 45,
+   "h": 44,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 43,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_usa_r90_dmg",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     29,
+     20
+    ],
+    [
+     13,
+     26
+    ]
+   ]
+  },
+  "npp_core_usa_r180_dmg": {
+   "x": 759,
+   "y": 603,
+   "w": 34,
+   "h": 52,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 51,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_usa_dmg",
+   "turn": 180,
+   "beacon": [
+    [
+     17,
+     16
+    ]
+   ],
+   "damaged_of": "npp_core_usa_r180"
+  },
+  "npp_core_usa_r180_dmg_ruin": {
+   "x": 794,
+   "y": 603,
+   "w": 34,
+   "h": 52,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 51,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_usa_r180_dmg",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     19,
+     33
+    ],
+    [
+     13,
+     17
+    ]
+   ]
+  },
+  "npp_core_usa_r270_dmg": {
+   "x": 871,
+   "y": 674,
+   "w": 45,
+   "h": 43,
+   "fw": 11,
+   "fd": 8,
+   "ax": 1,
+   "ay": 42,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_usa_dmg",
+   "turn": 270,
+   "beacon": [
+    [
+     14,
+     6
+    ]
+   ],
+   "damaged_of": "npp_core_usa_r270"
+  },
+  "npp_core_usa_r270_dmg_ruin": {
+   "x": 917,
+   "y": 674,
+   "w": 45,
+   "h": 43,
+   "fw": 11,
+   "fd": 8,
+   "ax": 1,
+   "ay": 42,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_usa_r270_dmg",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     15,
+     26
+    ],
+    [
+     31,
+     20
+    ]
+   ]
+  },
+  "npp_core_west_r90": {
+   "x": 227,
+   "y": 674,
+   "w": 45,
+   "h": 47,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_west",
+   "turn": 90,
+   "beacon": [
+    [
+     37,
+     1
+    ]
+   ]
+  },
+  "npp_core_west_r90_ruin": {
+   "x": 273,
+   "y": 674,
+   "w": 45,
+   "h": 47,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_west_r90",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     29,
+     23
+    ],
+    [
+     13,
+     29
+    ]
+   ]
+  },
+  "npp_core_west_r180": {
+   "x": 829,
+   "y": 603,
+   "w": 34,
+   "h": 52,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 51,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_west",
+   "turn": 180,
+   "beacon": [
+    [
+     3,
+     4
+    ]
+   ]
+  },
+  "npp_core_west_r180_ruin": {
+   "x": 864,
+   "y": 603,
+   "w": 34,
+   "h": 52,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 51,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_west_r180",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     19,
+     33
+    ],
+    [
+     13,
+     17
+    ]
+   ]
+  },
+  "npp_core_west_r270": {
+   "x": 711,
+   "y": 453,
+   "w": 45,
+   "h": 70,
+   "fw": 11,
+   "fd": 8,
+   "ax": 1,
+   "ay": 69,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_west",
+   "turn": 270,
+   "beacon": [
+    [
+     6,
+     0
+    ]
+   ]
+  },
+  "npp_core_west_r270_ruin": {
+   "x": 757,
+   "y": 453,
+   "w": 45,
+   "h": 70,
+   "fw": 11,
+   "fd": 8,
+   "ax": 1,
+   "ay": 69,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_west_r270",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     15,
+     53
+    ],
+    [
+     31,
+     47
+    ]
+   ]
+  },
+  "npp_core_west_r90_dmg": {
+   "x": 319,
+   "y": 674,
+   "w": 45,
+   "h": 47,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_west_dmg",
+   "turn": 90,
+   "beacon": [
+    [
+     37,
+     1
+    ]
+   ],
+   "damaged_of": "npp_core_west_r90"
+  },
+  "npp_core_west_r90_dmg_ruin": {
+   "x": 365,
+   "y": 674,
+   "w": 45,
+   "h": 47,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_west_r90_dmg",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     29,
+     23
+    ],
+    [
+     13,
+     29
+    ]
+   ]
+  },
+  "npp_core_west_r180_dmg": {
+   "x": 899,
+   "y": 603,
+   "w": 34,
+   "h": 52,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 51,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_west_dmg",
+   "turn": 180,
+   "beacon": [
+    [
+     3,
+     4
+    ]
+   ],
+   "damaged_of": "npp_core_west_r180"
+  },
+  "npp_core_west_r180_dmg_ruin": {
+   "x": 934,
+   "y": 603,
+   "w": 34,
+   "h": 52,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 51,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_west_r180_dmg",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     19,
+     33
+    ],
+    [
+     13,
+     17
+    ]
+   ]
+  },
+  "npp_core_west_r270_dmg": {
+   "x": 803,
+   "y": 453,
+   "w": 45,
+   "h": 70,
+   "fw": 11,
+   "fd": 8,
+   "ax": 1,
+   "ay": 69,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_west_dmg",
+   "turn": 270,
+   "beacon": [
+    [
+     6,
+     0
+    ]
+   ],
+   "damaged_of": "npp_core_west_r270"
+  },
+  "npp_core_west_r270_dmg_ruin": {
+   "x": 849,
+   "y": 453,
+   "w": 45,
+   "h": 70,
+   "fw": 11,
+   "fd": 8,
+   "ax": 1,
+   "ay": 69,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_west_r270_dmg",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     15,
+     53
+    ],
+    [
+     31,
+     47
+    ]
+   ]
+  },
+  "npp_core_asia_r90": {
+   "x": 411,
+   "y": 674,
+   "w": 45,
+   "h": 47,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_asia",
+   "turn": 90,
+   "beacon": [
+    [
+     37,
+     1
+    ]
+   ]
+  },
+  "npp_core_asia_r90_ruin": {
+   "x": 457,
+   "y": 674,
+   "w": 45,
+   "h": 47,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_asia_r90",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     29,
+     23
+    ],
+    [
+     13,
+     29
+    ]
+   ]
+  },
+  "npp_core_asia_r180": {
+   "x": 341,
+   "y": 603,
+   "w": 34,
+   "h": 55,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 54,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_asia",
+   "turn": 180,
+   "beacon": [
+    [
+     3,
+     7
+    ]
+   ]
+  },
+  "npp_core_asia_r180_ruin": {
+   "x": 376,
+   "y": 603,
+   "w": 34,
+   "h": 55,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 54,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_asia_r180",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     19,
+     36
+    ],
+    [
+     13,
+     20
+    ]
+   ]
+  },
+  "npp_core_asia_r270": {
+   "x": 895,
+   "y": 453,
+   "w": 45,
+   "h": 70,
+   "fw": 11,
+   "fd": 8,
+   "ax": 1,
+   "ay": 69,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_asia",
+   "turn": 270,
+   "beacon": [
+    [
+     6,
+     0
+    ]
+   ]
+  },
+  "npp_core_asia_r270_ruin": {
+   "x": 941,
+   "y": 453,
+   "w": 45,
+   "h": 70,
+   "fw": 11,
+   "fd": 8,
+   "ax": 1,
+   "ay": 69,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_asia_r270",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     15,
+     53
+    ],
+    [
+     31,
+     47
+    ]
+   ]
+  },
+  "npp_core_asia_r90_dmg": {
+   "x": 503,
+   "y": 674,
+   "w": 45,
+   "h": 47,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_asia_dmg",
+   "turn": 90,
+   "beacon": [
+    [
+     37,
+     1
+    ]
+   ],
+   "damaged_of": "npp_core_asia_r90"
+  },
+  "npp_core_asia_r90_dmg_ruin": {
+   "x": 549,
+   "y": 674,
+   "w": 45,
+   "h": 47,
+   "fw": 11,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_asia_r90_dmg",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     29,
+     23
+    ],
+    [
+     13,
+     29
+    ]
+   ]
+  },
+  "npp_core_asia_r180_dmg": {
+   "x": 411,
+   "y": 603,
+   "w": 34,
+   "h": 55,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 54,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_asia_dmg",
+   "turn": 180,
+   "beacon": [
+    [
+     3,
+     7
+    ]
+   ],
+   "damaged_of": "npp_core_asia_r180"
+  },
+  "npp_core_asia_r180_dmg_ruin": {
+   "x": 446,
+   "y": 603,
+   "w": 34,
+   "h": 55,
+   "fw": 8,
+   "fd": 11,
+   "ax": 0,
+   "ay": 54,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_asia_r180_dmg",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     19,
+     36
+    ],
+    [
+     13,
+     20
+    ]
+   ]
+  },
+  "npp_core_asia_r270_dmg": {
+   "x": 1,
+   "y": 603,
+   "w": 45,
+   "h": 70,
+   "fw": 11,
+   "fd": 8,
+   "ax": 1,
+   "ay": 69,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "npp_core_asia_dmg",
+   "turn": 270,
+   "beacon": [
+    [
+     6,
+     0
+    ]
+   ],
+   "damaged_of": "npp_core_asia_r270"
+  },
+  "npp_core_asia_r270_dmg_ruin": {
+   "x": 47,
+   "y": 603,
+   "w": 45,
+   "h": 70,
+   "fw": 11,
+   "fd": 8,
+   "ax": 1,
+   "ay": 69,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "npp_core_asia_r270_dmg",
+   "shadow": "rock_deep",
+   "fire": [
+    [
+     15,
+     53
+    ],
+    [
+     31,
+     47
+    ]
+   ]
+  },
+  "airbase_r90": {
+   "x": 357,
+   "y": 227,
+   "w": 112,
+   "h": 160,
+   "fw": 28,
+   "fd": 40,
+   "ax": 0,
+   "ay": 160,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "airbase",
+   "turn": 90,
+   "spots": [
+    [
+     27,
+     13,
+     0
+    ],
+    [
+     27,
+     27,
+     0
+    ],
+    [
+     27,
+     41,
+     0
+    ],
+    [
+     27,
+     55,
+     0
+    ],
+    [
+     27,
+     69,
+     0
+    ],
+    [
+     27,
+     83,
+     0
+    ],
+    [
+     43,
+     108,
+     0
+    ],
+    [
+     43,
+     120,
+     0
+    ],
+    [
+     43,
+     132,
+     0
+    ],
+    [
+     43,
+     144,
+     0
+    ]
+   ],
+   "spots_heavy": [
+    [
+     49,
+     25,
+     0
+    ],
+    [
+     49,
+     61,
+     0
+    ],
+    [
+     49,
+     97,
+     0
+    ]
+   ],
+   "runways": [
+    [
+     99,
+     9,
+     99,
+     149
+    ],
+    [
+     76,
+     21,
+     76,
+     139
+    ]
+   ],
+   "taxi": [
+    [
+     63,
+     43
+    ],
+    [
+     87,
+     43
+    ],
+    [
+     87,
+     11
+    ],
+    [
+     99,
+     11
+    ],
+    [
+     63,
+     79
+    ],
+    [
+     87,
+     79
+    ],
+    [
+     63,
+     127
+    ],
+    [
+     87,
+     127
+    ],
+    [
+     87,
+     145
+    ],
+    [
+     99,
+     145
+    ]
+   ],
+   "note": "R397: the airbase turned 90 clockwise; the sim keeps its stands / runways in the unturned frame (Military::or_pt), these are for tools only"
+  },
+  "airbase_r90_ruin": {
+   "x": 470,
+   "y": 227,
+   "w": 112,
+   "h": 160,
+   "fw": 28,
+   "fd": 40,
+   "ax": 0,
+   "ay": 160,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "airbase_r90",
+   "shadow": "rock_deep"
+  },
+  "airbase_r180": {
+   "x": 389,
+   "y": 453,
+   "w": 160,
+   "h": 117,
+   "fw": 40,
+   "fd": 28,
+   "ax": 0,
+   "ay": 117,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "airbase",
+   "turn": 180,
+   "spots": [
+    [
+     145,
+     31,
+     4
+    ],
+    [
+     131,
+     31,
+     4
+    ],
+    [
+     117,
+     31,
+     4
+    ],
+    [
+     103,
+     31,
+     4
+    ],
+    [
+     89,
+     31,
+     4
+    ],
+    [
+     75,
+     31,
+     4
+    ],
+    [
+     50,
+     47,
+     4
+    ],
+    [
+     38,
+     47,
+     4
+    ],
+    [
+     26,
+     47,
+     4
+    ],
+    [
+     14,
+     47,
+     4
+    ]
+   ],
+   "spots_heavy": [
+    [
+     133,
+     53,
+     4
+    ],
+    [
+     97,
+     53,
+     4
+    ],
+    [
+     61,
+     53,
+     4
+    ]
+   ],
+   "runways": [
+    [
+     149,
+     103,
+     9,
+     103
+    ],
+    [
+     137,
+     80,
+     19,
+     80
+    ]
+   ],
+   "taxi": [
+    [
+     115,
+     67
+    ],
+    [
+     115,
+     91
+    ],
+    [
+     147,
+     91
+    ],
+    [
+     147,
+     103
+    ],
+    [
+     79,
+     67
+    ],
+    [
+     79,
+     91
+    ],
+    [
+     31,
+     67
+    ],
+    [
+     31,
+     91
+    ],
+    [
+     13,
+     91
+    ],
+    [
+     13,
+     103
+    ]
+   ],
+   "note": "R397: the airbase turned 180 clockwise; the sim keeps its stands / runways in the unturned frame (Military::or_pt), these are for tools only"
+  },
+  "airbase_r180_ruin": {
+   "x": 550,
+   "y": 453,
+   "w": 160,
+   "h": 117,
+   "fw": 40,
+   "fd": 28,
+   "ax": 0,
+   "ay": 117,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "airbase_r180",
+   "shadow": "rock_deep"
+  },
+  "airbase_r270": {
+   "x": 131,
+   "y": 227,
+   "w": 112,
+   "h": 161,
+   "fw": 28,
+   "fd": 40,
+   "ax": 0,
+   "ay": 161,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "airbase",
+   "turn": 270,
+   "spots": [
+    [
+     84,
+     145,
+     8
+    ],
+    [
+     84,
+     131,
+     8
+    ],
+    [
+     84,
+     117,
+     8
+    ],
+    [
+     84,
+     103,
+     8
+    ],
+    [
+     84,
+     89,
+     8
+    ],
+    [
+     84,
+     75,
+     8
+    ],
+    [
+     68,
+     50,
+     8
+    ],
+    [
+     68,
+     38,
+     8
+    ],
+    [
+     68,
+     26,
+     8
+    ],
+    [
+     68,
+     14,
+     8
+    ]
+   ],
+   "spots_heavy": [
+    [
+     62,
+     133,
+     8
+    ],
+    [
+     62,
+     97,
+     8
+    ],
+    [
+     62,
+     61,
+     8
+    ]
+   ],
+   "runways": [
+    [
+     12,
+     149,
+     12,
+     9
+    ],
+    [
+     35,
+     137,
+     35,
+     19
+    ]
+   ],
+   "taxi": [
+    [
+     48,
+     115
+    ],
+    [
+     24,
+     115
+    ],
+    [
+     24,
+     147
+    ],
+    [
+     12,
+     147
+    ],
+    [
+     48,
+     79
+    ],
+    [
+     24,
+     79
+    ],
+    [
+     48,
+     31
+    ],
+    [
+     24,
+     31
+    ],
+    [
+     24,
+     13
+    ],
+    [
+     12,
+     13
+    ]
+   ],
+   "note": "R397: the airbase turned 270 clockwise; the sim keeps its stands / runways in the unturned frame (Military::or_pt), these are for tools only"
+  },
+  "airbase_r270_ruin": {
+   "x": 244,
+   "y": 227,
+   "w": 112,
+   "h": 161,
+   "fw": 28,
+   "fd": 40,
+   "ax": 0,
+   "ay": 161,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "airbase_r270",
+   "shadow": "rock_deep"
+  },
+  "abm_site_r90": {
+   "x": 481,
+   "y": 603,
+   "w": 33,
+   "h": 55,
+   "fw": 8,
+   "fd": 10,
+   "ax": 0,
+   "ay": 54,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "abm_site",
+   "turn": 90,
+   "radar": [
+    16,
+    33
+   ],
+   "hatch": [
+    14,
+    21
+   ]
+  },
+  "abm_site_r90_ruin": {
+   "x": 515,
+   "y": 603,
+   "w": 33,
+   "h": 55,
+   "fw": 8,
+   "fd": 10,
+   "ax": 0,
+   "ay": 54,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "abm_site_r90",
+   "shadow": "rock_deep"
+  },
+  "abm_site_r180": {
+   "x": 969,
+   "y": 603,
+   "w": 41,
+   "h": 48,
+   "fw": 10,
+   "fd": 8,
+   "ax": 0,
+   "ay": 47,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "abm_site",
+   "turn": 180,
+   "radar": [
+    11,
+    22
+   ],
+   "hatch": [
+    29,
+    26
+   ]
+  },
+  "abm_site_r180_ruin": {
+   "x": 1,
+   "y": 674,
+   "w": 41,
+   "h": 48,
+   "fw": 10,
+   "fd": 8,
+   "ax": 0,
+   "ay": 47,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "abm_site_r180",
+   "shadow": "rock_deep"
+  },
+  "abm_site_r270": {
+   "x": 273,
+   "y": 603,
+   "w": 33,
+   "h": 57,
+   "fw": 8,
+   "fd": 10,
+   "ax": 0,
+   "ay": 56,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "abm_site",
+   "turn": 270,
+   "radar": [
+    15,
+    18
+   ],
+   "hatch": [
+    17,
+    42
+   ]
+  },
+  "abm_site_r270_ruin": {
+   "x": 307,
+   "y": 603,
+   "w": 33,
+   "h": 57,
+   "fw": 8,
+   "fd": 10,
+   "ax": 0,
+   "ay": 56,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "abm_site_r270",
+   "shadow": "rock_deep"
+  },
+  "civ_airport_r90": {
+   "x": 1,
+   "y": 1,
+   "w": 129,
+   "h": 225,
+   "fw": 32,
+   "fd": 48,
+   "ax": 0,
+   "ay": 224,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "civ_airport",
+   "turn": 90
+  },
+  "civ_airport_r90_ruin": {
+   "x": 131,
+   "y": 1,
+   "w": 129,
+   "h": 225,
+   "fw": 32,
+   "fd": 48,
+   "ax": 0,
+   "ay": 224,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "civ_airport_r90",
+   "shadow": "rock_deep"
+  },
+  "civ_airport_build_r90": {
+   "x": 261,
+   "y": 1,
+   "w": 129,
+   "h": 225,
+   "fw": 32,
+   "fd": 48,
+   "ax": 0,
+   "ay": 224,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "of": "civ_airport_r90",
+   "turn": 90
+  },
+  "civ_airport_build_r90_ruin": {
+   "x": 131,
+   "y": 1,
+   "w": 129,
+   "h": 225,
+   "fw": 32,
+   "fd": 48,
+   "ax": 0,
+   "ay": 224,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "civ_airport_build_r90",
+   "alias_of": "civ_airport_r90_ruin",
+   "shadow": "rock_deep"
+  },
+  "civ_airport_dmg_ov_r90": {
+   "x": 391,
+   "y": 1,
+   "w": 129,
+   "h": 225,
+   "fw": 32,
+   "fd": 48,
+   "ax": 0,
+   "ay": 224,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "overlay_of": "civ_airport_r90"
+  },
+  "civ_airport_r180": {
+   "x": 583,
+   "y": 227,
+   "w": 193,
+   "h": 149,
+   "fw": 48,
+   "fd": 32,
+   "ax": 0,
+   "ay": 148,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "civ_airport",
+   "turn": 180
+  },
+  "civ_airport_r180_ruin": {
+   "x": 777,
+   "y": 227,
+   "w": 193,
+   "h": 149,
+   "fw": 48,
+   "fd": 32,
+   "ax": 0,
+   "ay": 148,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "civ_airport_r180",
+   "shadow": "rock_deep"
+  },
+  "civ_airport_build_r180": {
+   "x": 1,
+   "y": 453,
+   "w": 193,
+   "h": 149,
+   "fw": 48,
+   "fd": 32,
+   "ax": 0,
+   "ay": 148,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "of": "civ_airport_r180",
+   "turn": 180
+  },
+  "civ_airport_build_r180_ruin": {
+   "x": 777,
+   "y": 227,
+   "w": 193,
+   "h": 149,
+   "fw": 48,
+   "fd": 32,
+   "ax": 0,
+   "ay": 148,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "civ_airport_build_r180",
+   "alias_of": "civ_airport_r180_ruin",
+   "shadow": "rock_deep"
+  },
+  "civ_airport_dmg_ov_r180": {
+   "x": 195,
+   "y": 453,
+   "w": 193,
+   "h": 149,
+   "fw": 48,
+   "fd": 32,
+   "ax": 0,
+   "ay": 148,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "overlay_of": "civ_airport_r180"
+  },
+  "civ_airport_r270": {
+   "x": 521,
+   "y": 1,
+   "w": 129,
+   "h": 225,
+   "fw": 32,
+   "fd": 48,
+   "ax": 0,
+   "ay": 224,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "turn_of": "civ_airport",
+   "turn": 270
+  },
+  "civ_airport_r270_ruin": {
+   "x": 651,
+   "y": 1,
+   "w": 129,
+   "h": 225,
+   "fw": 32,
+   "fd": 48,
+   "ax": 0,
+   "ay": 224,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "civ_airport_r270",
+   "shadow": "rock_deep"
+  },
+  "civ_airport_build_r270": {
+   "x": 781,
+   "y": 1,
+   "w": 129,
+   "h": 225,
+   "fw": 32,
+   "fd": 48,
+   "ax": 0,
+   "ay": 224,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "of": "civ_airport_r270",
+   "turn": 270
+  },
+  "civ_airport_build_r270_ruin": {
+   "x": 651,
+   "y": 1,
+   "w": 129,
+   "h": 225,
+   "fw": 32,
+   "fd": 48,
+   "ax": 0,
+   "ay": 224,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "civ_airport_build_r270",
+   "alias_of": "civ_airport_r270_ruin",
+   "shadow": "rock_deep"
+  },
+  "civ_airport_dmg_ov_r270": {
+   "x": 1,
+   "y": 227,
+   "w": 129,
+   "h": 225,
+   "fw": 32,
+   "fd": 48,
+   "ax": 0,
+   "ay": 224,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "overlay_of": "civ_airport_r270"
+  }
+ }
+}

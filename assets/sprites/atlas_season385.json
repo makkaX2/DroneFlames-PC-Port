@@ -1,0 +1,283 @@
+{
+ "image": "atlas_season385.png",
+ "size": [
+  128,
+  64
+ ],
+ "palette": "terrain19 (+ sun ink for the summer icon)",
+ "anchor": "same as the source atlases (fauna319 / life): draw at (pos.x-ax, pos.y-ay)",
+ "sprites": {
+  "season_spring": {
+   "x": 0,
+   "y": 0,
+   "w": 12,
+   "h": 12,
+   "frames": 1,
+   "fps": 0,
+   "ax": 6,
+   "ay": 6
+  },
+  "season_summer": {
+   "x": 13,
+   "y": 0,
+   "w": 12,
+   "h": 12,
+   "frames": 1,
+   "fps": 0,
+   "ax": 6,
+   "ay": 6
+  },
+  "season_autumn": {
+   "x": 26,
+   "y": 0,
+   "w": 12,
+   "h": 12,
+   "frames": 1,
+   "fps": 0,
+   "ax": 6,
+   "ay": 6
+  },
+  "season_winter": {
+   "x": 39,
+   "y": 0,
+   "w": 12,
+   "h": 12,
+   "frames": 1,
+   "fps": 0,
+   "ax": 6,
+   "ay": 6
+  },
+  "season_cycle": {
+   "x": 52,
+   "y": 0,
+   "w": 12,
+   "h": 12,
+   "frames": 1,
+   "fps": 0,
+   "ax": 6,
+   "ay": 6
+  },
+  "season_cal": {
+   "x": 65,
+   "y": 0,
+   "w": 12,
+   "h": 12,
+   "frames": 1,
+   "fps": 0,
+   "ax": 6,
+   "ay": 6
+  },
+  "hare_w_idle": {
+   "x": 0,
+   "y": 14,
+   "w": 5,
+   "h": 5,
+   "frames": 1,
+   "fps": 0,
+   "ax": 2,
+   "ay": 4,
+   "eye": [
+    1,
+    -2
+   ]
+  },
+  "hare_w_graze": {
+   "x": 6,
+   "y": 14,
+   "w": 5,
+   "h": 5,
+   "frames": 4,
+   "fps": 2,
+   "ax": 2,
+   "ay": 4
+  },
+  "hare_w_walk": {
+   "x": 27,
+   "y": 14,
+   "w": 5,
+   "h": 5,
+   "frames": 4,
+   "fps": 7,
+   "ax": 2,
+   "ay": 4,
+   "eye": [
+    1,
+    -2
+   ]
+  },
+  "hare_w_run": {
+   "x": 48,
+   "y": 14,
+   "w": 5,
+   "h": 5,
+   "frames": 4,
+   "fps": 12,
+   "ax": 2,
+   "ay": 4,
+   "eye": [
+    1,
+    -1
+   ]
+  },
+  "pedw_a_e": {
+   "x": 0,
+   "y": 22,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 8,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_a_n": {
+   "x": 13,
+   "y": 22,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 8,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_a_s": {
+   "x": 26,
+   "y": 22,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 8,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_a_run_e": {
+   "x": 39,
+   "y": 22,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 12,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_b_e": {
+   "x": 52,
+   "y": 22,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 8,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_b_n": {
+   "x": 65,
+   "y": 22,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 8,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_b_s": {
+   "x": 78,
+   "y": 22,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 8,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_b_run_e": {
+   "x": 91,
+   "y": 22,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 12,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_c_e": {
+   "x": 104,
+   "y": 22,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 8,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_c_n": {
+   "x": 0,
+   "y": 30,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 8,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_c_s": {
+   "x": 13,
+   "y": 30,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 8,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_c_run_e": {
+   "x": 26,
+   "y": 30,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 12,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_d_e": {
+   "x": 39,
+   "y": 30,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 8,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_d_n": {
+   "x": 52,
+   "y": 30,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 8,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_d_s": {
+   "x": 65,
+   "y": 30,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 8,
+   "ax": 1,
+   "ay": 5
+  },
+  "pedw_d_run_e": {
+   "x": 78,
+   "y": 30,
+   "w": 3,
+   "h": 6,
+   "frames": 4,
+   "fps": 12,
+   "ax": 1,
+   "ay": 5
+  }
+ }
+}

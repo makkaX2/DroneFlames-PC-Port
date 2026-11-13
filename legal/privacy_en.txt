@@ -1,0 +1,52 @@
+# Privacy Policy
+> DroneFlames · Version 1 · Effective 11.11.2026
+
+## Who we are
+DroneFlames is developed by Alexander Kolesnyk ("we", "us"). Questions about this policy and your data: studiosnaipix@gmail.com.
+
+## Playing without an account
+Single-player matches, the tutorial, the map and mod editors and games over a local network (Wi-Fi) work without an account. Your saves, settings, installed mods and maps, the game's acceptance of these documents and the age you declared in the Workshop are stored only on your device. We do not receive them.
+
+## What we collect when you create an account
+· E-mail address, nickname and password. They are used to sign you in, to send password recovery and account deletion codes, and to show your nickname to other players. They are sent to our server over an encrypted connection.
+· A device check when you register, sign in or refresh a session: Apple App Attest on iOS, Google Play Integrity on Android, a Steam ticket on PC. It confirms that the request comes from a genuine copy of the game and protects accounts from bots and abuse.
+
+## Online play
+· Results of online matches, your rating and match history, and the cosmetic items (frames, banners, titles) of your profile.
+· Chat messages of online matches go through our server, which filters unacceptable words before delivery.
+· Players are connected directly (WebRTC) or through our relay server. As in any online game, our server and the other players' devices see your IP address during a match.
+· Reports you send: the reason and your comment; a report on a player in a match also carries the chat messages of that match, a connection report carries network statistics (ping, packet loss).
+· Your block list: blocked players cannot join your rooms or write to you, their mods are hidden from you.
+
+## Workshop
+Mods and maps you publish (files, title, description, tags, the 16+ mark), their ratings and download counts are stored on our server and shown to other players together with your nickname. Every mod and every version is reviewed by a moderator before it is published. Browsing the catalog does not need an account.
+
+## Pictures from your device
+The map editor can turn a picture you choose into a map. The picture is processed on your device and is not uploaded; only a map you decide to publish is uploaded.
+
+## What we do not do
+· No advertising and no advertising identifiers.
+· No third-party analytics or crash-reporting SDKs.
+· No tracking across other apps and websites.
+· We do not sell your personal data and do not share it with third parties for their own purposes. Hosting and network providers of our server process data only to run the game for us.
+
+## Why we use the data
+To run accounts, online matches, chat, ratings and the Workshop, to review reports and moderate content, and to protect players from cheating and abuse.
+
+## Where and how long
+The data is stored on our server (drone-flames.snaipix.com). Account data is kept while the account exists. Saves and settings stay on your device until you delete the game.
+
+## Deleting your account
+In the game: Multiplayer → Profile → Delete account. A confirmation code is sent to your e-mail (on PC the confirmation goes through Steam). Deleted permanently: the account and e-mail sign-in, your nickname, rating and match history, cosmetic items. Single-player and the saves on your device stay. To remove your published mods, unpublish them in the Workshop before deleting the account, or write to us.
+
+## Children
+Online features need an account with an e-mail address. Workshop mods with violent or frightening scenes are marked 16+ and hidden from players who said they are younger than 16 (asked once, kept on the device only). If you think a child has given us personal data without the consent of a parent, write to us and we will delete it.
+
+## Your rights
+You can change your nickname in the profile and delete the account in the game at any time. To ask for a copy of your data, a correction or deletion, write to studiosnaipix@gmail.com.
+
+## Changes
+When this policy changes we publish the new version in the game with a new version number and date.
+
+## Contact
+Alexander Kolesnyk · studiosnaipix@gmail.com

@@ -1,0 +1,412 @@
+{
+ "_doc": "SEASONS385 (docs/SEASONS385.md §3.3): terrain season LUT. Row = season stage, class = the key class of TerrainView (key = cls*16 + tone), one palette name (terrain19.json) per tone; null / missing = keep the baked summer colour. Built into a 256x8 RGBA image by TerrainView::_build_lut.",
+ "rows": [
+  "SUMMER",
+  "LATE",
+  "AUT1",
+  "AUT2",
+  "AUT3",
+  "THAW",
+  "SPRING",
+  "SNOW"
+ ],
+ "classes": {
+  "GRASS": {
+   "cls": 1,
+   "LATE": [
+    "g4",
+    "g5",
+    "g6",
+    "g7",
+    "d4"
+   ],
+   "AUT1": [
+    "g3",
+    "g4",
+    "g5",
+    "y0",
+    "d3"
+   ],
+   "AUT2": [
+    "g3",
+    "y0",
+    "d1",
+    "d2",
+    "d3"
+   ],
+   "AUT3": [
+    "y0",
+    "d1",
+    "d2",
+    "d3",
+    "d3"
+   ],
+   "THAW": [
+    "y0",
+    "d1",
+    "d1",
+    "d2",
+    "d3"
+   ],
+   "SPRING": [
+    "g5",
+    "g6",
+    "g7",
+    "g8",
+    "g8"
+   ],
+   "SNOW": [
+    "n0",
+    "n1",
+    "n2",
+    "n3",
+    "n4"
+   ]
+  },
+  "FOREST": {
+   "cls": 2,
+   "LATE": null,
+   "AUT1": [
+    "g1",
+    "g2",
+    "g3",
+    "y0",
+    "d3"
+   ],
+   "AUT2": [
+    "o0",
+    "o1",
+    "y0",
+    "d2",
+    "o4"
+   ],
+   "AUT3": [
+    "e1",
+    "d1",
+    "o1",
+    "d2",
+    "d2"
+   ],
+   "THAW": [
+    "e1",
+    "e1",
+    "e2",
+    "d1",
+    "d2"
+   ],
+   "SPRING": [
+    "g2",
+    "g3",
+    "g4",
+    "g5",
+    "g6"
+   ],
+   "SNOW": [
+    "n0",
+    "n0",
+    "n1",
+    "n2",
+    "n3"
+   ]
+  },
+  "PINE": {
+   "cls": 3,
+   "LATE": null,
+   "AUT1": null,
+   "AUT2": null,
+   "AUT3": [
+    "g0",
+    "g1",
+    "g2",
+    "g3",
+    "e2"
+   ],
+   "THAW": [
+    "g0",
+    "g1",
+    "g2",
+    "g3",
+    "e2"
+   ],
+   "SPRING": [
+    "g0",
+    "g1",
+    "g2",
+    "g3",
+    "g5"
+   ],
+   "SNOW": [
+    "g0",
+    "n0",
+    "n1",
+    "n1",
+    "n2"
+   ]
+  },
+  "STEPPE": {
+   "cls": 4,
+   "LATE": [
+    "d0",
+    "d1",
+    "d2",
+    "d3",
+    "d4",
+    "s3"
+   ],
+   "AUT1": null,
+   "AUT2": [
+    "e1",
+    "d0",
+    "d1",
+    "d2",
+    "d3",
+    "d4"
+   ],
+   "AUT3": [
+    "d1",
+    "d1",
+    "d2",
+    "d2",
+    "d3",
+    "d4"
+   ],
+   "THAW": [
+    "d1",
+    "d1",
+    "d2",
+    "d2",
+    "d3",
+    "d3"
+   ],
+   "SPRING": [
+    "d0",
+    "g3",
+    "g4",
+    "g5",
+    "g6",
+    "d5"
+   ],
+   "SNOW": [
+    "n0",
+    "n1",
+    "n2",
+    "n3",
+    "n4",
+    "n4"
+   ]
+  },
+  "SAND": {
+   "cls": 5,
+   "THAW": [
+    "s0",
+    "s0",
+    "s1",
+    "s2",
+    "s3"
+   ],
+   "SNOW": [
+    "n1",
+    "n2",
+    "n3",
+    "n3",
+    "n4"
+   ]
+  },
+  "HILLS": {
+   "cls": 6,
+   "THAW": [
+    "e1",
+    "e1",
+    "e2",
+    "e3",
+    "e4"
+   ],
+   "SNOW": [
+    "n0",
+    "n1",
+    "n2",
+    "n3",
+    "n4"
+   ]
+  },
+  "ROCK": {
+   "cls": 7,
+   "SNOW": [
+    "r1",
+    "r2",
+    "n1",
+    "n2",
+    "n3",
+    "n4"
+   ]
+  },
+  "SNOWB": {
+   "cls": 8
+  },
+  "FIELD": {
+   "cls": 9,
+   "LATE": [
+    "d4",
+    "d5",
+    "d3",
+    "d3",
+    "d4",
+    "d2"
+   ],
+   "AUT1": [
+    "d3",
+    "s2",
+    "d2",
+    "d2",
+    "d3",
+    "d1"
+   ],
+   "AUT2": [
+    "e2",
+    "e3",
+    "e2",
+    "e2",
+    "e3",
+    "e2"
+   ],
+   "AUT3": [
+    "e1",
+    "e2",
+    "e1",
+    "e2",
+    "e3",
+    "e2"
+   ],
+   "THAW": [
+    "e1",
+    "e2",
+    "e1",
+    "e2",
+    "e3",
+    "e2"
+   ],
+   "SPRING": [
+    "g5",
+    "g6",
+    "g5",
+    "e2",
+    "e3",
+    "e2"
+   ],
+   "SNOW": [
+    "n3",
+    "n4",
+    "n3",
+    "n2",
+    "n3",
+    "n2"
+   ]
+  },
+  "URBAN_SOFT": {
+   "cls": 10,
+   "AUT1": [
+    "e2",
+    "y0",
+    "e2",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "AUT2": [
+    "e2",
+    "o2",
+    "e2",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "AUT3": [
+    "e1",
+    "e2",
+    "e1",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "THAW": [
+    null,
+    null,
+    null,
+    "r3",
+    "r4",
+    "r4",
+    "r3",
+    "r4",
+    "r4"
+   ],
+   "SPRING": [
+    "e2",
+    "g6",
+    "e2",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "SNOW": [
+    "n2",
+    "n3",
+    "n2",
+    "n2",
+    "n3",
+    "n4",
+    "n3",
+    "n3",
+    "n4"
+   ]
+  },
+  "URBAN_HARD": {
+   "cls": 11,
+   "THAW": [
+    "r0",
+    "r1",
+    "r1",
+    "r0",
+    "r1",
+    "r1",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "SNOW": [
+    "r3",
+    "r4",
+    "n1",
+    "r3",
+    "r4",
+    "n1",
+    "n1",
+    "n2",
+    "n1",
+    "n0",
+    "r2",
+    "n0",
+    "n0",
+    "n1",
+    "n0"
+   ]
+  }
+ }
+}

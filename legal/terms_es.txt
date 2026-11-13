@@ -1,0 +1,36 @@
+# Condiciones de uso
+> DroneFlames · Versión 1 · En vigor desde el 11.11.2026
+
+## Acuerdo
+Estas Condiciones son un acuerdo entre tú y Alexander Kolesnyk («nosotros»), el desarrollador de DroneFlames. Al crear una cuenta o publicar en el Taller aceptas estas Condiciones y la Política de privacidad. Si no las aceptas, puedes seguir jugando sin cuenta.
+
+## Licencia
+Te concedemos una licencia personal, no exclusiva, intransferible y revocable para usar el juego en dispositivos de tu propiedad o bajo tu control, con fines no comerciales. Si obtuviste el juego en la App Store, también se aplica el Acuerdo de Licencia de Usuario Final estándar de Apple (Apple Standard EULA, apple.com/legal/internet-services/itunes/dev/stdeula); estas Condiciones añaden las normas de las funciones en línea y del Taller.
+
+## Cuentas
+Indica una dirección de correo electrónico que funcione y mantén tu contraseña en secreto. Eres responsable de lo que ocurra con tu cuenta. Tu apodo (nick) no debe ser ofensivo ni suplantar a otra persona, al desarrollador o a los moderadores.
+
+## Normas de conducta
+Tolerancia cero con el contenido inaceptable y los usuarios abusivos. En los apodos, el chat, los mods, los mapas y las denuncias está prohibido:
+· insultos, acoso, amenazas, discursos de odio, incitación a la violencia;
+· contenido sexual o impactante;
+· países, ciudades, banderas, escudos, logotipos y marcas reales (el mundo del juego es ficticio);
+· spam, estafas, denuncias falsas, obras de otras personas sin permiso.
+
+## Contenido de los usuarios y moderación
+Eres responsable de los mods, mapas y textos que publicas y confirmas que tienes derecho a publicarlos. Nos concedes una licencia no exclusiva y gratuita para almacenarlos, mostrarlos y distribuirlos dentro del juego. Cada mod y cada versión se revisan antes de su publicación. Cualquier jugador puede denunciar un mod, a su autor o a un jugador de una partida, y bloquear a un usuario. Revisamos las denuncias en un plazo de 24 horas, retiramos el contenido que infringe estas Condiciones y podemos suspender o cerrar, sin previo aviso, las cuentas de quienes lo publican. En iOS los mods contienen solo datos (mapas, imágenes, números, reglas); los scripts de los mods no se ejecutan allí.
+
+## Juego limpio
+Están prohibidos las trampas, los bots, los clientes del juego modificados, el aprovechamiento de errores en las partidas en línea, los ataques a nuestro servidor y la subida de archivos maliciosos.
+
+## Sin garantías
+El juego se ofrece «tal cual». Las funciones en línea, el Taller y el servidor pueden cambiar, no estar disponibles o dejar de funcionar. En la medida en que lo permita la ley, no somos responsables de los daños indirectos ni de la pérdida de datos.
+
+## Terminación
+Puedes dejar de usar el juego y eliminar tu cuenta en cualquier momento: Multijugador → Perfil → Eliminar cuenta. Podemos suspender o cerrar una cuenta que infrinja estas Condiciones.
+
+## Cambios
+Cuando estas Condiciones cambien, el juego mostrará la nueva versión y te pedirá que la aceptes de nuevo antes de usar las funciones en línea.
+
+## Contacto
+Alexander Kolesnyk · studiosnaipix@gmail.com

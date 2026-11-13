@@ -1,5 +1,5 @@
 {
- "_doc": "v0.19 unified terrain + flora palette (48 colours). Ramps run shadow -> highlight: shadows shift cool (blue-violet), highlights warm (yellow). Read by world/terrain_view.gd, world/decal_layer.gd and tools/art/gen_flora19_atlas.py.",
+ "_doc": "v0.19 unified terrain + flora palette (48 colours; SEASONS385: + 11 autumn / ice colours o0-o5 y0-y2 i1 i2 = 59). Ramps run shadow -> highlight: shadows shift cool (blue-violet), highlights warm (yellow). Read by world/terrain_view.gd, world/decal_layer.gd and tools/art/gen_flora19_atlas.py.",
  "colors": {
   "g0": "#1a2e2a", "g1": "#23402f", "g2": "#2d5232", "g3": "#34682b", "g4": "#467c2c", "g5": "#649430", "g6": "#7da739", "g7": "#96b74b", "g8": "#afc35f",
   "d0": "#5a4a3e", "d1": "#7a6241", "d2": "#987a40", "d3": "#b29245", "d4": "#c6a855", "d5": "#d6bd6e",
@@ -8,7 +8,9 @@
   "r0": "#2e2f3b", "r1": "#41424e", "r2": "#585861", "r3": "#706f70", "r4": "#8b897f", "r5": "#aca793",
   "n0": "#8e9cc0", "n1": "#aab6d2", "n2": "#c7cfe2", "n3": "#e2e6ee", "n4": "#f8f6ec",
   "w0": "#e8f4ee", "w1": "#bde0ec", "w2": "#98cbe6", "w3": "#77b3de", "w4": "#5c9cd5", "w5": "#4886c9", "w6": "#3b72b9", "w7": "#3060a6", "w8": "#284e92", "w9": "#21407c",
-  "a0": "#e49ab2", "a1": "#a48bce"
+  "a0": "#e49ab2", "a1": "#a48bce",
+  "o0": "#4e2a2c", "o1": "#6a3024", "o2": "#8e4430", "o3": "#b45a3c", "o4": "#c97a00", "o5": "#e09a2e",
+  "y0": "#8e7a2a", "y1": "#c4a234", "y2": "#e6c84a", "i1": "#c6dae8", "i2": "#9fbdd6"
  },
  "ramps": {
   "grass": [["g4", "g5", "g6", "g7", "g8"], 2, 18],

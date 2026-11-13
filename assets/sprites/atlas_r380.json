@@ -1,0 +1,4420 @@
+{
+ "cell_px": 4,
+ "image": "atlas_r380.png",
+ "size": [
+  2048,
+  1248
+ ],
+ "gen": "tools/art/gen_r380_atlas.py (R380 v0.38.0: carrier, airborne, nuclear)",
+ "pages": "atlas_r380 (units, buildings, icons) + atlas_r380fx (blast aftermath) + atlas_r380fx2 (nuke2 hybrid blast); each name in one page",
+ "anchor": "kind building/ruin/ground: draw at (cell_x*4 - ax, (cell_y + fd)*4 - ay), cell = NW cell of the footprint",
+ "anchor_units": "kind unit*/fx*: ax, ay = anchor pixel (draw at world_px - (ax, ay)); frame = state*dirs + dir, dir k = heading k*22.5 deg clockwise from east (k=0 east, 4 south, 12 north). Strips are trimmed to their content, so always use each sprite's own w/h/ax/ay",
+ "local_px": "per-dir lists are px offsets from the unit anchor with the 3/4 lift included; building points (\"door\", \"spots\", ...) are frame-local px",
+ "light": "top-left",
+ "palette": "palettes/main_named.json",
+ "doc": "docs/ART_R380.md",
+ "sprites": {
+  "carrier_a": {
+   "x": 1,
+   "y": 1,
+   "w": 171,
+   "h": 171,
+   "fw": 0,
+   "fd": 0,
+   "ax": 85,
+   "ay": 85,
+   "frames": 8,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "dirs": 8,
+   "length_px": 153.6,
+   "deck_z": 4.0,
+   "angled_deck_deg": -9.0,
+   "slots_local": [
+    [
+     62.4,
+     11.84,
+     4.0
+    ],
+    [
+     59.2,
+     -9.92,
+     4.0
+    ],
+    [
+     -69.6,
+     12.16,
+     4.0
+    ],
+    [
+     -65.6,
+     -13.12,
+     4.0
+    ]
+   ],
+   "cats_local": [
+    [
+     31.2,
+     -4.48,
+     74.56,
+     -4.48
+    ],
+    [
+     31.2,
+     4.48,
+     74.56,
+     4.48
+    ],
+    [
+     -46.84,
+     -7.75,
+     -20.17,
+     -11.98
+    ],
+    [
+     -47.4,
+     -11.31,
+     -23.7,
+     -15.06
+    ]
+   ],
+   "land_local": [
+    [
+     -89.03,
+     0.75,
+     10.0
+    ],
+    [
+     -74.21,
+     -1.6,
+     4.0
+    ],
+    [
+     -63.84,
+     -3.24,
+     4.0
+    ],
+    [
+     -45.57,
+     -6.13,
+     4.0
+    ],
+    [
+     6.19,
+     -14.33,
+     4.0
+    ]
+   ],
+   "spots_local": [
+    [
+     63.0,
+     7.0,
+     4.0,
+     0.0
+    ],
+    [
+     38.0,
+     7.0,
+     4.0,
+     0.0
+    ],
+    [
+     48.0,
+     -6.0,
+     4.0,
+     0.0
+    ],
+    [
+     -38.0,
+     8.0,
+     4.0,
+     -180.0
+    ],
+    [
+     -64.0,
+     8.0,
+     4.0,
+     -180.0
+    ],
+    [
+     10.0,
+     5.0,
+     4.0,
+     -157.5
+    ]
+   ],
+   "note": "dirs 0..7 of carrier: frame = dir16 - 0",
+   "dir_first": 0,
+   "half_of": "carrier"
+  },
+  "carrier_b": {
+   "x": 1,
+   "y": 173,
+   "w": 171,
+   "h": 171,
+   "fw": 0,
+   "fd": 0,
+   "ax": 85,
+   "ay": 85,
+   "frames": 8,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "dirs": 8,
+   "length_px": 153.6,
+   "deck_z": 4.0,
+   "angled_deck_deg": -9.0,
+   "slots_local": [
+    [
+     62.4,
+     11.84,
+     4.0
+    ],
+    [
+     59.2,
+     -9.92,
+     4.0
+    ],
+    [
+     -69.6,
+     12.16,
+     4.0
+    ],
+    [
+     -65.6,
+     -13.12,
+     4.0
+    ]
+   ],
+   "cats_local": [
+    [
+     31.2,
+     -4.48,
+     74.56,
+     -4.48
+    ],
+    [
+     31.2,
+     4.48,
+     74.56,
+     4.48
+    ],
+    [
+     -46.84,
+     -7.75,
+     -20.17,
+     -11.98
+    ],
+    [
+     -47.4,
+     -11.31,
+     -23.7,
+     -15.06
+    ]
+   ],
+   "land_local": [
+    [
+     -89.03,
+     0.75,
+     10.0
+    ],
+    [
+     -74.21,
+     -1.6,
+     4.0
+    ],
+    [
+     -63.84,
+     -3.24,
+     4.0
+    ],
+    [
+     -45.57,
+     -6.13,
+     4.0
+    ],
+    [
+     6.19,
+     -14.33,
+     4.0
+    ]
+   ],
+   "spots_local": [
+    [
+     63.0,
+     7.0,
+     4.0,
+     0.0
+    ],
+    [
+     38.0,
+     7.0,
+     4.0,
+     0.0
+    ],
+    [
+     48.0,
+     -6.0,
+     4.0,
+     0.0
+    ],
+    [
+     -38.0,
+     8.0,
+     4.0,
+     -180.0
+    ],
+    [
+     -64.0,
+     8.0,
+     4.0,
+     -180.0
+    ],
+    [
+     10.0,
+     5.0,
+     4.0,
+     -157.5
+    ]
+   ],
+   "note": "dirs 8..15 of carrier: frame = dir16 - 8",
+   "dir_first": 8,
+   "half_of": "carrier"
+  },
+  "carrier_shadow_a": {
+   "x": 1,
+   "y": 345,
+   "w": 171,
+   "h": 171,
+   "fw": 0,
+   "fd": 0,
+   "ax": 85,
+   "ay": 85,
+   "frames": 8,
+   "fps": 0,
+   "kind": "unit_shadow",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "shadow_of": "carrier",
+   "color": "rock_deep",
+   "dirs": 8,
+   "dir_first": 0,
+   "half_of": "carrier_shadow",
+   "note": "dirs 0..7 of carrier_shadow: frame = dir16 - 0"
+  },
+  "carrier_shadow_b": {
+   "x": 1,
+   "y": 517,
+   "w": 171,
+   "h": 171,
+   "fw": 0,
+   "fd": 0,
+   "ax": 85,
+   "ay": 85,
+   "frames": 8,
+   "fps": 0,
+   "kind": "unit_shadow",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "shadow_of": "carrier",
+   "color": "rock_deep",
+   "dirs": 8,
+   "dir_first": 8,
+   "half_of": "carrier_shadow",
+   "note": "dirs 8..15 of carrier_shadow: frame = dir16 - 8"
+  },
+  "carrier_dmg_a": {
+   "x": 1,
+   "y": 689,
+   "w": 171,
+   "h": 171,
+   "fw": 0,
+   "fd": 0,
+   "ax": 85,
+   "ay": 85,
+   "frames": 8,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "of": "carrier",
+   "dirs": 8,
+   "note": "dirs 0..7 of carrier_dmg: frame = dir16 - 0",
+   "dir_first": 0,
+   "half_of": "carrier_dmg"
+  },
+  "carrier_dmg_b": {
+   "x": 1,
+   "y": 861,
+   "w": 171,
+   "h": 171,
+   "fw": 0,
+   "fd": 0,
+   "ax": 85,
+   "ay": 85,
+   "frames": 8,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "of": "carrier",
+   "dirs": 8,
+   "note": "dirs 8..15 of carrier_dmg: frame = dir16 - 8",
+   "dir_first": 8,
+   "half_of": "carrier_dmg"
+  },
+  "carrier_sink_0": {
+   "x": 1,
+   "y": 1033,
+   "w": 157,
+   "h": 158,
+   "fw": 0,
+   "fd": 0,
+   "ax": 78,
+   "ay": 81,
+   "frames": 8,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 45.0,
+   "clockwise": true,
+   "of": "carrier",
+   "dirs": 8,
+   "note": "sinking stage 0 (v6: only 0 settling + fires and 2 gone: foam, oil, debris; carrier_sink_1 was removed, go 0 -> 2); frame = dir8 = posmod(roundi(dir16 / 2.0), 8). Parked aircraft go down with stage 2 (stop drawing them)."
+  },
+  "carrier_island_b": {
+   "x": 1370,
+   "y": 1,
+   "w": 41,
+   "h": 56,
+   "fw": 0,
+   "fd": 0,
+   "ax": 15,
+   "ay": 35,
+   "frames": 8,
+   "fps": 0,
+   "kind": "unit_overlay",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "of": "carrier",
+   "dirs": 8,
+   "note": "dirs 8..15 of carrier_island: frame = dir16 - 8",
+   "dir_first": 8,
+   "half_of": "carrier_island"
+  },
+  "carrier_wake": {
+   "x": 1,
+   "y": 1192,
+   "w": 51,
+   "h": 51,
+   "fw": 0,
+   "fd": 0,
+   "ax": 25,
+   "ay": 25,
+   "frames": 32,
+   "fps": 0,
+   "kind": "fx_dir",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "dirs": 16,
+   "states": 2,
+   "note": "frame = phase*16 + dir; apex at the anchor: draw at the carrier stern offset BEFORE the hull; alternate phase 0/1 at ~3 fps while moving; alpha ~ speed (0 when stopped)"
+  },
+  "carrier_island_a": {
+   "x": 1699,
+   "y": 1,
+   "w": 40,
+   "h": 51,
+   "fw": 0,
+   "fd": 0,
+   "ax": 24,
+   "ay": 39,
+   "frames": 8,
+   "fps": 0,
+   "kind": "unit_overlay",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "of": "carrier",
+   "dirs": 8,
+   "note": "dirs 0..7 of carrier_island: frame = dir16 - 0",
+   "dir_first": 0,
+   "half_of": "carrier_island"
+  },
+  "carrier_sink_2": {
+   "x": 1370,
+   "y": 173,
+   "w": 46,
+   "h": 30,
+   "fw": 0,
+   "fd": 0,
+   "ax": 23,
+   "ay": 14,
+   "frames": 8,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 45.0,
+   "clockwise": true,
+   "of": "carrier",
+   "dirs": 8,
+   "note": "sinking stage 2 (v6: only 0 settling + fires and 2 gone: foam, oil, debris; carrier_sink_1 was removed, go 0 -> 2); frame = dir8 = posmod(roundi(dir16 / 2.0), 8). Parked aircraft go down with stage 2 (stop drawing them)."
+  },
+  "silo": {
+   "x": 2020,
+   "y": 1,
+   "w": 26,
+   "h": 33,
+   "fw": 6,
+   "fd": 6,
+   "ax": 0,
+   "ay": 32,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "door": [
+    12,
+    17
+   ],
+   "door_half_w": 4,
+   "note": "base map object (doors closed). Door animation = overlays silo_0..5 (same w/h/ax/ay: draw at the same position on top). door = frame-local px of the shaft centre."
+  },
+  "silo_ruin": {
+   "x": 2020,
+   "y": 35,
+   "w": 26,
+   "h": 33,
+   "fw": 6,
+   "fd": 6,
+   "ax": 0,
+   "ay": 32,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "silo",
+   "shadow": "rock_deep",
+   "door": [
+    12,
+    17
+   ]
+  },
+  "icon_carrier": {
+   "x": 2020,
+   "y": 69,
+   "w": 24,
+   "h": 24,
+   "fw": 0,
+   "fd": 0,
+   "ax": 0,
+   "ay": 0,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit_icon",
+   "size": 24
+  },
+  "icon_airbase": {
+   "x": 2020,
+   "y": 94,
+   "w": 24,
+   "h": 24,
+   "fw": 0,
+   "fd": 0,
+   "ax": 0,
+   "ay": 0,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit_icon",
+   "size": 24
+  },
+  "icon_silo": {
+   "x": 2020,
+   "y": 119,
+   "w": 24,
+   "h": 24,
+   "fw": 0,
+   "fd": 0,
+   "ax": 0,
+   "ay": 0,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit_icon",
+   "size": 24
+  },
+  "icon_abm": {
+   "x": 2020,
+   "y": 144,
+   "w": 24,
+   "h": 24,
+   "fw": 0,
+   "fd": 0,
+   "ax": 0,
+   "ay": 0,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit_icon",
+   "size": 24
+  },
+  "airbase": {
+   "x": 1739,
+   "y": 173,
+   "w": 161,
+   "h": 113,
+   "fw": 40,
+   "fd": 28,
+   "ax": 0,
+   "ay": 112,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "spots": [
+    [
+     14,
+     83,
+     12
+    ],
+    [
+     28,
+     83,
+     12
+    ],
+    [
+     42,
+     83,
+     12
+    ],
+    [
+     56,
+     83,
+     12
+    ],
+    [
+     70,
+     83,
+     12
+    ],
+    [
+     84,
+     83,
+     12
+    ],
+    [
+     109,
+     67,
+     12
+    ],
+    [
+     121,
+     67,
+     12
+    ],
+    [
+     133,
+     67,
+     12
+    ],
+    [
+     145,
+     67,
+     12
+    ]
+   ],
+   "spots_heavy": [
+    [
+     26,
+     61,
+     12
+    ],
+    [
+     62,
+     61,
+     12
+    ],
+    [
+     98,
+     61,
+     12
+    ]
+   ],
+   "runways": [
+    [
+     10,
+     11,
+     150,
+     11
+    ],
+    [
+     22,
+     34,
+     140,
+     34
+    ]
+   ],
+   "taxi": [
+    [
+     44,
+     47
+    ],
+    [
+     44,
+     23
+    ],
+    [
+     12,
+     23
+    ],
+    [
+     12,
+     11
+    ],
+    [
+     80,
+     47
+    ],
+    [
+     80,
+     23
+    ],
+    [
+     128,
+     47
+    ],
+    [
+     128,
+     23
+    ],
+    [
+     146,
+     23
+    ],
+    [
+     146,
+     11
+    ]
+   ],
+   "note": "airbase 40x28 cells (airfield 30x11). spots = [x, y, dir16] frame-local parking centres for fighters / strike jets (0-5 apron row, 6-9 inside the earth revetments), all nose north (dir 12); spots_heavy = 3 airlifter stands (transport_jet / heli_tr), nose north; runways = [x0, y, x1, y] centrelines (take-off rolls west->east, dir 0, or reverse); taxi = waypoints (apron exits / runway entries). airbase_ground = paving + markings only (same anchor) if aircraft must be drawn between ground and structures.",
+   "r389_soft": true,
+   "r389b_soft": true
+  },
+  "abm_site": {
+   "x": 1901,
+   "y": 173,
+   "w": 41,
+   "h": 47,
+   "fw": 10,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "radar": [
+    28,
+    20
+   ],
+   "hatch": [
+    10,
+    28
+   ],
+   "note": "strategic missile-defence site 10x8 cells. Draw abm_radar_k (same w/h/ax/ay) on top, k = int(t*2) % 8 (45 deg per frame, ~1 rev / 4 s; faster when tracking). hatch = interceptor silo hatch centre (abm_interceptor launches here, dir 12); radar = turntable centre."
+  },
+  "abm_site_ruin": {
+   "x": 1943,
+   "y": 173,
+   "w": 41,
+   "h": 47,
+   "fw": 10,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "abm_site",
+   "shadow": "rock_deep"
+  },
+  "silo_anim": {
+   "x": 1739,
+   "y": 287,
+   "w": 26,
+   "h": 33,
+   "fw": 6,
+   "fd": 6,
+   "ax": 0,
+   "ay": 32,
+   "frames": 6,
+   "fps": 0,
+   "kind": "building",
+   "shadow": "rock_deep",
+   "door": [
+    12,
+    17
+   ],
+   "states": 6,
+   "note": "full frames 0 closed .. 5 open (alternative to silo + overlays)",
+   "door_half_w": 4
+  },
+  "icon_nuclear_power": {
+   "x": 1985,
+   "y": 173,
+   "w": 24,
+   "h": 24,
+   "fw": 0,
+   "fd": 0,
+   "ax": 0,
+   "ay": 0,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit_icon",
+   "size": 24
+  },
+  "icon_nuke_strike": {
+   "x": 2010,
+   "y": 173,
+   "w": 24,
+   "h": 24,
+   "fw": 0,
+   "fd": 0,
+   "ax": 0,
+   "ay": 0,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit_icon",
+   "size": 24
+  },
+  "icon_airborne": {
+   "x": 1896,
+   "y": 287,
+   "w": 24,
+   "h": 24,
+   "fw": 0,
+   "fd": 0,
+   "ax": 0,
+   "ay": 0,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit_icon",
+   "size": 24
+  },
+  "icon_plutonium": {
+   "x": 1921,
+   "y": 287,
+   "w": 24,
+   "h": 24,
+   "fw": 0,
+   "fd": 0,
+   "ax": 0,
+   "ay": 0,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit_icon",
+   "size": 24
+  },
+  "para_cargo": {
+   "x": 1946,
+   "y": 287,
+   "w": 23,
+   "h": 23,
+   "fw": 1,
+   "fd": 1,
+   "ax": 11,
+   "ay": 21,
+   "frames": 2,
+   "fps": 3,
+   "kind": "fx",
+   "anchor": "platform centre",
+   "note": "vehicle on a drop platform under 3 canopies; 2 sway frames"
+  },
+  "heli_tr_rotor": {
+   "x": 1739,
+   "y": 321,
+   "w": 19,
+   "h": 17,
+   "fw": 1,
+   "fd": 1,
+   "ax": 9,
+   "ay": 8,
+   "frames": 6,
+   "fps": 18,
+   "kind": "unit_rotor",
+   "anchor": "center",
+   "rotor_of": "heli_tr_body",
+   "not_rotated": true,
+   "spin": "clockwise, 20 deg per frame (3 blades: 6 frames = 1 cycle)"
+  },
+  "para_trooper": {
+   "x": 1993,
+   "y": 287,
+   "w": 13,
+   "h": 15,
+   "fw": 1,
+   "fd": 1,
+   "ax": 6,
+   "ay": 15,
+   "frames": 4,
+   "fps": 4,
+   "kind": "fx",
+   "anchor": "feet",
+   "note": "frame 0 opening (show ~0.4 s after exit), then loop 1,2,1,3 (~4 fps). Draw at the trooper ground pos lifted by altitude; shadow: 2x1 rock_deep dot at the ground pos. Not rotated."
+  },
+  "abm_interceptor": {
+   "x": 1854,
+   "y": 321,
+   "w": 9,
+   "h": 9,
+   "fw": 1,
+   "fd": 1,
+   "ax": 4,
+   "ay": 4,
+   "frames": 16,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "length_px": 8,
+   "nozzle": [
+    [
+     -4,
+     0
+    ],
+    [
+     -4,
+     -1
+    ],
+    [
+     -3,
+     -3
+    ],
+    [
+     -1,
+     -4
+    ],
+    [
+     0,
+     -4
+    ],
+    [
+     1,
+     -4
+    ],
+    [
+     3,
+     -3
+    ],
+    [
+     4,
+     -1
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     1,
+     4
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     -1,
+     4
+    ],
+    [
+     -3,
+     3
+    ],
+    [
+     -4,
+     1
+    ]
+   ],
+   "note": "strategic interceptor; launches from abm_site.hatch (dir 12), fast arc"
+  },
+  "res_plutonium": {
+   "x": 2035,
+   "y": 173,
+   "w": 9,
+   "h": 9,
+   "fw": 0,
+   "fd": 0,
+   "ax": 0,
+   "ay": 0,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit_icon",
+   "size": 9,
+   "note": "small resource glyph (as res_uranium)"
+  },
+  "para_canopy_small": {
+   "x": 1999,
+   "y": 321,
+   "w": 7,
+   "h": 8,
+   "fw": 1,
+   "fd": 1,
+   "ax": 3,
+   "ay": 7,
+   "frames": 2,
+   "fps": 0,
+   "kind": "fx",
+   "note": "frame 0 small canopy in the air (supply drop), 1 collapsed canopy lying on the ground (leave ~20 s)"
+  },
+  "flare": {
+   "x": 2014,
+   "y": 321,
+   "w": 5,
+   "h": 4,
+   "fw": 1,
+   "fd": 1,
+   "ax": 2,
+   "ay": 1,
+   "frames": 4,
+   "fps": 14,
+   "kind": "fx",
+   "note": "IR decoy flare; spawn 4-8 in a fan behind/below the aircraft, fall + drift ~1.5 s, trail = existing smoke puffs; night: additive OK"
+  },
+  "airbase_ground": {
+   "x": 1370,
+   "y": 345,
+   "w": 161,
+   "h": 113,
+   "fw": 40,
+   "fd": 28,
+   "ax": 0,
+   "ay": 112,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ground",
+   "height": 0,
+   "of": "airbase"
+  },
+  "airbase_ruin": {
+   "x": 1532,
+   "y": 345,
+   "w": 161,
+   "h": 113,
+   "fw": 40,
+   "fd": 28,
+   "ax": 0,
+   "ay": 112,
+   "frames": 1,
+   "fps": 0,
+   "kind": "ruin",
+   "ruin_of": "airbase",
+   "shadow": "rock_deep",
+   "r389_soft": true,
+   "r389b_soft": true
+  },
+  "abm_radar": {
+   "x": 1694,
+   "y": 345,
+   "w": 41,
+   "h": 47,
+   "fw": 10,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 8,
+   "fps": 2,
+   "kind": "overlay",
+   "of": "abm_site",
+   "radar": [
+    28,
+    20
+   ],
+   "states": 8,
+   "note": "antenna overlay, frame k = rotation k*45 deg clockwise; same anchor as abm_site"
+  },
+  "transport_jet": {
+   "x": 1370,
+   "y": 459,
+   "w": 33,
+   "h": 37,
+   "fw": 1,
+   "fd": 1,
+   "ax": 16,
+   "ay": 21,
+   "frames": 16,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "length_px": 29,
+   "span_px": 31,
+   "ramp_local": [
+    -11.5,
+    0,
+    0
+   ],
+   "ramp": [
+    [
+     -11,
+     0
+    ],
+    [
+     -11,
+     -4
+    ],
+    [
+     -8,
+     -8
+    ],
+    [
+     -4,
+     -11
+    ],
+    [
+     0,
+     -11
+    ],
+    [
+     4,
+     -11
+    ],
+    [
+     8,
+     -8
+    ],
+    [
+     11,
+     -4
+    ],
+    [
+     12,
+     0
+    ],
+    [
+     11,
+     4
+    ],
+    [
+     8,
+     8
+    ],
+    [
+     4,
+     11
+    ],
+    [
+     0,
+     12
+    ],
+    [
+     -4,
+     11
+    ],
+    [
+     -8,
+     8
+    ],
+    [
+     -11,
+     4
+    ]
+   ],
+   "doors_local": [
+    [
+     -6.0,
+     2.3,
+     0
+    ],
+    [
+     -6.0,
+     -2.3,
+     0
+    ]
+   ],
+   "doors": [
+    [
+     [
+      -6,
+      2
+     ],
+     [
+      -6,
+      -2
+     ]
+    ],
+    [
+     [
+      -6,
+      0
+     ],
+     [
+      -5,
+      -4
+     ]
+    ],
+    [
+     [
+      -6,
+      -3
+     ],
+     [
+      -3,
+      -6
+     ]
+    ],
+    [
+     [
+      -4,
+      -5
+     ],
+     [
+      0,
+      -6
+     ]
+    ],
+    [
+     [
+      -2,
+      -6
+     ],
+     [
+      2,
+      -6
+     ]
+    ],
+    [
+     [
+      0,
+      -6
+     ],
+     [
+      4,
+      -5
+     ]
+    ],
+    [
+     [
+      3,
+      -6
+     ],
+     [
+      6,
+      -3
+     ]
+    ],
+    [
+     [
+      5,
+      -4
+     ],
+     [
+      6,
+      0
+     ]
+    ],
+    [
+     [
+      6,
+      -2
+     ],
+     [
+      6,
+      2
+     ]
+    ],
+    [
+     [
+      6,
+      0
+     ],
+     [
+      5,
+      4
+     ]
+    ],
+    [
+     [
+      6,
+      3
+     ],
+     [
+      3,
+      6
+     ]
+    ],
+    [
+     [
+      4,
+      5
+     ],
+     [
+      0,
+      6
+     ]
+    ],
+    [
+     [
+      2,
+      6
+     ],
+     [
+      -2,
+      6
+     ]
+    ],
+    [
+     [
+      0,
+      6
+     ],
+     [
+      -4,
+      5
+     ]
+    ],
+    [
+     [
+      -3,
+      6
+     ],
+     [
+      -6,
+      3
+     ]
+    ],
+    [
+     [
+      -5,
+      4
+     ],
+     [
+      -6,
+      0
+     ]
+    ]
+   ],
+   "lights_local": [
+    [
+     -10.0,
+     0,
+     0
+    ]
+   ],
+   "note": "para drop points: ramp (cargo / vehicles) and the two side doors (troopers), [dir]->[dx,dy]; night red interior light: put a 1-px alert_red at ramp"
+  },
+  "nuke_missile": {
+   "x": 1370,
+   "y": 497,
+   "w": 15,
+   "h": 15,
+   "fw": 1,
+   "fd": 1,
+   "ax": 7,
+   "ay": 7,
+   "frames": 16,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "length_px": 15,
+   "shadow": "nuke_missile_shadow",
+   "nozzle": [
+    [
+     -8,
+     0
+    ],
+    [
+     -7,
+     -3
+    ],
+    [
+     -5,
+     -5
+    ],
+    [
+     -3,
+     -7
+    ],
+    [
+     0,
+     -8
+    ],
+    [
+     3,
+     -7
+    ],
+    [
+     5,
+     -5
+    ],
+    [
+     7,
+     -3
+    ],
+    [
+     8,
+     0
+    ],
+    [
+     7,
+     3
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     3,
+     7
+    ],
+    [
+     0,
+     8
+    ],
+    [
+     -3,
+     7
+    ],
+    [
+     -5,
+     5
+    ],
+    [
+     -7,
+     3
+    ]
+   ],
+   "note": "strategic missile, 15 px (ballistic \"missile\" = 9 px). nozzle [dir] = exhaust point for the flame / smoke trail. Launch: dir 12 (pointing up) rising from the silo door, then pitch over along the arc."
+  },
+  "nuke_missile_shadow": {
+   "x": 1611,
+   "y": 497,
+   "w": 15,
+   "h": 15,
+   "fw": 1,
+   "fd": 1,
+   "ax": 7,
+   "ay": 7,
+   "frames": 16,
+   "fps": 0,
+   "kind": "unit_shadow",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "shadow_of": "nuke_missile",
+   "color": "rock_deep"
+  },
+  "abm_interceptor_shadow": {
+   "x": 1899,
+   "y": 459,
+   "w": 9,
+   "h": 9,
+   "fw": 1,
+   "fd": 1,
+   "ax": 4,
+   "ay": 4,
+   "frames": 16,
+   "fps": 0,
+   "kind": "unit_shadow",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "shadow_of": "abm_interceptor",
+   "color": "rock_deep"
+  },
+  "nuke_stage": {
+   "x": 1852,
+   "y": 497,
+   "w": 9,
+   "h": 9,
+   "fw": 1,
+   "fd": 1,
+   "ax": 4,
+   "ay": 4,
+   "frames": 8,
+   "fps": 10,
+   "kind": "fx",
+   "anchor": "center",
+   "note": "spent first stage tumbling (8 frames = one turn). Spawn at the missile nozzle at separation (~40 % of the arc), drift back + fall ~2 s, fade; puff of smoke_light at the separation point."
+  },
+  "transport_jet_shadow": {
+   "x": 1370,
+   "y": 517,
+   "w": 33,
+   "h": 33,
+   "fw": 1,
+   "fd": 1,
+   "ax": 16,
+   "ay": 16,
+   "frames": 16,
+   "fps": 0,
+   "kind": "unit_shadow",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "shadow_of": "transport_jet",
+   "color": "rock_deep"
+  },
+  "silo_door": {
+   "x": 1370,
+   "y": 551,
+   "w": 26,
+   "h": 33,
+   "fw": 6,
+   "fd": 6,
+   "ax": 0,
+   "ay": 32,
+   "frames": 6,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "silo",
+   "door": [
+    12,
+    17
+   ],
+   "states": 6,
+   "note": "door overlays on top of silo, same anchor: 0 closed .. 5 open. Launch: 0->5 over ~1.6 s, hold 5 while nuke_missile (dir 12) rises from \"door\", 5->0 after."
+  },
+  "navfighter_ab": {
+   "x": 1527,
+   "y": 551,
+   "w": 29,
+   "h": 29,
+   "fw": 1,
+   "fd": 1,
+   "ax": 14,
+   "ay": 14,
+   "frames": 16,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "of": "navfighter",
+   "note": "afterburner lit (catapult stroke, climb-out, intercept): swap with navfighter, flicker 1/2 frames at ~12 fps"
+  },
+  "navfighter": {
+   "x": 1370,
+   "y": 585,
+   "w": 27,
+   "h": 28,
+   "fw": 1,
+   "fd": 1,
+   "ax": 13,
+   "ay": 14,
+   "frames": 16,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "length_px": 21,
+   "span_px": 20,
+   "note": "flight: wings spread; shadow = navfighter_shadow"
+  },
+  "navfighter_wing_folded": {
+   "x": 1370,
+   "y": 614,
+   "w": 27,
+   "h": 28,
+   "fw": 1,
+   "fd": 1,
+   "ax": 13,
+   "ay": 14,
+   "frames": 16,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "of": "navfighter",
+   "note": "wings fully swept: parked on deck / taxi / catapult / high-speed dash; shadow = navfighter_shadow_folded"
+  },
+  "navfighter_shadow": {
+   "x": 1370,
+   "y": 643,
+   "w": 25,
+   "h": 25,
+   "fw": 1,
+   "fd": 1,
+   "ax": 12,
+   "ay": 12,
+   "frames": 16,
+   "fps": 0,
+   "kind": "unit_shadow",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "shadow_of": "navfighter",
+   "color": "rock_deep"
+  },
+  "navfighter_shadow_folded": {
+   "x": 1370,
+   "y": 689,
+   "w": 25,
+   "h": 25,
+   "fw": 1,
+   "fd": 1,
+   "ax": 12,
+   "ay": 12,
+   "frames": 16,
+   "fps": 0,
+   "kind": "unit_shadow",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "shadow_of": "navfighter_wing_folded",
+   "color": "rock_deep"
+  },
+  "heli_tr_body": {
+   "x": 1370,
+   "y": 715,
+   "w": 21,
+   "h": 25,
+   "fw": 1,
+   "fd": 1,
+   "ax": 10,
+   "ay": 14,
+   "frames": 16,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "rotor": "heli_tr_rotor",
+   "length_px": 21,
+   "hubs": [
+    [
+     [
+      8,
+      -2
+     ],
+     [
+      -8,
+      -4
+     ]
+    ],
+    [
+     [
+      7,
+      1
+     ],
+     [
+      -8,
+      -8
+     ]
+    ],
+    [
+     [
+      6,
+      3
+     ],
+     [
+      -6,
+      -10
+     ]
+    ],
+    [
+     [
+      3,
+      5
+     ],
+     [
+      -3,
+      -12
+     ]
+    ],
+    [
+     [
+      0,
+      6
+     ],
+     [
+      0,
+      -13
+     ]
+    ],
+    [
+     [
+      -3,
+      5
+     ],
+     [
+      3,
+      -12
+     ]
+    ],
+    [
+     [
+      -6,
+      3
+     ],
+     [
+      6,
+      -10
+     ]
+    ],
+    [
+     [
+      -7,
+      1
+     ],
+     [
+      8,
+      -8
+     ]
+    ],
+    [
+     [
+      -8,
+      -2
+     ],
+     [
+      8,
+      -4
+     ]
+    ],
+    [
+     [
+      -7,
+      -5
+     ],
+     [
+      8,
+      -1
+     ]
+    ],
+    [
+     [
+      -6,
+      -8
+     ],
+     [
+      6,
+      2
+     ]
+    ],
+    [
+     [
+      -3,
+      -10
+     ],
+     [
+      3,
+      3
+     ]
+    ],
+    [
+     [
+      0,
+      -10
+     ],
+     [
+      0,
+      4
+     ]
+    ],
+    [
+     [
+      3,
+      -10
+     ],
+     [
+      -3,
+      3
+     ]
+    ],
+    [
+     [
+      6,
+      -8
+     ],
+     [
+      -6,
+      2
+     ]
+    ],
+    [
+     [
+      7,
+      -5
+     ],
+     [
+      -8,
+      -1
+     ]
+    ]
+   ],
+   "hubs_local": [
+    [
+     8.0,
+     0.0,
+     2.2
+    ],
+    [
+     -8.4,
+     0.0,
+     4.4
+    ]
+   ],
+   "ramp": [
+    [
+     -10,
+     0
+    ],
+    [
+     -9,
+     -4
+    ],
+    [
+     -7,
+     -7
+    ],
+    [
+     -4,
+     -9
+    ],
+    [
+     0,
+     -10
+    ],
+    [
+     4,
+     -9
+    ],
+    [
+     7,
+     -7
+    ],
+    [
+     9,
+     -4
+    ],
+    [
+     10,
+     0
+    ],
+    [
+     9,
+     4
+    ],
+    [
+     7,
+     7
+    ],
+    [
+     4,
+     9
+    ],
+    [
+     0,
+     10
+    ],
+    [
+     -4,
+     9
+    ],
+    [
+     -7,
+     7
+    ],
+    [
+     -9,
+     4
+    ]
+   ],
+   "note": "hubs [dir][2] -> [dx,dy] of the front / rear rotor hub (lift included); draw heli_tr_rotor centred on each hub AFTER the body: rear first, front on top; front frame = phase, rear frame = (6 - phase) % 6 (counter-rotating). Ramp = rear loading ramp (troops exit)."
+  },
+  "heli_tr_shadow": {
+   "x": 1707,
+   "y": 715,
+   "w": 21,
+   "h": 21,
+   "fw": 1,
+   "fd": 1,
+   "ax": 10,
+   "ay": 10,
+   "frames": 16,
+   "fps": 0,
+   "kind": "unit_shadow",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "shadow_of": "heli_tr_body",
+   "color": "rock_deep",
+   "note": "body only; rotor discs cast no shadow (as heli)"
+  },
+  "nuke_flame": {
+   "x": 1258,
+   "y": 1033,
+   "w": 16,
+   "h": 16,
+   "fw": 1,
+   "fd": 1,
+   "ax": 7,
+   "ay": 7,
+   "frames": 48,
+   "fps": 0,
+   "kind": "fx_dir",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "dirs": 16,
+   "states": 3,
+   "note": "exhaust flame of nuke_missile: draw at missile pos + nozzle[dir], frame = phase*16 + dir (cycle phases at ~15 fps); add the smoke trail from existing fx"
+  },
+  "silo_0": {
+   "x": 1370,
+   "y": 551,
+   "w": 26,
+   "h": 33,
+   "fw": 6,
+   "fd": 6,
+   "ax": 0,
+   "ay": 32,
+   "frames": 1,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "silo",
+   "door": [
+    12,
+    17
+   ],
+   "alias_of": "silo_door#0"
+  },
+  "silo_1": {
+   "x": 1396,
+   "y": 551,
+   "w": 26,
+   "h": 33,
+   "fw": 6,
+   "fd": 6,
+   "ax": 0,
+   "ay": 32,
+   "frames": 1,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "silo",
+   "door": [
+    12,
+    17
+   ],
+   "alias_of": "silo_door#1"
+  },
+  "silo_2": {
+   "x": 1422,
+   "y": 551,
+   "w": 26,
+   "h": 33,
+   "fw": 6,
+   "fd": 6,
+   "ax": 0,
+   "ay": 32,
+   "frames": 1,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "silo",
+   "door": [
+    12,
+    17
+   ],
+   "alias_of": "silo_door#2"
+  },
+  "silo_3": {
+   "x": 1448,
+   "y": 551,
+   "w": 26,
+   "h": 33,
+   "fw": 6,
+   "fd": 6,
+   "ax": 0,
+   "ay": 32,
+   "frames": 1,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "silo",
+   "door": [
+    12,
+    17
+   ],
+   "alias_of": "silo_door#3"
+  },
+  "silo_4": {
+   "x": 1474,
+   "y": 551,
+   "w": 26,
+   "h": 33,
+   "fw": 6,
+   "fd": 6,
+   "ax": 0,
+   "ay": 32,
+   "frames": 1,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "silo",
+   "door": [
+    12,
+    17
+   ],
+   "alias_of": "silo_door#4"
+  },
+  "silo_5": {
+   "x": 1500,
+   "y": 551,
+   "w": 26,
+   "h": 33,
+   "fw": 6,
+   "fd": 6,
+   "ax": 0,
+   "ay": 32,
+   "frames": 1,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "silo",
+   "door": [
+    12,
+    17
+   ],
+   "alias_of": "silo_door#5"
+  },
+  "para_trooper_0": {
+   "x": 1993,
+   "y": 287,
+   "w": 13,
+   "h": 15,
+   "fw": 1,
+   "fd": 1,
+   "ax": 6,
+   "ay": 15,
+   "frames": 1,
+   "fps": 0,
+   "kind": "fx",
+   "anchor": "feet",
+   "alias_of": "para_trooper#0"
+  },
+  "para_trooper_1": {
+   "x": 2006,
+   "y": 287,
+   "w": 13,
+   "h": 15,
+   "fw": 1,
+   "fd": 1,
+   "ax": 6,
+   "ay": 15,
+   "frames": 1,
+   "fps": 0,
+   "kind": "fx",
+   "anchor": "feet",
+   "alias_of": "para_trooper#1"
+  },
+  "para_trooper_2": {
+   "x": 2019,
+   "y": 287,
+   "w": 13,
+   "h": 15,
+   "fw": 1,
+   "fd": 1,
+   "ax": 6,
+   "ay": 15,
+   "frames": 1,
+   "fps": 0,
+   "kind": "fx",
+   "anchor": "feet",
+   "alias_of": "para_trooper#2"
+  },
+  "para_trooper_3": {
+   "x": 2032,
+   "y": 287,
+   "w": 13,
+   "h": 15,
+   "fw": 1,
+   "fd": 1,
+   "ax": 6,
+   "ay": 15,
+   "frames": 1,
+   "fps": 0,
+   "kind": "fx",
+   "anchor": "feet",
+   "alias_of": "para_trooper#3"
+  },
+  "abm_radar_0": {
+   "x": 1694,
+   "y": 345,
+   "w": 41,
+   "h": 47,
+   "fw": 10,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "abm_site",
+   "radar": [
+    28,
+    20
+   ],
+   "alias_of": "abm_radar#0"
+  },
+  "abm_radar_1": {
+   "x": 1735,
+   "y": 345,
+   "w": 41,
+   "h": 47,
+   "fw": 10,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "abm_site",
+   "radar": [
+    28,
+    20
+   ],
+   "alias_of": "abm_radar#1"
+  },
+  "abm_radar_2": {
+   "x": 1776,
+   "y": 345,
+   "w": 41,
+   "h": 47,
+   "fw": 10,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "abm_site",
+   "radar": [
+    28,
+    20
+   ],
+   "alias_of": "abm_radar#2"
+  },
+  "abm_radar_3": {
+   "x": 1817,
+   "y": 345,
+   "w": 41,
+   "h": 47,
+   "fw": 10,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "abm_site",
+   "radar": [
+    28,
+    20
+   ],
+   "alias_of": "abm_radar#3"
+  },
+  "abm_radar_4": {
+   "x": 1858,
+   "y": 345,
+   "w": 41,
+   "h": 47,
+   "fw": 10,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "abm_site",
+   "radar": [
+    28,
+    20
+   ],
+   "alias_of": "abm_radar#4"
+  },
+  "abm_radar_5": {
+   "x": 1899,
+   "y": 345,
+   "w": 41,
+   "h": 47,
+   "fw": 10,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "abm_site",
+   "radar": [
+    28,
+    20
+   ],
+   "alias_of": "abm_radar#5"
+  },
+  "abm_radar_6": {
+   "x": 1940,
+   "y": 345,
+   "w": 41,
+   "h": 47,
+   "fw": 10,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "abm_site",
+   "radar": [
+    28,
+    20
+   ],
+   "alias_of": "abm_radar#6"
+  },
+  "abm_radar_7": {
+   "x": 1981,
+   "y": 345,
+   "w": 41,
+   "h": 47,
+   "fw": 10,
+   "fd": 8,
+   "ax": 0,
+   "ay": 46,
+   "frames": 1,
+   "fps": 0,
+   "kind": "overlay",
+   "of": "abm_site",
+   "radar": [
+    28,
+    20
+   ],
+   "alias_of": "abm_radar#7"
+  },
+  "carrier": {
+   "x": 1,
+   "y": 1,
+   "w": 171,
+   "h": 171,
+   "fw": 0,
+   "fd": 0,
+   "ax": 85,
+   "ay": 85,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "dirs": 16,
+   "length_px": 153.6,
+   "deck_z": 4.0,
+   "angled_deck_deg": -9.0,
+   "bow": [
+    [
+     77,
+     0
+    ],
+    [
+     71,
+     29
+    ],
+    [
+     54,
+     54
+    ],
+    [
+     29,
+     71
+    ],
+    [
+     0,
+     77
+    ],
+    [
+     -29,
+     71
+    ],
+    [
+     -54,
+     54
+    ],
+    [
+     -71,
+     29
+    ],
+    [
+     -77,
+     0
+    ],
+    [
+     -71,
+     -29
+    ],
+    [
+     -54,
+     -54
+    ],
+    [
+     -29,
+     -71
+    ],
+    [
+     0,
+     -77
+    ],
+    [
+     29,
+     -71
+    ],
+    [
+     54,
+     -54
+    ],
+    [
+     71,
+     -29
+    ]
+   ],
+   "stern": [
+    [
+     -77,
+     0
+    ],
+    [
+     -71,
+     -29
+    ],
+    [
+     -54,
+     -54
+    ],
+    [
+     -29,
+     -71
+    ],
+    [
+     0,
+     -77
+    ],
+    [
+     29,
+     -71
+    ],
+    [
+     54,
+     -54
+    ],
+    [
+     71,
+     -29
+    ],
+    [
+     77,
+     0
+    ],
+    [
+     71,
+     29
+    ],
+    [
+     54,
+     54
+    ],
+    [
+     29,
+     71
+    ],
+    [
+     0,
+     77
+    ],
+    [
+     -29,
+     71
+    ],
+    [
+     -54,
+     54
+    ],
+    [
+     -71,
+     29
+    ]
+   ],
+   "slots": [
+    [
+     [
+      62,
+      8
+     ],
+     [
+      59,
+      -14
+     ],
+     [
+      -70,
+      8
+     ],
+     [
+      -66,
+      -17
+     ]
+    ],
+    [
+     [
+      53,
+      31
+     ],
+     [
+      58,
+      9
+     ],
+     [
+      -69,
+      -19
+     ],
+     [
+      -56,
+      -41
+     ]
+    ],
+    [
+     [
+      36,
+      48
+     ],
+     [
+      49,
+      31
+     ],
+     [
+      -58,
+      -45
+     ],
+     [
+      -37,
+      -60
+     ]
+    ],
+    [
+     [
+      13,
+      58
+     ],
+     [
+      32,
+      47
+     ],
+     [
+      -38,
+      -64
+     ],
+     [
+      -13,
+      -70
+     ]
+    ],
+    [
+     [
+      -12,
+      58
+     ],
+     [
+      10,
+      55
+     ],
+     [
+      -12,
+      -74
+     ],
+     [
+      13,
+      -70
+     ]
+    ],
+    [
+     [
+      -35,
+      49
+     ],
+     [
+      -13,
+      54
+     ],
+     [
+      15,
+      -73
+     ],
+     [
+      37,
+      -60
+     ]
+    ],
+    [
+     [
+      -52,
+      32
+     ],
+     [
+      -35,
+      45
+     ],
+     [
+      41,
+      -62
+     ],
+     [
+      56,
+      -41
+     ]
+    ],
+    [
+     [
+      -62,
+      9
+     ],
+     [
+      -51,
+      28
+     ],
+     [
+      60,
+      -42
+     ],
+     [
+      66,
+      -17
+     ]
+    ],
+    [
+     [
+      -62,
+      -16
+     ],
+     [
+      -59,
+      6
+     ],
+     [
+      70,
+      -16
+     ],
+     [
+      66,
+      9
+     ]
+    ],
+    [
+     [
+      -53,
+      -39
+     ],
+     [
+      -58,
+      -17
+     ],
+     [
+      69,
+      11
+     ],
+     [
+      56,
+      33
+     ]
+    ],
+    [
+     [
+      -36,
+      -56
+     ],
+     [
+      -49,
+      -39
+     ],
+     [
+      58,
+      37
+     ],
+     [
+      37,
+      52
+     ]
+    ],
+    [
+     [
+      -13,
+      -66
+     ],
+     [
+      -32,
+      -55
+     ],
+     [
+      38,
+      56
+     ],
+     [
+      13,
+      62
+     ]
+    ],
+    [
+     [
+      12,
+      -66
+     ],
+     [
+      -10,
+      -63
+     ],
+     [
+      12,
+      66
+     ],
+     [
+      -13,
+      62
+     ]
+    ],
+    [
+     [
+      35,
+      -57
+     ],
+     [
+      13,
+      -62
+     ],
+     [
+      -15,
+      65
+     ],
+     [
+      -37,
+      52
+     ]
+    ],
+    [
+     [
+      52,
+      -40
+     ],
+     [
+      35,
+      -53
+     ],
+     [
+      -41,
+      54
+     ],
+     [
+      -56,
+      33
+     ]
+    ],
+    [
+     [
+      62,
+      -17
+     ],
+     [
+      51,
+      -36
+     ],
+     [
+      -60,
+      34
+     ],
+     [
+      -66,
+      9
+     ]
+    ]
+   ],
+   "slots_local": [
+    [
+     62.4,
+     11.84,
+     4.0
+    ],
+    [
+     59.2,
+     -9.92,
+     4.0
+    ],
+    [
+     -69.6,
+     12.16,
+     4.0
+    ],
+    [
+     -65.6,
+     -13.12,
+     4.0
+    ]
+   ],
+   "cats": [
+    [
+     [
+      31,
+      -8,
+      75,
+      -8
+     ],
+     [
+      31,
+      0,
+      75,
+      0
+     ],
+     [
+      -47,
+      -12,
+      -20,
+      -16
+     ],
+     [
+      -47,
+      -15,
+      -24,
+      -19
+     ]
+    ],
+    [
+     [
+      31,
+      4,
+      71,
+      20
+     ],
+     [
+      27,
+      12,
+      67,
+      29
+     ],
+     [
+      -40,
+      -29,
+      -14,
+      -23
+     ],
+     [
+      -39,
+      -33,
+      -16,
+      -27
+     ]
+    ],
+    [
+     [
+      25,
+      15,
+      56,
+      46
+     ],
+     [
+      19,
+      21,
+      50,
+      52
+     ],
+     [
+      -28,
+      -43,
+      -6,
+      -27
+     ],
+     [
+      -26,
+      -46,
+      -6,
+      -31
+     ]
+    ],
+    [
+     [
+      16,
+      23,
+      33,
+      63
+     ],
+     [
+      8,
+      27,
+      24,
+      67
+     ],
+     [
+      -11,
+      -50,
+      3,
+      -27
+     ],
+     [
+      -8,
+      -52,
+      5,
+      -32
+     ]
+    ],
+    [
+     [
+      4,
+      27,
+      4,
+      71
+     ],
+     [
+      -4,
+      27,
+      -4,
+      71
+     ],
+     [
+      8,
+      -51,
+      12,
+      -24
+     ],
+     [
+      11,
+      -51,
+      15,
+      -28
+     ]
+    ],
+    [
+     [
+      -8,
+      27,
+      -24,
+      67
+     ],
+     [
+      -16,
+      23,
+      -33,
+      63
+     ],
+     [
+      25,
+      -44,
+      19,
+      -18
+     ],
+     [
+      29,
+      -43,
+      23,
+      -20
+     ]
+    ],
+    [
+     [
+      -19,
+      21,
+      -50,
+      52
+     ],
+     [
+      -25,
+      15,
+      -56,
+      46
+     ],
+     [
+      39,
+      -32,
+      23,
+      -10
+     ],
+     [
+      42,
+      -30,
+      27,
+      -10
+     ]
+    ],
+    [
+     [
+      -27,
+      12,
+      -67,
+      29
+     ],
+     [
+      -31,
+      4,
+      -71,
+      20
+     ],
+     [
+      46,
+      -15,
+      23,
+      -1
+     ],
+     [
+      48,
+      -12,
+      28,
+      1
+     ]
+    ],
+    [
+     [
+      -31,
+      0,
+      -75,
+      0
+     ],
+     [
+      -31,
+      -8,
+      -75,
+      -8
+     ],
+     [
+      47,
+      4,
+      20,
+      8
+     ],
+     [
+      47,
+      7,
+      24,
+      11
+     ]
+    ],
+    [
+     [
+      -31,
+      -12,
+      -71,
+      -28
+     ],
+     [
+      -27,
+      -20,
+      -67,
+      -37
+     ],
+     [
+      40,
+      21,
+      14,
+      15
+     ],
+     [
+      39,
+      25,
+      16,
+      19
+     ]
+    ],
+    [
+     [
+      -25,
+      -23,
+      -56,
+      -54
+     ],
+     [
+      -19,
+      -29,
+      -50,
+      -60
+     ],
+     [
+      28,
+      35,
+      6,
+      19
+     ],
+     [
+      26,
+      38,
+      6,
+      23
+     ]
+    ],
+    [
+     [
+      -16,
+      -31,
+      -33,
+      -71
+     ],
+     [
+      -8,
+      -35,
+      -24,
+      -75
+     ],
+     [
+      11,
+      42,
+      -3,
+      19
+     ],
+     [
+      8,
+      44,
+      -5,
+      24
+     ]
+    ],
+    [
+     [
+      -4,
+      -35,
+      -4,
+      -79
+     ],
+     [
+      4,
+      -35,
+      4,
+      -79
+     ],
+     [
+      -8,
+      43,
+      -12,
+      16
+     ],
+     [
+      -11,
+      43,
+      -15,
+      20
+     ]
+    ],
+    [
+     [
+      8,
+      -35,
+      24,
+      -75
+     ],
+     [
+      16,
+      -31,
+      33,
+      -71
+     ],
+     [
+      -25,
+      36,
+      -19,
+      10
+     ],
+     [
+      -29,
+      35,
+      -23,
+      12
+     ]
+    ],
+    [
+     [
+      19,
+      -29,
+      50,
+      -60
+     ],
+     [
+      25,
+      -23,
+      56,
+      -54
+     ],
+     [
+      -39,
+      24,
+      -23,
+      2
+     ],
+     [
+      -42,
+      22,
+      -27,
+      2
+     ]
+    ],
+    [
+     [
+      27,
+      -20,
+      67,
+      -37
+     ],
+     [
+      31,
+      -12,
+      71,
+      -28
+     ],
+     [
+      -46,
+      7,
+      -23,
+      -7
+     ],
+     [
+      -48,
+      4,
+      -28,
+      -9
+     ]
+    ]
+   ],
+   "cats_local": [
+    [
+     31.2,
+     -4.48,
+     74.56,
+     -4.48
+    ],
+    [
+     31.2,
+     4.48,
+     74.56,
+     4.48
+    ],
+    [
+     -46.84,
+     -7.75,
+     -20.17,
+     -11.98
+    ],
+    [
+     -47.4,
+     -11.31,
+     -23.7,
+     -15.06
+    ]
+   ],
+   "land": [
+    [
+     [
+      -89,
+      -9
+     ],
+     [
+      -74,
+      -6
+     ],
+     [
+      -64,
+      -7
+     ],
+     [
+      -46,
+      -10
+     ],
+     [
+      6,
+      -18
+     ]
+    ],
+    [
+     [
+      -83,
+      -43
+     ],
+     [
+      -68,
+      -34
+     ],
+     [
+      -58,
+      -31
+     ],
+     [
+      -40,
+      -27
+     ],
+     [
+      11,
+      -15
+     ]
+    ],
+    [
+     [
+      -63,
+      -72
+     ],
+     [
+      -51,
+      -58
+     ],
+     [
+      -43,
+      -51
+     ],
+     [
+      -28,
+      -41
+     ],
+     [
+      15,
+      -10
+     ]
+    ],
+    [
+     [
+      -35,
+      -92
+     ],
+     [
+      -27,
+      -73
+     ],
+     [
+      -21,
+      -64
+     ],
+     [
+      -12,
+      -48
+     ],
+     [
+      16,
+      -4
+     ]
+    ],
+    [
+     [
+      -1,
+      -99
+     ],
+     [
+      2,
+      -78
+     ],
+     [
+      3,
+      -68
+     ],
+     [
+      6,
+      -50
+     ],
+     [
+      14,
+      2
+     ]
+    ],
+    [
+     [
+      33,
+      -93
+     ],
+     [
+      30,
+      -72
+     ],
+     [
+      27,
+      -62
+     ],
+     [
+      23,
+      -44
+     ],
+     [
+      11,
+      7
+     ]
+    ],
+    [
+     [
+      62,
+      -73
+     ],
+     [
+      54,
+      -55
+     ],
+     [
+      47,
+      -47
+     ],
+     [
+      37,
+      -32
+     ],
+     [
+      6,
+      11
+     ]
+    ],
+    [
+     [
+      82,
+      -45
+     ],
+     [
+      69,
+      -31
+     ],
+     [
+      60,
+      -25
+     ],
+     [
+      44,
+      -16
+     ],
+     [
+      0,
+      12
+     ]
+    ],
+    [
+     [
+      89,
+      -11
+     ],
+     [
+      74,
+      -2
+     ],
+     [
+      64,
+      -1
+     ],
+     [
+      46,
+      2
+     ],
+     [
+      -6,
+      10
+     ]
+    ],
+    [
+     [
+      83,
+      23
+     ],
+     [
+      68,
+      26
+     ],
+     [
+      58,
+      23
+     ],
+     [
+      40,
+      19
+     ],
+     [
+      -11,
+      7
+     ]
+    ],
+    [
+     [
+      63,
+      52
+     ],
+     [
+      51,
+      50
+     ],
+     [
+      43,
+      43
+     ],
+     [
+      28,
+      33
+     ],
+     [
+      -15,
+      2
+     ]
+    ],
+    [
+     [
+      35,
+      72
+     ],
+     [
+      27,
+      65
+     ],
+     [
+      21,
+      56
+     ],
+     [
+      12,
+      40
+     ],
+     [
+      -16,
+      -4
+     ]
+    ],
+    [
+     [
+      1,
+      79
+     ],
+     [
+      -2,
+      70
+     ],
+     [
+      -3,
+      60
+     ],
+     [
+      -6,
+      42
+     ],
+     [
+      -14,
+      -10
+     ]
+    ],
+    [
+     [
+      -33,
+      73
+     ],
+     [
+      -30,
+      64
+     ],
+     [
+      -27,
+      54
+     ],
+     [
+      -23,
+      36
+     ],
+     [
+      -11,
+      -15
+     ]
+    ],
+    [
+     [
+      -62,
+      53
+     ],
+     [
+      -54,
+      47
+     ],
+     [
+      -47,
+      39
+     ],
+     [
+      -37,
+      24
+     ],
+     [
+      -6,
+      -19
+     ]
+    ],
+    [
+     [
+      -82,
+      25
+     ],
+     [
+      -69,
+      23
+     ],
+     [
+      -60,
+      17
+     ],
+     [
+      -44,
+      8
+     ],
+     [
+      0,
+      -20
+     ]
+    ]
+   ],
+   "land_local": [
+    [
+     -89.03,
+     0.75,
+     10.0
+    ],
+    [
+     -74.21,
+     -1.6,
+     4.0
+    ],
+    [
+     -63.84,
+     -3.24,
+     4.0
+    ],
+    [
+     -45.57,
+     -6.13,
+     4.0
+    ],
+    [
+     6.19,
+     -14.33,
+     4.0
+    ]
+   ],
+   "spots": [
+    [
+     [
+      63,
+      3
+     ],
+     [
+      38,
+      3
+     ],
+     [
+      48,
+      -10
+     ],
+     [
+      -38,
+      4
+     ],
+     [
+      -64,
+      4
+     ],
+     [
+      10,
+      1
+     ]
+    ],
+    [
+     [
+      56,
+      27
+     ],
+     [
+      32,
+      17
+     ],
+     [
+      47,
+      9
+     ],
+     [
+      -38,
+      -11
+     ],
+     [
+      -62,
+      -21
+     ],
+     [
+      7,
+      4
+     ]
+    ],
+    [
+     [
+      40,
+      45
+     ],
+     [
+      22,
+      28
+     ],
+     [
+      38,
+      26
+     ],
+     [
+      -33,
+      -25
+     ],
+     [
+      -51,
+      -44
+     ],
+     [
+      4,
+      7
+     ]
+    ],
+    [
+     [
+      18,
+      57
+     ],
+     [
+      8,
+      34
+     ],
+     [
+      24,
+      38
+     ],
+     [
+      -22,
+      -36
+     ],
+     [
+      -32,
+      -60
+     ],
+     [
+      -1,
+      7
+     ]
+    ],
+    [
+     [
+      -7,
+      59
+     ],
+     [
+      -7,
+      34
+     ],
+     [
+      6,
+      44
+     ],
+     [
+      -8,
+      -42
+     ],
+     [
+      -8,
+      -68
+     ],
+     [
+      -5,
+      6
+     ]
+    ],
+    [
+     [
+      -31,
+      52
+     ],
+     [
+      -21,
+      28
+     ],
+     [
+      -13,
+      43
+     ],
+     [
+      7,
+      -42
+     ],
+     [
+      17,
+      -66
+     ],
+     [
+      -8,
+      3
+     ]
+    ],
+    [
+     [
+      -49,
+      36
+     ],
+     [
+      -32,
+      18
+     ],
+     [
+      -30,
+      34
+     ],
+     [
+      21,
+      -37
+     ],
+     [
+      40,
+      -55
+     ],
+     [
+      -11,
+      0
+     ]
+    ],
+    [
+     [
+      -61,
+      14
+     ],
+     [
+      -38,
+      4
+     ],
+     [
+      -42,
+      20
+     ],
+     [
+      32,
+      -26
+     ],
+     [
+      56,
+      -36
+     ],
+     [
+      -11,
+      -5
+     ]
+    ],
+    [
+     [
+      -63,
+      -11
+     ],
+     [
+      -38,
+      -11
+     ],
+     [
+      -48,
+      2
+     ],
+     [
+      38,
+      -12
+     ],
+     [
+      64,
+      -12
+     ],
+     [
+      -10,
+      -9
+     ]
+    ],
+    [
+     [
+      -56,
+      -35
+     ],
+     [
+      -32,
+      -25
+     ],
+     [
+      -47,
+      -17
+     ],
+     [
+      38,
+      3
+     ],
+     [
+      62,
+      13
+     ],
+     [
+      -7,
+      -12
+     ]
+    ],
+    [
+     [
+      -40,
+      -53
+     ],
+     [
+      -22,
+      -36
+     ],
+     [
+      -38,
+      -34
+     ],
+     [
+      33,
+      17
+     ],
+     [
+      51,
+      36
+     ],
+     [
+      -4,
+      -15
+     ]
+    ],
+    [
+     [
+      -18,
+      -65
+     ],
+     [
+      -8,
+      -42
+     ],
+     [
+      -24,
+      -46
+     ],
+     [
+      22,
+      28
+     ],
+     [
+      32,
+      52
+     ],
+     [
+      1,
+      -15
+     ]
+    ],
+    [
+     [
+      7,
+      -67
+     ],
+     [
+      7,
+      -42
+     ],
+     [
+      -6,
+      -52
+     ],
+     [
+      8,
+      34
+     ],
+     [
+      8,
+      60
+     ],
+     [
+      5,
+      -14
+     ]
+    ],
+    [
+     [
+      31,
+      -60
+     ],
+     [
+      21,
+      -36
+     ],
+     [
+      13,
+      -51
+     ],
+     [
+      -7,
+      34
+     ],
+     [
+      -17,
+      58
+     ],
+     [
+      8,
+      -11
+     ]
+    ],
+    [
+     [
+      49,
+      -44
+     ],
+     [
+      32,
+      -26
+     ],
+     [
+      30,
+      -42
+     ],
+     [
+      -21,
+      29
+     ],
+     [
+      -40,
+      47
+     ],
+     [
+      11,
+      -8
+     ]
+    ],
+    [
+     [
+      61,
+      -22
+     ],
+     [
+      38,
+      -12
+     ],
+     [
+      42,
+      -28
+     ],
+     [
+      -32,
+      18
+     ],
+     [
+      -56,
+      28
+     ],
+     [
+      11,
+      -3
+     ]
+    ]
+   ],
+   "spots_local": [
+    [
+     63.0,
+     7.0,
+     4.0,
+     0.0
+    ],
+    [
+     38.0,
+     7.0,
+     4.0,
+     0.0
+    ],
+    [
+     48.0,
+     -6.0,
+     4.0,
+     0.0
+    ],
+    [
+     -38.0,
+     8.0,
+     4.0,
+     -180.0
+    ],
+    [
+     -64.0,
+     8.0,
+     4.0,
+     -180.0
+    ],
+    [
+     10.0,
+     5.0,
+     4.0,
+     -157.5
+    ]
+   ],
+   "elevators": [
+    [
+     [
+      22,
+      14
+     ],
+     [
+      6,
+      14
+     ],
+     [
+      -32,
+      14
+     ],
+     [
+      -44,
+      -24
+     ]
+    ],
+    [
+     [
+      13,
+      21
+     ],
+     [
+      -1,
+      15
+     ],
+     [
+      -36,
+      0
+     ],
+     [
+      -33,
+      -40
+     ]
+    ],
+    [
+     [
+      3,
+      24
+     ],
+     [
+      -8,
+      13
+     ],
+     [
+      -35,
+      -14
+     ],
+     [
+      -17,
+      -50
+     ]
+    ],
+    [
+     [
+      -8,
+      23
+     ],
+     [
+      -14,
+      9
+     ],
+     [
+      -29,
+      -27
+     ],
+     [
+      2,
+      -53
+     ]
+    ],
+    [
+     [
+      -18,
+      18
+     ],
+     [
+      -18,
+      2
+     ],
+     [
+      -18,
+      -36
+     ],
+     [
+      20,
+      -48
+     ]
+    ],
+    [
+     [
+      -25,
+      9
+     ],
+     [
+      -19,
+      -5
+     ],
+     [
+      -4,
+      -40
+     ],
+     [
+      36,
+      -37
+     ]
+    ],
+    [
+     [
+      -28,
+      -1
+     ],
+     [
+      -17,
+      -12
+     ],
+     [
+      10,
+      -39
+     ],
+     [
+      46,
+      -21
+     ]
+    ],
+    [
+     [
+      -27,
+      -12
+     ],
+     [
+      -13,
+      -18
+     ],
+     [
+      23,
+      -33
+     ],
+     [
+      49,
+      -2
+     ]
+    ],
+    [
+     [
+      -22,
+      -22
+     ],
+     [
+      -6,
+      -22
+     ],
+     [
+      32,
+      -22
+     ],
+     [
+      44,
+      16
+     ]
+    ],
+    [
+     [
+      -13,
+      -29
+     ],
+     [
+      1,
+      -23
+     ],
+     [
+      36,
+      -8
+     ],
+     [
+      33,
+      32
+     ]
+    ],
+    [
+     [
+      -3,
+      -32
+     ],
+     [
+      8,
+      -21
+     ],
+     [
+      35,
+      6
+     ],
+     [
+      17,
+      42
+     ]
+    ],
+    [
+     [
+      8,
+      -31
+     ],
+     [
+      14,
+      -17
+     ],
+     [
+      29,
+      19
+     ],
+     [
+      -2,
+      45
+     ]
+    ],
+    [
+     [
+      18,
+      -26
+     ],
+     [
+      18,
+      -10
+     ],
+     [
+      18,
+      28
+     ],
+     [
+      -20,
+      40
+     ]
+    ],
+    [
+     [
+      25,
+      -17
+     ],
+     [
+      19,
+      -3
+     ],
+     [
+      4,
+      32
+     ],
+     [
+      -36,
+      29
+     ]
+    ],
+    [
+     [
+      28,
+      -7
+     ],
+     [
+      17,
+      4
+     ],
+     [
+      -10,
+      31
+     ],
+     [
+      -46,
+      13
+     ]
+    ],
+    [
+     [
+      27,
+      4
+     ],
+     [
+      13,
+      10
+     ],
+     [
+      -23,
+      25
+     ],
+     [
+      -49,
+      -6
+     ]
+    ]
+   ],
+   "island": [
+    [
+     -13,
+     1
+    ],
+    [
+     -16,
+     -5
+    ],
+    [
+     -18,
+     -12
+    ],
+    [
+     -16,
+     -19
+    ],
+    [
+     -12,
+     -24
+    ],
+    [
+     -6,
+     -28
+    ],
+    [
+     0,
+     -29
+    ],
+    [
+     7,
+     -28
+    ],
+    [
+     13,
+     -24
+    ],
+    [
+     16,
+     -18
+    ],
+    [
+     18,
+     -11
+    ],
+    [
+     16,
+     -4
+    ],
+    [
+     12,
+     1
+    ],
+    [
+     6,
+     5
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     -7,
+     5
+    ]
+   ],
+   "note": "16 dirs, nose right at frame 0. Draw order: carrier_wake (at stern), carrier, deck aircraft, carrier_island (same anchor/frame: re-draws the island over parked/taxiing aircraft). Per-dir px offsets from the anchor (3/4 lift included): bow/stern [dir]->[dx,dy]; slots [dir][4] AD module mounts (navy mod_* 9x9 centred, as ship slots); cats [dir][4] -> [x0,y0,x1,y1] catapult launch-start (aircraft sits here) -> deck-edge end, cats 0/1 bow (port/stbd), 2/3 waist (on the angled deck); land [dir][5] -> approach point 14 px astern+6 px up, round-down (touchdown start), wires (hook catches), roll-out stop, angled-deck forward end (bolter take-off); spots [dir][6] parking centres (0-2 bow starboard row, 3-4 aft of the island along the deck, 5 forward of the island), spots_local[i][3] = parked heading relative to the bow (deg clockwise, add to ship heading); elevators [dir][4]; island = mast base. *_local = [u fwd, v stbd, z] in px for your own maths (rotate by heading, y -= z).",
+   "frames": 8,
+   "split": [
+    "carrier_a",
+    "carrier_b"
+   ],
+   "split_note": "STUB: 16-dir keys live here; pixels are in carrier_a (dirs 0..7) and carrier_b (dirs 8..15): draw <name>_a frame d for d < 8, else <name>_b frame d - 8. x/y/w/h/frames here = strip _a (so old code drawing frames 0..7 still works)"
+  },
+  "carrier_island": {
+   "x": 1699,
+   "y": 1,
+   "w": 40,
+   "h": 51,
+   "fw": 0,
+   "fd": 0,
+   "ax": 24,
+   "ay": 39,
+   "fps": 0,
+   "kind": "unit_overlay",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "of": "carrier",
+   "dirs": 16,
+   "note": "island + masts only, pixel-identical to carrier; draw after deck aircraft",
+   "frames": 8,
+   "split": [
+    "carrier_island_a",
+    "carrier_island_b"
+   ],
+   "split_note": "STUB: 16-dir keys live here; pixels are in carrier_island_a (dirs 0..7) and carrier_island_b (dirs 8..15): draw <name>_a frame d for d < 8, else <name>_b frame d - 8. x/y/w/h/frames here = strip _a (so old code drawing frames 0..7 still works)"
+  },
+  "carrier_shadow": {
+   "x": 1,
+   "y": 345,
+   "w": 171,
+   "h": 171,
+   "fw": 0,
+   "fd": 0,
+   "ax": 85,
+   "ay": 85,
+   "fps": 0,
+   "kind": "unit_shadow",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "shadow_of": "carrier",
+   "color": "rock_deep",
+   "dirs": 16,
+   "frames": 8,
+   "split": [
+    "carrier_shadow_a",
+    "carrier_shadow_b"
+   ],
+   "split_note": "STUB: 16-dir keys live here; pixels are in carrier_shadow_a (dirs 0..7) and carrier_shadow_b (dirs 8..15): draw <name>_a frame d for d < 8, else <name>_b frame d - 8. x/y/w/h/frames here = strip _a (so old code drawing frames 0..7 still works)"
+  },
+  "carrier_dmg": {
+   "x": 1,
+   "y": 689,
+   "w": 171,
+   "h": 171,
+   "fw": 0,
+   "fd": 0,
+   "ax": 85,
+   "ay": 85,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "dir_step_deg": 22.5,
+   "clockwise": true,
+   "of": "carrier",
+   "dirs": 16,
+   "note": "heavily damaged (< ~40 % hp): scorched deck, holes, fires + smoke, broken mast; same anchors as carrier; no carrier_island overlay needed",
+   "frames": 8,
+   "split": [
+    "carrier_dmg_a",
+    "carrier_dmg_b"
+   ],
+   "split_note": "STUB: 16-dir keys live here; pixels are in carrier_dmg_a (dirs 0..7) and carrier_dmg_b (dirs 8..15): draw <name>_a frame d for d < 8, else <name>_b frame d - 8. x/y/w/h/frames here = strip _a (so old code drawing frames 0..7 still works)"
+  }
+ }
+}

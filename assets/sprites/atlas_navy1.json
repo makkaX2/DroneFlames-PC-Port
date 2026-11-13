@@ -2644,6 +2644,51 @@
    "fps": 0,
    "kind": "unit_icon",
    "size": 16
+  },
+  "ship_carrier_tile": {
+   "x": 596,
+   "y": 1,
+   "w": 64,
+   "h": 32,
+   "fw": 0,
+   "fd": 0,
+   "ax": 32,
+   "ay": 16,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit",
+   "anchor": "center",
+   "dir0": "east",
+   "hull": "carrier",
+   "length_px": 60,
+   "gen": "gen_r390_icons.py"
+  },
+  "ship_carrier_tile_shadow": {
+   "x": 662,
+   "y": 1,
+   "w": 64,
+   "h": 32,
+   "fw": 0,
+   "fd": 0,
+   "ax": 32,
+   "ay": 16,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit_shadow"
+  },
+  "icon_mod_wing": {
+   "x": 728,
+   "y": 1,
+   "w": 24,
+   "h": 24,
+   "fw": 0,
+   "fd": 0,
+   "ax": 0,
+   "ay": 0,
+   "frames": 1,
+   "fps": 0,
+   "kind": "unit_icon",
+   "size": 24
   }
  }
 }

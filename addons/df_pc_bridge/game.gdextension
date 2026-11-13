@@ -1,0 +1,7 @@
+[configuration]
+entry_symbol="df_pc_game_init"
+compatibility_minimum="4.7.2"
+reloadable=false
+[libraries]
+windows.debug.x86_64="res://addons/df_pc_bridge/bin/df_game_pc_bridge.dll"
+windows.release.x86_64="res://addons/df_pc_bridge/bin/df_game_pc_bridge.dll"

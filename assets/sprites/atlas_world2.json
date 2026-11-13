@@ -167,7 +167,8 @@
    "frames": 1,
    "fps": 0,
    "kind": "building",
-   "shadow": "rock_deep"
+   "shadow": "rock_deep",
+   "r389_soft": true
   },
   "airfield_hangar_ruin": {
    "x": 72,
@@ -196,7 +197,8 @@
    "frames": 1,
    "fps": 0,
    "kind": "building",
-   "shadow": "rock_deep"
+   "shadow": "rock_deep",
+   "r389_soft": true
   },
   "airfield_tower_ruin": {
    "x": 147,
@@ -312,7 +314,8 @@
    "frames": 1,
    "fps": 0,
    "kind": "ground",
-   "height": 0
+   "height": 0,
+   "r389_soft": true
   },
   "uav_delta": {
    "x": 1,

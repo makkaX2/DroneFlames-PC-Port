@@ -28,10 +28,109 @@ uniform vec4 outline_col : source_color = vec4(0.043, 0.078, 0.188, 1.0);
 uniform vec4 war_col : source_color = vec4(0.91, 0.25, 0.165, 1.0);
 uniform vec4 sea_out : source_color = vec4(0.055, 0.094, 0.188, 1.0);
 
+// R387: the season (owner: «на стратегической карте не видно время года, там простое лето»). The same formulas and
+// textures as the terrain (season_common: climate, fbm, accumulated snow, phase — pushed by StratLayer::_season_sync from
+// TerrainView.season_mat) + spal: 64 x 8, x = palette index, y = LUT row (1 LATE .. 6 SPRING, 7 SNOW), alpha 0 = keep.
+// Decided per terrain texel (its centre cell): crisp and stable when the camera moves, like the index map itself.
+#include "res://world/season_common.gdshaderinc"
+uniform int season_on = 0;
+uniform sampler2D spal : filter_nearest, repeat_disable;
+
 varying vec2 wpos;
 
 void vertex() {
 	wpos = VERTEX;
+}
+
+// = season_terrain.gdshader season_land(): the LUT row pair by T (+ patches), then the accumulated snow
+vec3 strat_season_land(int idx, ivec2 cell, vec3 src) {
+	int cls = idx >> 2;
+	int tone = idx & 3;
+	vec2 clim = season_clim_at(cell);
+	float phi = season_phi;
+	float T = season_T(phi, clim.x);
+	bool warm = season_warm_at(cell, phi);
+	int ra = 0;
+	int rb = 0;
+	float f = 0.0;
+	if (!warm) {
+		if (T >= 0.80) { ra = 0; rb = 0; }
+		else if (T >= 0.68) { ra = 0; rb = 1; f = (0.80 - T) / 0.12; }
+		else if (T >= 0.58) { ra = 1; rb = 2; f = (0.68 - T) / 0.10; }
+		else if (T >= 0.46) { ra = 2; rb = 3; f = (0.58 - T) / 0.12; }
+		else if (T >= 0.34) { ra = 3; rb = 4; f = (0.46 - T) / 0.12; }
+		else { ra = 4; rb = 4; }
+	} else {
+		if (T <= 0.22) { ra = 4; rb = 4; }
+		else if (T <= 0.32) { ra = 4; rb = 5; f = (T - 0.22) / 0.10; }
+		else if (T <= 0.48) { ra = 5; rb = 6; f = (T - 0.32) / 0.16; }
+		else if (T <= 0.62) { ra = 6; rb = 0; f = (T - 0.48) / 0.14; }
+		else { ra = 0; rb = 0; }
+	}
+	int row = (season_row_q(cell, clim.y) >= f) ? ra : rb;
+	vec3 col = src;
+	if (row != 0) {
+		vec4 l = texelFetch(spal, ivec2(idx, row), 0);
+		if (l.a > 0.5) {
+			col = l.rgb;
+		}
+	}
+	float sk = cls == 8 ? 0.7 : (cls == 13 ? 0.6 : (cls == 15 ? 0.6 : 1.0)); // pine canopy, towns, scars: patchy
+	float cover = season_snow_at(cell) * sk;
+	if (cover > 0.0) {
+		vec4 s = texelFetch(spal, ivec2(idx, 7), 0);
+		if (s.a > 0.5) {
+			float tb = tone == 3 ? 0.0 : (float(tone) + 1.0) / 3.0; // shade order: lip, 0, 1, 2
+			tb = tb + (1.0 - 2.0 * tb) * season_flip_g(phi);
+			float q = season_snow_q(cell, clim.y, tb);
+			col = mix(col, s.rgb, clamp((cover - q) / 0.06 + 0.5, 0.0, 1.0));
+		}
+	}
+	return col;
+}
+
+// = season_water.gdshaderinc, simplified to the strat classes: rivers, lakes and the coastal shallows freeze by T_lag
+// (+ ragged noise), snow on thick ice, spring ice drift (dark leads) where it froze; the open sea never freezes.
+vec3 strat_season_water(int idx, ivec2 cell, vec3 src) {
+	int cls = idx >> 2;
+	int tone = idx & 3;
+	float thr = -10.0;
+	if (cls == 4) {
+		thr = 0.12; // river (1-2 cells: edge 0.16 / 2nd strip 0.10)
+	} else if (cls == 3) {
+		thr = tone == 3 ? 0.16 : 0.08; // lake shore / depths
+	} else if (cls == 2) {
+		thr = tone == 3 ? -0.02 : -0.06; // shore fast ice / shallows (cold coasts only)
+	}
+	if (thr < -1.0) {
+		return src;
+	}
+	vec2 clim = season_clim_at(cell);
+	float nz = (clim.y - 0.5) * 0.06;
+	float tl = season_T(season_phi - SEASON_LAG_ICE, clim.x) + nz;
+	float hs = cell_hash(cell);
+	vec3 i1 = mix(vec3(0.776, 0.855, 0.910), src, 0.12); // clear ice, one step calmer
+	vec3 i2 = mix(vec3(0.624, 0.741, 0.839), src, 0.12); // thin / wet ice
+	vec3 w6 = mix(vec3(0.231, 0.447, 0.725), src, 0.3); // open leads
+	if (tl < thr) {
+		float m = thr - tl;
+		vec3 c = m < 0.02 ? i2 : i1;
+		if (cls == 4) {
+			return mix(c, src, 0.45); // a frozen river stays a blue line on the snow
+		}
+		if (season_snow_at(cell) > 0.5 && m > 0.04 && hs > 0.35) {
+			c = mix(c, vec3(0.886, 0.902, 0.933), 0.7); // snow on thick ice (drifts)
+		}
+		return c;
+	}
+	bool froze = season_T(SEASON_PHI_COLD, clim.x) + nz < thr;
+	if (season_warming(season_phi) && froze) {
+		float f = (tl - thr) / 0.06;
+		if (f < 1.0) {
+			return hs < f ? w6 : i2;
+		}
+	}
+	return src;
 }
 
 int owner_at(vec2 cf) {
@@ -72,6 +171,12 @@ void fragment() {
 		int idx = clamp(int(texelFetch(terrain_idx, tc, li).r * 255.0 + 0.5), 0, 63);
 		vec3 base = pal[idx].rgb;
 		bool water = idx < 20;  // classes 0..4: deep, sea, shallow, lake, river
+		if (season_on == 1) {
+			// R387: the season of this texel, decided at its centre cell
+			float tcell = idx_cells * exp2(float(li));
+			ivec2 scell = clamp(ivec2((vec2(tc) + 0.5) * tcell), ivec2(0), ivec2(world_size) - ivec2(1));
+			base = water ? strat_season_water(idx, scell, base) : strat_season_land(idx, scell, base);
+		}
 		vec3 grey = vec3(dot(base, vec3(0.299, 0.587, 0.114)));
 		int o = owner_at(cf);
 		bool mine = o > 0 && o == player_id;

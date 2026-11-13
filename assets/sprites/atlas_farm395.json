@@ -1,0 +1,32 @@
+{
+ "_doc": "R395 BUILD: SEASONS385 pages of the turned farms (SUMMER RIPE STUBBLE PLOUGH SNOW SPROUT), page k at y = k * page_h + the sprite y. tools/art/gen_rot395_atlas.py",
+ "pages": 6,
+ "page_h": 44,
+ "size": [
+  85,
+  264
+ ],
+ "sprites": {
+  "farm_r90": {
+   "x": 1,
+   "y": 0,
+   "w": 25,
+   "h": 35,
+   "frames": 1
+  },
+  "farm_r180": {
+   "x": 27,
+   "y": 0,
+   "w": 32,
+   "h": 25,
+   "frames": 1
+  },
+  "farm_r270": {
+   "x": 60,
+   "y": 0,
+   "w": 24,
+   "h": 43,
+   "frames": 1
+  }
+ }
+}

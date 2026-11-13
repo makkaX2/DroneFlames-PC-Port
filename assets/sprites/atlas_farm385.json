@@ -1,0 +1,18 @@
+{
+ "_doc": "SEASONS385 farm season pages (SUMMER RIPE STUBBLE PLOUGH SNOW SPROUT), page k at y = k * page_h. tools/art/gen_farm385.py",
+ "size": [
+  35,
+  198
+ ],
+ "pages": 6,
+ "page_h": 33,
+ "sprites": {
+  "farm": {
+   "x": 0,
+   "y": 0,
+   "w": 35,
+   "h": 32,
+   "frames": 1
+  }
+ }
+}

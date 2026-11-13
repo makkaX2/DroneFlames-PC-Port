@@ -1,0 +1,8 @@
+add_library(df_pc_host_shims STATIC host_shims.cpp lp64_numeric.cpp)
+target_include_directories(df_pc_host_shims PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_link_libraries(df_pc_host_shims PUBLIC androidrecomp)
+target_compile_features(df_pc_host_shims PUBLIC cxx_std_17)
+target_compile_definitions(df_pc_host_shims PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
+if(MSVC)
+  target_compile_options(df_pc_host_shims PRIVATE /O2 /fp:strict)
+endif()

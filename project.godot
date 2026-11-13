@@ -9,36 +9,28 @@
 config_version=5
 
 [application]
-
-config/name="DroneFlames v0.33.5.38 (PC Port by @droneflamesmod)"
 config/use_custom_user_dir=true
-config/custom_user_dir_name="DroneFlames-PC-Port_test"
+config/custom_user_dir_name="DroneFlames_PC_Port_0_40_8"
+
+config/name="DroneFlames"
 run/main_scene="res://game/main.tscn"
 config/quit_on_go_back=false
-config/features=PackedStringArray("4.7", "Mobile")
+config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color="#0f1c45"
 boot_splash/stretch_mode=4
 boot_splash/use_filter=false
 boot_splash/image="res://splash.png"
-config/icon="res://icon.png"
-config/windows_native_icon="res://app_icon.ico"
-
-[autoload]
-
-UserDataMigration="*res://core/user_data_migration.gd"
-Watermark="*res://watermark.gd"
-Updater="*res://net/github_updater.gd"
-ModManager="*res://core/mod_manager.gd"
-LocalWorkshop="*res://core/local_workshop.gd"
+config/icon="res://icon.svg"
 
 [display]
 
-window/size/viewport_width=1280
-window/size/viewport_height=720
-window/size/window_width_override=1280
-window/size/window_height_override=720
+window/size/viewport_width=360
+window/size/viewport_height=640
+window/size/window_width_override=450
+window/size/window_height_override=975
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/handheld/orientation=6
 
 [editor_overrides]
 
@@ -55,15 +47,17 @@ enabled=PackedStringArray()
 
 [rendering]
 
+rendering_device/staging_buffer/block_size_kb=1024
+rendering_device/staging_buffer/texture_upload_region_size_px=256
 textures/canvas_textures/default_texture_filter=0
 rendering_device/driver.windows="d3d12"
-renderer/rendering_method="mobile"
+renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
 2d/snap/snap_2d_transforms_to_pixel=true
 2d/snap/snap_2d_vertices_to_pixel=true
+renderer/rendering_method.ios_sim="gl_compatibility"
 
 [threading]
 
 worker_pool/low_priority_thread_ratio.android=0.125
-worker_pool/low_priority_thread_ratio.windows=0.3
