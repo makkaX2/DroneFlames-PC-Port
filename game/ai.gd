@@ -1677,7 +1677,7 @@ func _aviation(c: Country) -> void :
 	var air: Air = gw.mil.air
 	var af: Facility = null
 	for f: Facility in gw.mil.facilities:
-		if f.kind == Facility.Kind.AIRFIELD and f.country_id == c.id and gw.mil.alive(f):
+		if f.kind in [Facility.Kind.AIRFIELD, Facility.Kind.AIRBASE] and f.country_id == c.id and gw.mil.alive(f):
 			af = f
 			break
 	_airlift_equipment(c, air)
@@ -2435,7 +2435,7 @@ func _sinks(c: Country, P: Dictionary) -> Array:
 		elif _count(c, Facility.Kind.TEL) < 1 + roundi(aggr * 2.0) + (1 if war else 0) + extra / 2:
 			add.call(0.2 + aggr * 0.5 + w * 0.4, "tel", Military.cost_of(Facility.Kind.TEL), Facility.Kind.TEL, 60.0)
 
-	var afs: int = _count(c, Facility.Kind.AIRFIELD)
+	var afs: int = _count(c, Facility.Kind.AIRFIELD) + _count(c, Facility.Kind.AIRBASE)
 	var want_af: int = (1 if war or aggr > 0.4 or caut > 0.6 or extra >= 1 else 0) + (1 if extra >= 4 else 0)
 	if afs < want_af:
 		add.call(0.4 + aggr * 0.3 + caut * 0.2 + w * 0.3 + (0.3 if afs == 0 else 0.0), "airfield", Military.cost_of(Facility.Kind.AIRFIELD), Facility.Kind.AIRFIELD, 90.0)
@@ -2567,7 +2567,7 @@ func _buy_aircraft(c: Country, type: int, reserve: int) -> bool:
 	var air: Air = gw.mil.air
 	var af: Facility = null
 	for f: Facility in gw.mil.facilities:
-		if f.kind == Facility.Kind.AIRFIELD and f.country_id == c.id and gw.mil.alive(f) and air._free_spot(f, type == Aircraft.Type.BOMBER) != -2:
+		if f.kind in [Facility.Kind.AIRFIELD, Facility.Kind.AIRBASE] and f.country_id == c.id and gw.mil.alive(f) and air.free_spot(f, type) != -2:
 			af = f
 			break
 	if af == null:

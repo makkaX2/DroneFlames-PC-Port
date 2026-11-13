@@ -166,6 +166,23 @@ func _run() -> void:
 	farm.powered = true
 	world.econ._produce()
 	assert(player.food == food + Economy.FARM_FOOD and player.money == cash + Economy.FARM_MONEY)
+	# A transferred airport must rebind to a city owned by the new country.
+	var transfer_city := City.new()
+	transfer_city.id = world.cities.size()
+	transfer_city.name = "Transfer Town"
+	transfer_city.kind = City.Kind.TOWN
+	transfer_city.center = Vector2i(130, 128)
+	transfer_city.country_id = transit.id
+	transfer_city.powered = true
+	world.cities.append(transfer_city)
+	transit.city_ids.append(transfer_city.id)
+	airport.country_id = transit.id
+	airport.civil_city_id = capital.id
+	airport.civil_route_blocked = false
+	world.game_time = 200.0
+	world.econ._produce()
+	assert(airport.civil_city_id == transfer_city.id)
+	assert(Airport.can_accept(airport, transit, world.mil))
 	if DisplayServer.get_name() != "headless":
 		var camera := MapCamera.new()
 		world.camera = camera

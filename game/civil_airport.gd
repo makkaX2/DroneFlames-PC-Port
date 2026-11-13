@@ -203,9 +203,12 @@ static func _clear_routes(f: Facility) -> void:
 
 static func update_service(f: Facility, country: Country, economy: Economy) -> void:
 	var mil: Military = economy.gw.mil
-	if f.civil_city_id < 0 and country != null:
+	var bound_city: City = city_for(f, economy.gw, country)
+	if country != null and (f.civil_city_id < 0 or bound_city == null):
 		var nearest: City = nearest_city(economy.gw, country, f.cell + f.size / 2)
 		if nearest != null:
+			if f.civil_city_id != nearest.id:
+				_clear_routes(f)
 			f.civil_city_id = nearest.id
 	if not can_accept(f, country, mil):
 		_clear_routes(f)
