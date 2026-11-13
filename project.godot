@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="DroneFlames v0.33.5.49-test (PC Port by @droneflamesmod)"
+config/name="DroneFlames v0.33.5.51-test (PC Port by @droneflamesmod)"
 config/use_custom_user_dir=true
 config/custom_user_dir_name="DroneFlames-PC-Port_test"
 run/main_scene="res://game/main.tscn"
