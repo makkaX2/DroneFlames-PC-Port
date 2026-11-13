@@ -3,6 +3,15 @@ uniform bool seasons_enabled = false;
 uniform float season_phase = 0.0;
 uniform vec2 climate_seed = vec2(0.0);
 
+uniform float weather_time = 0.0;
+
+float weather_cover(vec2 uv) {
+	float front = sin((uv.x * 2.8 + uv.y * 1.9 + climate_seed.y - weather_time / 120.0) * TAU);
+	float bands = sin((uv.x * 3.1 - uv.y * 4.8 + climate_seed.x + weather_time / 180.0) * TAU);
+	float envelope = sin((uv.x * 1.3 + uv.y * 2.1 + climate_seed.y + weather_time / 300.0) * TAU);
+	return smoothstep(0.10, 0.72, front * 0.45 + bands * 0.30 + envelope * 0.25);
+}
+
 float climate_cold(vec2 uv) {
 	float latitude = abs(uv.y - 0.5) * 2.0;
 	float regional = sin((uv.x * 2.7 + uv.y + climate_seed.x) * TAU);

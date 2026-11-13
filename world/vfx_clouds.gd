@@ -90,6 +90,12 @@ func _process(delta: float) -> void :
 	var m: ShaderMaterial = _mat if ca > 0.003 else _mat_sh
 	if material != m:
 		material = m
+	var seasonal: bool = gw.settings.seasons_enabled()
+	m.set_shader_parameter("seasons_enabled", seasonal)
+	if seasonal:
+		m.set_shader_parameter("weather_map_size", Vector2(gw.data.w, gw.data.h) * GameWorld.CELL)
+		m.set_shader_parameter("climate_seed", gw.weather.climate_seed)
+		m.set_shader_parameter("weather_time", fposmod(gw.game_time, 3600.0))
 	m.set_shader_parameter("drift", _drift)
 	m.set_shader_parameter("cloud_a", ca)
 	m.set_shader_parameter("shadow_a", SHADOW_A * (1.0 - 0.4 * gw.night.factor if gw.night != null else 1.0))

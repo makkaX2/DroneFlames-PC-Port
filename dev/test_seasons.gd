@@ -73,10 +73,33 @@ func _run() -> void:
 	world.objects._process(0.2)
 	assert(world.objects.autumn_level == 0)
 
+	world.data.biome.fill(Biome.GRASS)
+	world.data.flags.fill(0)
+	for y: int in world.data.h:
+		for x: int in range(96, 104):
+			world.data.set_biome(x, y, Biome.RIVER)
+	world.data.set_biome(106, 20, Biome.OCEAN)
+	world.game_time = 30.0
+	world.econ.build_nav()
+	var from := Vector2(360, 82)
+	var across := Vector2(458, 82)
+	assert(world.army.ground_at(Vector2(400, 82)) == 1)
+	assert(world.army.ground_at(Vector2(426, 82)) == 0)
+	world.econ.nav_path(from, across)
+	assert(world.econ.nav_last_ok, "A frozen river should connect its banks")
+	var on_ice := Unit.new()
+	on_ice.pos = Vector2(400, 82)
+	world.army.units.append(on_ice)
+	world.game_time = 240.0
+	world.econ.refresh_seasonal_navigation()
+	assert(world.army.ground_at(Vector2(400, 82)) == 0)
+	assert(on_ice.pos != Vector2(400, 82) and on_ice.alive())
+	world.econ.nav_path(from, across)
+	assert(not world.econ.nav_last_ok, "Thawing should close the river crossing")
 	legacy.size = 256
 	world.new_world(legacy)
 	assert(world.terrain.material == null)
 	assert(not world.weather.is_processing() and not world.weather.visible)
 	world.free()
-	print("[SEASONS-TEST] PASS: setup, calendar, serialization, world reset and graphics toggle")
+	print("[SEASONS-TEST] PASS: setup, calendar, serialization, world reset, graphics toggle and ice crossings")
 	quit()

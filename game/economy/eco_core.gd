@@ -406,6 +406,8 @@ func build_nav() -> void :
 	_nav_ver += 1
 	nav_solid_ver += 1
 	_path_cache.clear()
+	_ice_phase = GameWorld.SeasonWeather.ice_phase(gw.settings, gw.game_time)
+	_ice_nav_cells.clear()
 	var gw_n: int = d.w / NAV_K
 	var gh_n: int = d.h / NAV_K
 	nav.region = Rect2i(0, 0, gw_n, gh_n)
@@ -433,18 +435,19 @@ func build_nav() -> void :
 	nav_solid_b.resize(gw_n * gh_n)
 	for y in gh_n:
 		for x in gw_n:
-			_nav_eval(Vector2i(x, y), false)
+			_nav_eval(Vector2i(x, y))
 	print("[Nav] %dx%d in %d ms" % [gw_n, gh_n, Time.get_ticks_msec() - t0])
 
 
 
-func _nav_eval(q: Vector2i, _broken: bool) -> void :
+func _nav_eval(q: Vector2i) -> void :
 
 
 
 	var d: WorldData = gw.data
 	var w: int = d.w
 	var water: int = 0
+	var has_freshwater: bool = false
 	var river: int = 0
 	var road: bool = false
 	var land_road: bool = false
@@ -459,9 +462,13 @@ func _nav_eval(q: Vector2i, _broken: bool) -> void :
 			var b: int = d.biome[i]
 			var fl: int = d.flags[i]
 			if b <= Biome.RIVER:
+				if _ice_phase >= 0 and not has_freshwater:
+					has_freshwater = b == Biome.RIVER or (b >= Biome.SHALLOW and b <= Biome.COAST and d.lake_at(xx, yy) > 0)
 				if (fl & WorldData.F_BRIDGE) != 0 and gw.bridge_ok_idx(i):
 					span = true
 					road = true
+				elif _ice_phase >= 0 and GameWorld.SeasonWeather.solid_ice(d, xx, yy, _ice_phase):
+					rough += 1
 				else:
 					water += 1
 					if b == Biome.RIVER:
@@ -478,6 +485,10 @@ func _nav_eval(q: Vector2i, _broken: bool) -> void :
 				rough += 2
 
 
+	if has_freshwater:
+		_ice_nav_cells[q] = true
+	elif _ice_phase >= 0:
+		_ice_nav_cells.erase(q)
 	var solid: bool = water >= 3 and not span and not (land_road and river == 0)
 	if nav.is_point_solid(q) != solid:
 		nav_solid_ver += 1
@@ -513,7 +524,24 @@ func _bridgehead(x: int, y: int) -> bool:
 
 
 
-func bridge_state(cells: Array[Vector2i], intact: bool) -> void :
+func refresh_seasonal_navigation() -> void:
+	if nav == null or not gw.settings.seasons_enabled():
+		return
+	var phase_step: int = GameWorld.SeasonWeather.ice_phase(gw.settings, gw.game_time)
+	if phase_step == _ice_phase:
+		return
+	var previous: int = _ice_phase
+	_ice_phase = phase_step
+	for q: Vector2i in _ice_nav_cells.keys():
+		_nav_eval(q)
+	gw.army.on_ice_thaw(previous)
+
+
+func ice_at(cell: Vector2i) -> bool:
+	return _ice_phase >= 0 and GameWorld.SeasonWeather.solid_ice(gw.data, cell.x, cell.y, _ice_phase)
+
+
+func bridge_state(cells: Array[Vector2i], _intact: bool) -> void :
 	if nav == null:
 		return
 	var seen: Dictionary = {}
@@ -524,7 +552,7 @@ func bridge_state(cells: Array[Vector2i], intact: bool) -> void :
 			if seen.has(q) or not nav.region.has_point(q):
 				continue
 			seen[q] = true
-			_nav_eval(q, not intact)
+			_nav_eval(q)
 
 
 func block_rect(r: Rect2i, on: bool) -> void :
@@ -540,7 +568,7 @@ func block_rect(r: Rect2i, on: bool) -> void :
 				blocked.erase(q)
 			else:
 				blocked[q] = n
-			_nav_eval(q, false)
+			_nav_eval(q)
 
 
 func point_blocked(p: Vector2) -> bool:
@@ -557,7 +585,7 @@ func nav_open(path: Array[Vector2i]) -> void :
 		var q: = Vector2i(c.x / NAV_K, c.y / NAV_K)
 		if nav.region.has_point(q) and not seen.has(q):
 			seen[q] = true
-			_nav_eval(q, false)
+			_nav_eval(q)
 
 
 func _nav_cell(p: Vector2) -> Vector2i:
@@ -593,7 +621,7 @@ func _land_center(q: Vector2i) -> Vector2:
 	for yy in range(q.y * NAV_K, q.y * NAV_K + NAV_K):
 		for xx in range(q.x * NAV_K, q.x * NAV_K + NAV_K):
 			var i: int = yy * d.w + xx
-			if Biome.is_water(d.biome[i]) and (d.flags[i] & WorldData.F_BRIDGE) == 0:
+			if Biome.is_water(d.biome[i]) and (d.flags[i] & WorldData.F_BRIDGE) == 0 and not ice_at(Vector2i(xx, yy)):
 				continue
 			var p: = Vector2(xx * GameWorld.CELL + 2, yy * GameWorld.CELL + 2)
 			var dd: float = p.distance_squared_to(c) - (30.0 if (d.flags[i] & WorldData.F_ROAD) != 0 else 0.0)\
@@ -611,7 +639,7 @@ func _shore_cell(c: Vector2i) -> bool:
 		var n: Vector2i = c + o
 		if d.inside(n.x, n.y):
 			var i: int = n.y * d.w + n.x
-			if Biome.is_water(d.biome[i]) and (d.flags[i] & WorldData.F_BRIDGE) == 0:
+			if Biome.is_water(d.biome[i]) and (d.flags[i] & WorldData.F_BRIDGE) == 0 and not ice_at(n):
 				return true
 	return false
 
@@ -1179,7 +1207,7 @@ func _water_px(p: Vector2) -> bool:
 	if not d.inside(c.x, c.y):
 		return false
 	var i: int = c.y * d.w + c.x
-	return Biome.is_water(d.biome[i]) and (d.flags[i] & WorldData.F_BRIDGE) == 0
+	return Biome.is_water(d.biome[i]) and (d.flags[i] & WorldData.F_BRIDGE) == 0 and not ice_at(c)
 
 
 func _bridge_near(p: Vector2) -> bool:
@@ -1231,7 +1259,7 @@ func _dry_near(p: Vector2) -> Vector2:
 				if maxi(absi(dx), absi(dy)) != rr:
 					continue
 				var q: = c + Vector2i(dx, dy)
-				if not d.inside(q.x, q.y) or Biome.is_water(d.get_biome(q.x, q.y)):
+				if not d.inside(q.x, q.y) or (Biome.is_water(d.get_biome(q.x, q.y)) and not ice_at(q)):
 					continue
 				var qp: = Vector2(q * GameWorld.CELL) + Vector2(2, 2)
 				if any == Vector2.INF:

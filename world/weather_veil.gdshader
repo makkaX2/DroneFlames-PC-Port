@@ -4,7 +4,6 @@ render_mode unshaded;
 #include "res://world/season_climate.gdshaderinc"
 
 uniform vec2 map_size = vec2(1.0);
-uniform float weather_time = 0.0;
 uniform float density = 1.0;
 varying vec2 map_position;
 
@@ -20,10 +19,7 @@ float cell_noise(vec2 id) {
 
 void fragment() {
 	vec2 uv = map_position / map_size;
-	// Two moving fronts. The same region has the same weather at any camera zoom.
-	float first = sin((uv.x * 2.8 + uv.y * 1.9 + climate_seed.y - weather_time / 120.0) * TAU);
-	float second = sin((uv.x * 3.1 - uv.y * 4.8 + climate_seed.x + weather_time / 180.0) * TAU);
-	float moisture = smoothstep(0.40, 0.86, first * 0.65 + second * 0.35);
+	float moisture = smoothstep(0.48, 0.90, weather_cover(uv));
 	float cold = climate_snow(uv);
 	float snow = smoothstep(0.19, 0.38, cold);
 	vec2 screen = FRAGCOORD.xy;

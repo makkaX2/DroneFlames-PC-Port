@@ -839,6 +839,10 @@ func _advance(u: Unit, dt: float) -> void :
 	var c: Country = gw.country_by_id(u.country_id)
 	if c != null and c.food <= 0:
 		spd *= 0.6
+	if gw.econ._ice_phase >= 0:
+		var cell: Vector2i = Vector2i((u.pos / GameWorld.CELL).floor())
+		if gw.data.inside(cell.x, cell.y) and gw.econ.ice_at(cell) and not gw.data.has_flag(cell.x, cell.y, WorldData.F_BRIDGE):
+			spd *= 0.72
 	if not u.foot() and not gw.mil.fort_cells.is_empty():
 
 		var tc: = Vector2i(floori(u.pos.x / GameWorld.CELL), floori(u.pos.y / GameWorld.CELL))
@@ -2321,7 +2325,7 @@ func ground_at(p: Vector2) -> int:
 	var cy: int = floori(p.y / GameWorld.CELL)
 	if not d.inside(cx, cy):
 		return 0
-	if not Biome.is_water(d.biome[cy * d.w + cx]):
+	if not Biome.is_water(d.biome[cy * d.w + cx]) or gw.econ.ice_at(Vector2i(cx, cy)):
 		return 1
 	var stand: bool = false
 	for dy in range( - DECK_R, DECK_R + 1):
@@ -2343,6 +2347,20 @@ func ground_at(p: Vector2) -> int:
 				stand = k >= 0 and k < b.collapse.size() and _span_ok(b, k)
 	return 2 if stand else 0
 
+
+
+func on_ice_thaw(previous: int) -> void:
+	for u: Unit in units:
+		if not u.alive() or not u.ground():
+			continue
+		var cell: Vector2i = Vector2i((u.pos / GameWorld.CELL).floor())
+		if not gw.data.inside(cell.x, cell.y) or not GameWorld.SeasonWeather.solid_ice(gw.data, cell.x, cell.y, previous) or ground_at(u.pos) != 0:
+			continue
+		var shore: Vector2 = gw.econ.land_point(u.pos, 8)
+		if shore == u.pos:
+			_drown(u, u.country_id)
+		else:
+			u.pos = shore
 
 
 func _dry_step(u: Unit, q: Vector2, to: Vector2, step: float) -> bool:

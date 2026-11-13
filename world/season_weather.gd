@@ -3,6 +3,8 @@ extends Node2D
 const TERRAIN_SHADER = preload("res://world/season_terrain.gdshader")
 const WEATHER_SHADER = preload("res://world/weather_veil.gdshader")
 const MASK_REFRESH: float = 0.75
+const ICE_STEPS: int = 48
+const ICE_LIMIT: float = 0.66
 
 var gw: GameWorld
 var phase: float = 0.0
@@ -72,7 +74,7 @@ func _update_climate() -> void:
 	visible = GameConfig.precipitation and GameConfig.fx_level > 0 and not GameConfig.power_save
 	if visible:
 		_weather_material.set_shader_parameter("season_phase", phase)
-		# The two front periods share a common multiple, so neither front jumps on wrap.
+		# Every front completes a whole number of cycles before the wrap.
 		_weather_material.set_shader_parameter("weather_time", fposmod(gw.game_time, 3600.0))
 		_weather_material.set_shader_parameter("density", 0.65 if GameConfig.fx_level == 1 else 1.0)
 
@@ -84,6 +86,26 @@ func _draw() -> void:
 
 func _on_cells_changed(_cells: Array) -> void:
 	_mask_dirty = _terrain_material != null
+
+
+static func ice_phase(settings: WorldSettings, time: float) -> int:
+	if not settings.seasons_enabled():
+		return -1
+	return floori(settings.season_phase(time) * ICE_STEPS / 4.0)
+
+
+static func solid_ice(data: WorldData, x: int, y: int, phase_step: int) -> bool:
+	if phase_step < 0:
+		return false
+	var biome: int = data.get_biome(x, y)
+	if biome != Biome.RIVER and ((biome < Biome.SHALLOW or biome > Biome.COAST) or data.lake_at(x, y) == 0):
+		return false
+	var uv: Vector2 = Vector2((x + 0.5) / data.w, (y + 0.5) / data.h)
+	var winter: float = cos((float(phase_step) * 4.0 / ICE_STEPS - 3.25) * PI * 0.5)
+	var latitude: float = absf(uv.y - 0.5) * 2.0
+	var region: float = sin((uv.x * 2.7 + uv.y + float(posmod(data.world_seed, 997)) / 997.0) * TAU)
+	var cold: float = winter * 0.86 + latitude * 0.74 + region * 0.15
+	return smoothstep(0.50, 1.22, cold) >= ICE_LIMIT
 
 
 static func surface_mask(data: WorldData) -> PackedByteArray:

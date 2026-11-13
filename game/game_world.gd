@@ -417,6 +417,7 @@ func _sim_step(dt: float) -> void :
 			if perf_prof:
 				_pf("delayed:" + str((d[1] as Callable).get_method()))
 	if dt > 0.0:
+		econ.refresh_seasonal_navigation()
 
 
 

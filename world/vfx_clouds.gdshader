@@ -5,6 +5,9 @@ render_mode unshaded;
 // texture (tools/art/gen_vfx19_clouds.py: R coverage, G tone; 1 texel = `texel` world px).
 // World px in, so everything stays on the world grid and scrolls with the wind.
 
+#include "res://world/season_climate.gdshaderinc"
+
+uniform vec2 weather_map_size = vec2(1.0);
 uniform sampler2D cloud_tex : filter_nearest, repeat_enable;
 uniform sampler2D cloud_lin : filter_linear, repeat_enable;
 uniform vec2 drift = vec2(0.0);
@@ -64,16 +67,18 @@ void fragment() {
 	// at the tile edge (straight horizontal cuts through clouds and shadows, v0.19 fix).
 	float sd = texture(cloud_lin, fract((sc * sgrid + drift + shadow_off) / span)).r;
 	float sa = floor(clamp(sd * 1.5, 0.0, 1.0) * 2.0 + bayer4(sc)) * 0.5 * shadow_a;
+	float moisture = seasons_enabled ? weather_cover(wp / weather_map_size) : 0.0;
 	float ca = 0.0;
 	vec3 col = c_mid;
 #ifndef SHADOW_ONLY
 	// (v0.20: vfx_clouds.gd swaps in a SHADOW_ONLY build of this shader when zoomed in)
 	if (cloud_a > 0.003) {
 		vec4 c = texture(cloud_tex, fract((wp + drift) / span));
-		if (c.r > 0.0) {
+		if (c.r > 0.0 || moisture > 0.56) {
 			vec2 dc = floor((wp + drift) / (texel * 0.5));
-			float k = cloud_a * clear_f(wp) * land_f(wp) * dim;
-			if (c.r > 0.75) {
+			float wet_cloud = seasons_enabled ? max(0.22, smoothstep(0.10, 0.55, moisture)) : 1.0;
+			float k = cloud_a * clear_f(wp) * land_f(wp) * dim * wet_cloud;
+			if (c.r > 0.75 || moisture > 0.76) {
 				// solid body: one flat translucent step per tone (clean shapes, no noise)
 				ca = floor(k * (c.g > 0.8 ? 1.0 : 0.92) * 8.0 + 0.5) / 8.0;
 			} else {
@@ -81,9 +86,13 @@ void fragment() {
 				ca = bayer4(dc) < 0.5 ? floor(k * 0.8 * 8.0 + 0.5) / 8.0 : 0.0;
 			}
 			col = c.g > 0.8 ? c_lit : (c.g > 0.4 ? c_mid : c_shade);
+			col = mix(col, c_shade * 0.83, smoothstep(0.52, 0.95, moisture) * 0.55);
 		}
 	}
 #endif
+	if (seasons_enabled) {
+		sa *= mix(0.36, 1.0, moisture);
+	}
 	float a = ca + sa * (1.0 - ca);
 	vec3 rgb = (col * ca + c_shadow * sa * (1.0 - ca)) / max(a, 0.0001);
 	COLOR = vec4(rgb, a);
