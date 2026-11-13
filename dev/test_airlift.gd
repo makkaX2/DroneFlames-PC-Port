@@ -109,6 +109,21 @@ func _run() -> void:
 			landed.append(u)
 	assert(landed.size() == 6)
 	assert(home.airlift_ready_at > world.game_time)
+	# Regression: a fixed-wing transport is already marked RTB during descent.
+	# If it is shot down at that point, its cargo must be lost, not released.
+	var before_loss: int = world.army.count_units(player.id)
+	var lost: Unit = Unit.new()
+	lost.country_id = player.id
+	var descent_loss_job: Dictionary = {
+		"aircraft": aircraft, "cid": player.id, "stage": Air.AirliftStage.DESCENT,
+		"units": [lost], "point": drop, "release_at": world.game_time
+	}
+	air.airlifts[home] = descent_loss_job
+	aircraft.state = Aircraft.State.DEAD
+	air._tick_airlift(home, descent_loss_job)
+	assert(not air.airlift_busy(home) and world.army.count_units(player.id) == before_loss)
+	assert(not world.army.units.has(lost))
+	aircraft.state = Aircraft.State.PARKED
 
 	var heli: Aircraft = air.aircraft[1]
 	base = heli.base

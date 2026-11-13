@@ -3101,7 +3101,10 @@ func _tick_airlift(home: Facility, job: Dictionary) -> void:
 		job["stage"] = AirliftStage.FLYING
 		return
 	if stage == AirliftStage.DESCENT:
-		if a.helicopter() and a.state == Aircraft.State.DEAD:
+		# A fixed-wing transport switches to RTB as soon as descent starts, so
+		# the generic dead-aircraft guard below is skipped for this stage. Check
+		# every transport here or a shot-down plane will still release its cargo.
+		if a.state == Aircraft.State.DEAD:
 			airlifts.erase(home)
 			return
 		if a.helicopter() and (home.country_id != cid or not _airlift_site(cid, job["point"]).is_empty()):

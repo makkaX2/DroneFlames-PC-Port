@@ -83,13 +83,9 @@ func _ready() -> void :
 	print("[MainReady] All cmdline args received: ", all_args)
 	for a: String in all_args:
 		if a.begins_with("--net-test="):
-			var nt: RefCounted = (load("res://dev/net_autotest.gd") as GDScript).new()
-			set_meta("net_test", nt)
-			nt.call("run", self, a)
+			_run_dev_script("res://dev/net_autotest.gd", "net_test", [self, a])
 		elif a.begins_with("--mp-shots="):
-			var ms: RefCounted = (load("res://dev/mp_shots.gd") as GDScript).new()
-			set_meta("mp_shots", ms)
-			ms.call("run", self, a)
+			_run_dev_script("res://dev/mp_shots.gd", "mp_shots", [self, a])
 		elif a.begins_with("--impossible-shots"):
 			var ishots: RefCounted = (load("res://dev/impossible_shots.gd") as GDScript).new()
 			set_meta("impossible_shots", ishots)
@@ -131,14 +127,25 @@ func _ready() -> void :
 			set_meta("police_test", police_test)
 			police_test.call("run", self)
 		elif a == "--create-nuke-save":
-			var cns: RefCounted = (load("res://dev/create_nuke_save.gd") as GDScript).new()
-			set_meta("create_nuke_save", cns)
-			cns.call("run", self)
+			_run_dev_script("res://dev/create_nuke_save.gd", "create_nuke_save", [self])
 		elif a.begins_with("--airborne-demo"):
 			var ad: RefCounted = (load("res://dev/airborne_demo.gd") as GDScript).new()
 			set_meta("airborne_demo", ad)
 			ad.call("run", self)
 
+
+
+func _run_dev_script(path: String, meta_name: String, args: Array) -> void:
+	if not ResourceLoader.exists(path):
+		push_error("Requested dev script is not included in this build: %s" % path)
+		return
+	var script: GDScript = load(path) as GDScript
+	if script == null:
+		push_error("Could not load requested dev script: %s" % path)
+		return
+	var instance: RefCounted = script.new()
+	set_meta(meta_name, instance)
+	instance.callv("run", args)
 
 
 func _main_menu() -> void :

@@ -38,6 +38,7 @@ static var atlas_cosm_fr: SpriteAtlas
 static var atlas_cosm_bn: SpriteAtlas
 static var atlas_cosm_tt: SpriteAtlas
 static var atlas_cosm_bn_anim: SpriteAtlas
+static var atlas_ws: SpriteAtlas
 static var font: FontFile
 static var f_reg: FontVariation
 static var f_bold: FontVariation
@@ -92,6 +93,7 @@ static func ensure() -> void :
 	atlas_cosm_tt = SpriteAtlas.load_atlas("res://assets/sprites/atlas_cosm_tt.png", "res://assets/sprites/atlas_cosm_tt.json", true)
 	atlas_cosm_bn_anim = SpriteAtlas.load_atlas("res://assets/sprites/atlas_cosm_bn_anim.png", "res://assets/sprites/atlas_cosm_bn_anim.json", true)
 	atlas_ui319 = SpriteAtlas.load_atlas("res://assets/sprites/atlas_ui319.png", "res://assets/sprites/atlas_ui319.json", true)
+	atlas_ws = SpriteAtlas.load_atlas("res://assets/sprites/atlas_ws.png", "res://assets/sprites/atlas_ws.json", true)
 	font = load("res://assets/fonts/PressStart2P-Regular.ttf") as FontFile
 	font.antialiasing = TextServer.FONT_ANTIALIASING_NONE
 	font.hinting = TextServer.HINTING_NONE
@@ -172,7 +174,7 @@ static func snd(id: String) -> void :
 
 
 static func _all() -> Array:
-	return [atlas_ui319, atlas9, atlas, atlas2, atlas3, atlas4, atlas5, atlas6, atlas7, atlas8, atlas10, atlas11, atlas12, atlas13, atlas14, atlas15, atlas16, atlas17, atlas18, atlas19, atlas20, atlas_dip26, atlas_navy1, MobileArt.atlas("atlas_r380"), MobileArt.atlas("atlas_air388"), atlas_net29, atlas_acc1, atlas_navy30, atlas_uran30ui, atlas_cosm_fr, atlas_cosm_bn, atlas_cosm_tt]
+	return [atlas_ui319, atlas9, atlas, atlas2, atlas3, atlas4, atlas5, atlas6, atlas7, atlas8, atlas10, atlas11, atlas12, atlas13, atlas14, atlas15, atlas16, atlas17, atlas18, atlas19, atlas20, atlas_dip26, atlas_navy1, atlas_ws, MobileArt.atlas("atlas_r380"), MobileArt.atlas("atlas_air388"), atlas_net29, atlas_acc1, atlas_navy30, atlas_uran30ui, atlas_cosm_fr, atlas_cosm_bn, atlas_cosm_tt]
 
 
 static func has(sprite_name: String) -> bool:

@@ -42,7 +42,7 @@ static func build(menus: Node, parent: VBoxContainer) -> void:
 	var status: Label = UiKit.lbl(String(menus.get_meta("local_map_message", "")), 11, UiKit.GOLD)
 	menus.set_meta("local_map_message", "")
 	parent.add_child(status)
-	var save: Button = UiKit.big("СОХРАНИТЬ КАРТУ", "green", "", 40.0, 11)
+	var save: Button = UiKit.big("СОХРАНИТЬ КАРТУ", "green", "ws_publish", 40.0, 11)
 	save.name = "WorkshopSave"
 	save.pressed.connect(func() -> void:
 		var error: String = service.save_map(edit_id, name_field.text, TERRAIN_IDS[terrain.selected], int(land.value))
@@ -55,7 +55,7 @@ static func build(menus: Node, parent: VBoxContainer) -> void:
 	)
 	parent.add_child(save)
 	if not edited.is_empty():
-		var cancel: Button = UiKit.big("ОТМЕНИТЬ ИЗМЕНЕНИЕ", "stone", "", 36.0, 11)
+		var cancel: Button = UiKit.big("ОТМЕНИТЬ ИЗМЕНЕНИЕ", "stone", "ws_undo", 36.0, 11)
 		cancel.pressed.connect(func() -> void:
 			menus.set_meta("local_map_edit", "")
 			menus.call_deferred("show_local_workshop")
@@ -71,7 +71,7 @@ static func build(menus: Node, parent: VBoxContainer) -> void:
 		var row: HBoxContainer = HBoxContainer.new()
 		row.add_theme_constant_override("separation", 6)
 		parent.add_child(row)
-		var edit: Button = UiKit.big("ИЗМЕНИТЬ", "stone", "", 34.0, 10)
+		var edit: Button = UiKit.big("ИЗМЕНИТЬ", "stone", "ws_pencil", 34.0, 10)
 		edit.name = "WorkshopEdit_" + id
 		edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		edit.pressed.connect(func() -> void:
@@ -79,7 +79,7 @@ static func build(menus: Node, parent: VBoxContainer) -> void:
 			menus.call_deferred("show_local_workshop")
 		)
 		row.add_child(edit)
-		var remove: Button = UiKit.big("УДАЛИТЬ", "stone", "", 34.0, 10)
+		var remove: Button = UiKit.big("УДАЛИТЬ", "stone", "ws_delete", 34.0, 10)
 		remove.name = "WorkshopRemove_" + id
 		remove.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		remove.pressed.connect(func() -> void:
@@ -96,7 +96,7 @@ static func build(menus: Node, parent: VBoxContainer) -> void:
 		)
 		row.add_child(remove)
 	var back_row: HBoxContainer = menus._bottom_row()
-	var back: Button = menus._button(back_row, "НАЗАД К МОДАМ", "stone", "")
+	var back: Button = menus._ibutton(back_row, "НАЗАД К МОДАМ", "stone", "", "ws_workshop")
 	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	back.pressed.connect(func() -> void:
 		menus.set_meta("local_map_edit", "")

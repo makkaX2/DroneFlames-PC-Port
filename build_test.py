@@ -24,19 +24,22 @@ def load_version() -> str:
                 return str(data["version"])
         except Exception:
             pass
-    return "0.33.5.4"
+    return "0.33.5.49-test"
 
-def set_test_version(new_version: str) -> None:
+def set_test_version(new_version: str) -> str | None:
     v_file = ROOT_DIR / "version_info.json"
     if v_file.exists():
         try:
+            original = v_file.read_text(encoding="utf-8")
             data = json.loads(v_file.read_text(encoding="utf-8"))
             data["version"] = new_version
-            data["build"] = "test"
+            data["build_channel"] = "test"
             v_file.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             print(f"[TestBuilder] Updated version_info.json to '{new_version}'")
+            return original
         except Exception as e:
             print(f"[TestBuilder] Warning: could not update version_info.json: {e}")
+    return None
 
 def main():
     current_ver = load_version()
@@ -59,18 +62,21 @@ def main():
     print("==================================================")
 
     # Set test version in version_info.json if needed
-    if current_ver != test_version:
-        set_test_version(test_version)
+    original_manifest = set_test_version(test_version) if current_ver != test_version else None
+    try:
+        # Run build with test flag
+        os.environ["BUILD_TEST"] = "1"
+        sys.argv = [sys.argv[0], "--test"]
 
-    # Run build with test flag
-    os.environ["BUILD_TEST"] = "1"
-    sys.argv = [sys.argv[0], "--test"]
-    
-    import build
-    build.VERSION = test_version
-    build.STAGE_NAME = f"{build.APP_NAME}_PC_v{test_version}_{build.PUBLISHER}"
-    build.STAGE_DIR = build.BUILD_DIR / build.STAGE_NAME
-    build.main()
+        import build
+        build.VERSION = test_version
+        build.STAGE_NAME = f"{build.APP_NAME}_PC_v{test_version}_{build.PUBLISHER}"
+        build.STAGE_DIR = build.BUILD_DIR / build.STAGE_NAME
+        build.main()
+    finally:
+        if original_manifest is not None:
+            (ROOT_DIR / "version_info.json").write_text(original_manifest, encoding="utf-8")
+            print("[TestBuilder] Restored version_info.json")
 
 if __name__ == "__main__":
     main()
