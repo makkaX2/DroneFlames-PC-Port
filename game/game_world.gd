@@ -132,7 +132,8 @@ func _ready() -> void :
 
 
 func _build_sprite_table() -> void :
-	for at: SpriteAtlas in [atlas, atlas2, atlas3, atlas4, atlas6, atlas7, atlas8, atlas9, atlas10, atlas11, atlas12, atlas13, atlas_navy1, atlas_mines27, atlas_uran30]:
+	var farm_atlas: SpriteAtlas = SpriteAtlas.load_atlas("res://assets/sprites/atlas_farm_port.png", "res://assets/sprites/atlas_farm_port.json")
+	for at: SpriteAtlas in [atlas, atlas2, atlas3, atlas4, atlas6, atlas7, atlas8, atlas9, atlas10, atlas11, atlas12, atlas13, atlas_navy1, atlas_mines27, atlas_uran30, farm_atlas]:
 		_add_sprites(at)
 	spr_ruin.resize(spr_rect.size())
 	for i in spr_rect.size():

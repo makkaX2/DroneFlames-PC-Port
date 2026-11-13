@@ -832,6 +832,9 @@ func _draw() -> void :
 				continue
 		if c3.a <= 0.0:
 			continue
+		if k3 == K_SMOKE and far_k < 0.5:
+			var billow: Vector2 = Vector2(sin(ph[i] + u3 * 7.0) * 0.27, -0.18) * d3 * u3
+			_puff(p3 + billow, d3 * 0.72, Color(c3.lightened(0.12), c3.a * 0.48), false)
 		_puff(p3, d3, c3, k3 == K_WISP)
 
 	for i in (n if _kc[K_BFLY] + _kc[K_LEAF] + _kc[K_POLLEN] > 0 else 0):

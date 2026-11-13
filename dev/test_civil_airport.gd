@@ -132,6 +132,12 @@ func _run() -> void:
 	assert(airport.civil_next_arrival == 180.0)
 	var farm: Facility = world.mil.build(Facility.Kind.FARM, Vector2i(175, 155), player)
 	assert(farm != null and Military.uses_power(farm.kind))
+	for turn: int in [90, 180, 270]:
+		var name: String = "farm_r%d" % turn
+		assert(world.spr_index.has(name) and world.spr_ruin[world.spr_index[name]] == world.spr_index[name + "_ruin"])
+	var turn: int = Hash32.h2(farm.cell.x, farm.cell.y, world.data.world_seed) % 4
+	var variant: String = "farm" if turn == 0 else "farm_r%d" % (turn * 90)
+	assert(world.spr_name[world.obj_spr[farm.main_obj]] == variant)
 	farm.powered = false
 	var food: int = player.food
 	cash = player.money
@@ -148,6 +154,7 @@ func _run() -> void:
 		camera.position = airport.center_px()
 		camera.make_current()
 		world.game_time = 169.0
+		world.fx.spawn("smoke_black_loop", airport.center_px(), 6, world.game_time + 5.0, true)
 		await RenderingServer.frame_post_draw
 		await RenderingServer.frame_post_draw
 	world.free()

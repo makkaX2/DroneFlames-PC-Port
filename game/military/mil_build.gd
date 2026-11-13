@@ -366,7 +366,13 @@ func build(kind: int, center: Vector2i, country: Country, parent: Facility = nul
 		f.obj_ids.append(f.main_obj)
 	else:
 		var okind: int = GameWorld.KIND_PROP if kind == Facility.Kind.DP_RUNWAY else GameWorld.KIND_BUILDING
-		f.main_obj = gw.add_object(String(SPRITES[kind]), nw, okind)
+		var sprite: String = String(SPRITES[kind])
+		if kind == Facility.Kind.FARM:
+			var turn: int = Hash32.h2(nw.x, nw.y, gw.data.world_seed) % 4
+			var variant_sprite: String = "farm_r%d" % (turn * 90)
+			if turn > 0 and gw.spr_index.has(variant_sprite):
+				sprite = variant_sprite
+		f.main_obj = gw.add_object(sprite, nw, okind)
 		f.obj_ids.append(f.main_obj)
 	match kind:
 		Facility.Kind.CIV_AIRPORT:
